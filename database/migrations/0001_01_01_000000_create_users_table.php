@@ -17,7 +17,6 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
-            $table->json('role')->nullable();
             $table->boolean('is_active')->default(true); // Estado del usuario
             $table->boolean('accepted_terms')->default(false); // Aceptó términos y condiciones
             $table->string('profile_photo')->nullable(); // URL de la foto de perfil

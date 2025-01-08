@@ -14,64 +14,36 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
-        // Crear un administrador
-        $admin = User::firstOrCreate(
-            ['email' => 'coderman1980@gmail.com'],
-            [
-                'name' => 'Jaime Sierra',
-                'password' => Hash::make('coderman'),
-                'is_active' => true,
-                'accepted_terms' => true,
-            ]
-        );
-        $adminRoles = Role::where('name', 'admin')->pluck('id');
-        $admin->roles()->sync($adminRoles);
-        $admin->role = Role::where('id', $adminRoles)->pluck('name')->toArray();
-        $admin->save();
+        // Obtener roles
+        $adminRole = Role::where('name', 'admin')->first();
+        $clientRole = Role::where('name', 'client')->first();
+        $helperRole = Role::where('name', 'helper')->first();
+        $moderatorRole = Role::where('name', 'moderator')->first();
+        $supportRole = Role::where('name', 'support')->first();
 
-        // Crear un moderador
-        $moderator = User::firstOrCreate(
-            ['email' => 'moderator@example.com'],
-            [
-                'name' => 'Moderator',
-                'password' => Hash::make('password'),
-                'is_active' => true,
-                'accepted_terms' => true,
-            ]
-        );
-        $moderatorRoles = Role::where('name', 'moderator')->pluck('id');
-        $moderator->roles()->sync($moderatorRoles);
-        $moderator->role = Role::where('id', $moderatorRoles)->pluck('name')->toArray();
-        $moderator->save();
+        // Crear un usuario admin
+        $admin = User::factory()->create([
+            'name' => 'Jaime Sierra',
+            'email' => 'coderman1980@gmail.com',
+        ]);
+        $admin->roles()->attach($adminRole);
 
-        // Crear un usuario de soporte
-        $support = User::firstOrCreate(
-            ['email' => 'support@example.com'],
-            [
-                'name' => 'Support',
-                'password' => Hash::make('password'),
-                'is_active' => true,
-                'accepted_terms' => true,
-            ]
-        );
-        $supportRoles = Role::where('name', 'support')->pluck('id');
-        $support->roles()->sync($supportRoles);
-        $support->role = Role::where('id', $supportRoles)->pluck('name')->toArray();
-        $support->save();
+        // Crear 10 usuarios con roles client y helper
+        $clientHelperUsers = User::factory(10)->create();
+        foreach ($clientHelperUsers as $user) {
+            $user->roles()->attach([$clientRole->id, $helperRole->id]);
+        }
 
-        // Crear usuarios estándar con roles de client y helper
-        $user = User::firstOrCreate(
-            ['email' => 'user@example.com'],
-            [
-                'name' => 'Standard User',
-                'password' => Hash::make('password'),
-                'is_active' => true,
-                'accepted_terms' => true,
-            ]
-        );
-        $userRoles = Role::whereIn('name', ['client', 'helper'])->pluck('id');
-        $user->roles()->sync($userRoles);
-        $user->role = Role::whereIn('id', $userRoles)->pluck('name')->toArray();
-        $user->save();
+        // Crear 2 usuarios con rol moderator
+        $moderatorUsers = User::factory(2)->create();
+        foreach ($moderatorUsers as $user) {
+            $user->roles()->attach($moderatorRole);
+        }
+
+        // Crear 2 usuarios con rol support
+        $supportUsers = User::factory(2)->create();
+        foreach ($supportUsers as $user) {
+            $user->roles()->attach($supportRole);
+        }
     }
 }

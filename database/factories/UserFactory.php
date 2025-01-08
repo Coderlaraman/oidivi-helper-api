@@ -2,12 +2,13 @@
 
 namespace Database\Factories;
 
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\User>
+ * @extends Factory<User>
  */
 class UserFactory extends Factory
 {
@@ -26,8 +27,16 @@ class UserFactory extends Factory
         return [
             'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
-            'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
+            'is_active' => fake()->boolean(90), // 90% de probabilidad de que sea activo
+            'accepted_terms' => true, // Simulando que aceptaron términos
+            'profile_photo' => fake()->imageUrl(200, 200, 'people'), // Foto de perfil ficticia
+            'profile_video' => fake()->url(), // URL ficticia para video de perfil
+            'address' => fake()->address(),
+            'zip_code' => fake()->postcode(),
+            'latitude' => fake()->latitude(),
+            'longitude' => fake()->longitude(),
+            'email_verified_at' => now(),
             'remember_token' => Str::random(10),
         ];
     }

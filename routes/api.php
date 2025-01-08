@@ -8,7 +8,6 @@ use Illuminate\Support\Facades\Route;
 
 // Versión 1 de la API
 
-Route::get('/v1/admin/test', [AdminUserController::class, 'test']);
 // Rutas para Admin
 Route::prefix('v1/admin')->middleware(['auth:admin', 'role:admin'])->group(function () {
     Route::get('/users', [AdminUserController::class, 'index']);
@@ -18,11 +17,13 @@ Route::prefix('v1/admin')->middleware(['auth:admin', 'role:admin'])->group(funct
 
 // Rutas para Cliente
 Route::prefix('v1/client')->group(function () {
-
     Route::post('/login', [ClientAuthController::class, 'login']);
     Route::post('/register', [ClientAuthController::class, 'register']);
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('/dashboard', [ClientUserController::class, 'dashboard']);
+        Route::get('/me', [ClientUserController::class, 'me']);
+        Route::post('/profile', [ClientUserController::class, 'updateProfile']);
+        Route::post('/profile/update-name', [ClientUserController::class, 'updateName']);
         Route::post('/logout', [ClientAuthController::class, 'logout']);
     });
 });

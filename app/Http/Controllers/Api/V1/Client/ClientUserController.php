@@ -4,29 +4,75 @@ namespace App\Http\Controllers\Api\V1\Client;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use App\Http\Resources\ClientAuthResource;
 
 class ClientUserController extends Controller
 {
-    public function show(Request $request)
+    /**
+     * Retorna los datos del usuario autenticado
+     */
+    public function me(Request $request)
     {
-        return response()->json($request->user(), 200);
+        $user = $request->user();
+
+        // Devuelve los datos del usuario como recurso de cliente
+        return response()->json([
+            'success' => true,
+            'message' => 'User data retrieved successfully.',
+            'data' => new ClientAuthResource($user),
+        ]);
     }
 
-    public function update(Request $request)
+    /**
+     * Actualizar el perfil del usuario autenticado
+     */
+    public function updateProfile(Request $request)
     {
-        $validated = $request->validate([
-            'name' => 'sometimes|string|max:255',
-            'email' => 'sometimes|email|unique:users,email,' . $request->user()->id,
-            'password' => 'nullable|string|min:8|confirmed',
+        $user = $request->user();
+
+        $validatedData = $request->validate([
+            'name' => 'nullable|string|max:255',
+            'email' => 'nullable|email|max:255',
+            'address' => 'nullable|string|max:255',
+            'zip_code' => 'nullable|string|max:10',
+            'latitude' => 'nullable|numeric',
+            'longitude' => 'nullable|numeric',
         ]);
 
-        $user = $request->user();
-        if ($request->has('password')) {
-            $validated['password'] = bcrypt($validated['password']);
-        }
+        // Filtrar los campos proporcionados en la solicitud (no vacíos)
+        $dataToUpdate = array_filter($validatedData, function ($value) {
+            return !is_null($value);
+        });
 
-        $user->update($validated);
+        $user->update($dataToUpdate);
 
-        return response()->json(['message' => 'Profile updated successfully.', 'user' => $user], 200);
+        return response()->json([
+            'success' => true,
+            'message' => 'Profile updated successfully.',
+            'data' => $user,
+        ]);
     }
+
+
+    public function updateName(Request $request)
+    {
+        $user = $request->user();
+
+        // Validar el nombre
+        $validatedData = $request->validate([
+            'name' => 'required|string|max:255',
+        ]);
+
+        // Actualizar el nombre del usuario
+        $user->update([
+            'name' => $validatedData['name'],
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Name updated successfully.',
+            'data' => $user,
+        ]);
+    }
+
 }

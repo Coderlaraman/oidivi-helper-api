@@ -25,7 +25,6 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'role',
         'is_active',
         'accepted_terms',
         'profile_photo',
@@ -60,42 +59,14 @@ class User extends Authenticatable
             'accepted_terms' => 'boolean',
             'latitude' => 'float',
             'longitude' => 'float',
-            'role' => 'array', // Conversión automática a arreglo
         ];
     }
 
+    /**
+     * The roles that belong to the user.
+     */
     public function roles(): BelongsToMany
     {
-        return $this->belongsToMany(Role::class, 'role_user');
-    }
-
-    /**
-     * Sincroniza el campo 'role' con el primer rol asignado.
-     */
-    public function syncPrimaryRole(): void
-    {
-        $this->role = $this->roles->pluck('name')->toArray();
-        $this->save();
-    }
-
-
-    public function hasRole(string $role): bool
-    {
-        return $this->roles()->where('name', $role)->exists();
-    }
-
-    public function hasAnyRole(array $roles): bool
-    {
-        return $this->roles()->whereIn('name', $roles)->exists();
-    }
-
-    public function getProfilePhotoUrlAttribute(): ?string
-    {
-        return $this->profile_photo ? Storage::url($this->profile_photo) : null;
-    }
-
-    public function getProfileVideoUrlAttribute(): ?string
-    {
-        return $this->profile_video ? Storage::url($this->profile_video) : null;
+        return $this->belongsToMany(Role::class)->withTimestamps();
     }
 }

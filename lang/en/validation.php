@@ -9,7 +9,7 @@ return [
     |
     | The following language lines contain the default error messages used by
     | the validator class. Some of these rules have multiple versions such
-    | as the size rules. Feel free to tweak each of these messages here.
+    | as the size rules. Feel free to tweak each these messages here.
     |
     */
 
@@ -173,8 +173,25 @@ return [
     */
 
     'custom' => [
-        'attribute-name' => [
-            'rule-name' => 'custom-message',
+        'register' => [
+            'name.required' => 'Please provide your name.',
+            'email.required' => 'Your email address is required.',
+            'email.email' => 'Please enter a valid email address.',
+            'email.unique' => 'This email is already registered.',
+            'password.required' => 'You need to provide a password.',
+            'password.min' => 'Your password must have at least 8 characters.',
+            'password.confirmed' => 'The password confirmation does not match.',
+            'accepted_terms.required' => 'You must accept the terms and conditions.',
+            'address.required' => 'Your address is required.',
+            'zip_code.required' => 'The ZIP code is missing.',
+            'latitude.required' => 'The latitude is required for geolocation.',
+            'longitude.required' => 'The longitude is required for geolocation.',
+        ],
+        'login' => [
+            'email.required' => 'Please enter your email address.',
+            'email.email' => 'The email provided is not valid.',
+            'password.required' => 'You need to provide your password.',
+            'invalid_credentials' => 'The provided credentials are incorrect. Please try again.',
         ],
     ],
 
@@ -184,11 +201,20 @@ return [
     |--------------------------------------------------------------------------
     |
     | The following language lines are used to swap our attribute placeholder
-    | with something more reader friendly such as "E-Mail Address" instead
-    | of "email". This simply helps us make our message more expressive.
+    | with something more reader friendly such as “E-Mail Address” instead
+    | of “email”. This simply helps us make our message more expressive.
     |
     */
 
-    'attributes' => [],
+    'attributes' => [
+        'name' => 'name',
+        'email' => 'email address',
+        'password' => 'password',
+        'address' => 'address',
+        'zip_code' => 'ZIP code',
+        'latitude' => 'latitude',
+        'longitude' => 'longitude',
+        'accepted_terms' => 'terms and conditions',
+    ],
 
 ];
