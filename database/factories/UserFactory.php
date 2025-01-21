@@ -30,8 +30,10 @@ class UserFactory extends Factory
             'password' => static::$password ??= Hash::make('password'),
             'is_active' => fake()->boolean(90), // 90% de probabilidad de que sea activo
             'accepted_terms' => true, // Simulando que aceptaron términos
-            'profile_photo' => fake()->imageUrl(200, 200, 'people'), // Foto de perfil ficticia
-            'profile_video' => fake()->url(), // URL ficticia para video de perfil
+            'profile_photo_url' => fake()->imageUrl(200, 200, 'people'), // Foto de perfil ficticia
+            'profile_video_url' => fake()->url(), // URL ficticia para video de perfil
+            'phone' => fake()->phoneNumber(), // Número de teléfono ficticio
+            'phone_verified_at' => fake()->boolean(70)? now() : null, // 70% de probabilidad de que sea verificado
             'address' => fake()->address(),
             'zip_code' => fake()->postcode(),
             'latitude' => fake()->latitude(),
@@ -48,6 +50,7 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'email_verified_at' => null,
+            'phone_verified_at' => null,
         ]);
     }
 }

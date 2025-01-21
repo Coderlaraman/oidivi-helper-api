@@ -8,7 +8,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
@@ -27,8 +26,9 @@ class User extends Authenticatable
         'password',
         'is_active',
         'accepted_terms',
-        'profile_photo',
-        'profile_video',
+        'profile_photo_url',
+        'profile_video_url',
+        'phone',
         'address',
         'zip_code',
         'latitude',
@@ -54,6 +54,7 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'phone_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_active' => 'boolean',
             'accepted_terms' => 'boolean',

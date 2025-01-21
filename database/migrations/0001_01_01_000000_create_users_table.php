@@ -19,8 +19,21 @@ return new class extends Migration
             $table->string('password');
             $table->boolean('is_active')->default(true); // Estado del usuario
             $table->boolean('accepted_terms')->default(false); // Aceptó términos y condiciones
-            $table->string('profile_photo')->nullable(); // URL de la foto de perfil
-            $table->string('profile_video')->nullable(); // URL del video del perfil
+            $table->string('profile_photo_url')->nullable(); // URL de la foto de perfil
+            $table->string('profile_video_url')->nullable(); // URL del video del perfil
+            // phone
+            $table->string('phone')->nullable();
+            $table->string('phone_verified_at')->nullable();
+            $table->string('two_factor_authentication_code')->nullable();
+            $table->timestamp('two_factor_authentication_code_sent_at')->nullable();
+            $table->timestamp('last_login_at')->nullable();
+            $table->timestamp('last_logout_at')->nullable();
+            $table->timestamp('last_password_reset_at')->nullable();
+            $table->timestamp('last_activity_at')->nullable();
+            $table->timestamp('last_ip_address_change_at')->nullable();
+            $table->timestamp('last_device_id_change_at')->nullable();
+            $table->timestamp('last_browser_id_change_at')->nullable();
+            $table->timestamp('last_two_factor_authentication_code_change_at')->nullable();
 
             // Información de ubicación
             $table->string('address')->nullable();

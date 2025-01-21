@@ -22,9 +22,13 @@ Route::prefix('v1/client')->group(function () {
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('/dashboard', [ClientUserController::class, 'dashboard']);
         Route::get('/me', [ClientUserController::class, 'me']);
-        Route::post('/profile', [ClientUserController::class, 'updateProfile']);
-        Route::post('/profile/update-name', [ClientUserController::class, 'updateName']);
+        Route::post('/update-profile', [ClientUserController::class, 'updateProfile']);
+//        Route::post('/profile/update-name', [ClientUserController::class, 'updateName']);
         Route::post('/logout', [ClientAuthController::class, 'logout']);
+
+        Route::post('/profile/photo', [ClientUserController::class, 'uploadProfilePhoto']);
+        Route::post('/profile/video', [ClientUserController::class, 'uploadProfileVideo']);
+
     });
 });
 
