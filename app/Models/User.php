@@ -70,4 +70,12 @@ class User extends Authenticatable
     {
         return $this->belongsToMany(Role::class)->withTimestamps();
     }
+
+    /**
+     * The skills that belong to the user.
+     */
+    public function skills(): BelongsToMany
+    {
+        return $this->belongsToMany(Skill::class)->withTimestamps();
+    }
 }

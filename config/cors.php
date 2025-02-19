@@ -21,7 +21,8 @@ return [
 
     'allowed_origins' => [
         'http://localhost:3000',
-        'http://oidivi-frontend.test', // Si deseas permitir también este origen
+        'http://oidivi-frontend.test',
+        'http://192.168.100.67:3000'
     ],
 
     'allowed_origins_patterns' => [],

@@ -35,6 +35,13 @@ class ClientAuthResource extends JsonResource
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
             'roles' => $this->roles->pluck('name')->toArray(),
+            'skills' => $this->skills->map(function ($skill) {
+                return [
+                    'id' => $skill->id,
+                    'name' => $skill->name,
+                    'categories' => $skill->categories->pluck('name')->toArray(),
+                ];
+            })->toArray(),
         ];
     }
 }

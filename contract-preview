@@ -1,0 +1,181 @@
+Contrato de Freelance para el Desarrollo e Implementación de las Plataformas Digitales OiDiVi Helper y OiDiVi Helper Mobile
+Fecha de Suscripción: X de noviembre de 2024
+1. Partes Contratantes
+Este contrato de Freelance es celebrado entre las siguientes partes:
+Contratante:
+Nombre: Williams Harry Celis Camacho
+Ubicación: 1777 NW 57 St, Miami F. 33142, Estados Unidos de América
+FreeLancer:
+Nombre: Jaime Alberto Sierra Mazo
+Ubicación: Cra. 31 AA # 85B-74 Medellín – Antioquia, Colombia
+Ambas partes, en adelante referidas como el Contratante y el FreeLancer, acuerdan cumplir y respetar todas las disposiciones descritas en este contrato, el cual será regido por las leyes aplicables en sus respectivas jurisdicciones, manteniendo en todo momento la buena fe y colaboración necesaria para el éxito del proyecto.
+2. Objeto del Contrato
+El objetivo principal de este contrato es la Freelance profesionales por parte del FreeLancer para el desarrollo e implementación de las plataformas digitales OiDiVi Helper (versión web) y OiDiVi Helper Mobile (aplicación móvil). Estas plataformas tienen como propósito principal crear una comunidad en línea que facilite la interacción y contratación de servicios entre usuarios y proveedores (helpers) a nivel global, iniciando su operación en los Estados Unidos.
+Alcance del Servicio
+El FreeLancer se compromete a realizar las siguientes tareas y desarrollos específicos, en conformidad con los requerimientos funcionales del Contratante y según los estándares de calidad previamente acordados:
+1.	Desarrollo de una Plataforma Web (OiDiVi Helper):
+o	Construcción de un mercado digital en línea que permita la publicación y solicitud de servicios.
+o	Implementación de un sistema de registro y perfil de usuario, integrando información personal, verificación de identidad y ubicación basada en ZIP code.
+o	Desarrollo de funcionalidades de búsqueda, filtrado avanzado y publicación de ofertas, optimizadas para la localización geográfica de los usuarios.
+o	Implementación de sistemas de mensajería instantánea, gestión de transacciones y un módulo de calificaciones y reseñas de usuarios.
+
+2.	Desarrollo de una Aplicación Móvil (OiDiVi Helper Mobile):
+o	Creación de una versión móvil de OiDiVi Helper, optimizada para acceso en dispositivos móviles y compatible con sistemas operativos principales (Android e iOS).
+o	Adaptación de las funcionalidades de la plataforma web, manteniendo la coherencia en la experiencia de usuario, acceso a servicios y capacidad de interacción entre usuarios y helpers en tiempo real.
+
+3.	Integración de Funcionalidades Clave:
+o	Incorporación de sistemas de geolocalización, notificaciones push y funcionalidades de seguridad para proteger la información y privacidad de los usuarios.
+o	Implementación de métodos de pago seguros y generación de facturas, cumpliendo con normativas de comercio electrónico y protección al consumidor.
+o	Configuración de filtros y criterios de búsqueda avanzados para facilitar la conexión entre usuarios y helpers de acuerdo con sus necesidades y ubicaciones.
+
+4.	Integración con la Plataforma Web OiDiVi Skills
+OiDiVi Skills será una plataforma independiente, diseñada para robustecerse en fases posteriores al desarrollo completo de OiDiVi Helper. En esta primera etapa, la funcionalidad estará limitada a:
+o	Permitir la visualización de los perfiles de los helpers desde OiDiVi Helper mediante una integración funcional.
+o	Cada perfil incluirá información clave como habilidades, estudio, experiencia, etc.
+o	Los helpers tendrán la posibilidad de aportar documentación adicional en sus perfiles, incluyendo:
+	Archivos PDF (ejemplo: currículum, portafolios).
+	Imágenes (ejemplo: certificados, fotos de trabajos realizados).
+	Videos (ejemplo: muestras de habilidades en acción).
+o	El diseño será escalable, permitiendo agregar funcionalidades adicionales en OiDiVi Skills en fases futuras.
+
+Objetivos Estratégicos del Proyecto
+Las plataformas OiDiVi Helper e OiDiVi Helper Mobile tienen como objetivo estratégico:
+•	Facilitar la conexión entre usuarios y proveedores de servicios (helpers): Mediante la creación de una plataforma inclusiva que permita a los usuarios acceder a una variedad de servicios a nivel global.
+•	Fomentar una comunidad virtual segura y confiable: A través de medidas de verificación, sistemas de calificación y reseñas, y una interfaz amigable que incentive la interacción y el respeto mutuo.
+•	Desarrollar un ecosistema comercial digital: Que permita a los usuarios contratar servicios de forma ágil, segura y personalizada, ampliando las oportunidades de negocio para los helpers.
+En este marco, el FreeLancer se compromete a cumplir con todos los términos y condiciones establecidos, desarrollando y entregando los componentes de ambas plataformas dentro de los tiempos acordados y respetando los lineamientos de calidad técnica y seguridad estipulados.
+3. Descripción del Proyecto
+El FreeLancer se compromete a desarrollar e implementar dos plataformas digitales interconectadas denominadas OiDiVi Helper (plataforma web) e OiDiVi Helper Mobile (aplicación móvil), las cuales tienen como propósito principal facilitar la conexión entre usuarios y proveedores de servicios (helpers), creando un ecosistema digital interactivo, accesible y confiable. El proyecto abarcará el desarrollo completo de ambas plataformas, así como su puesta en marcha en producción, lo que incluye todas las fases desde la planificación, diseño, desarrollo, pruebas y ajustes hasta la entrega final.
+OiDiVi Helper - Plataforma Web
+La plataforma web OiDiVi Helper será un mercado en línea donde usuarios y helpers (proveedores de servicios) podrán interactuar para publicar, solicitar y contratar servicios en una variedad de categorías. Las funcionalidades clave que la plataforma deberá ofrecer incluyen:
+1.	Registro y Gestión de Perfiles:
+o	Creación de cuentas de usuario y helper con campos de información personal, de contacto (incluido el ZIP code) y detalles de ubicación.
+o	Verificación de identidad mediante métodos como el correo electrónico o el número de teléfono.
+o	Un perfil público accesible para otros usuarios, donde podrán describir sus habilidades y servicios ofrecidos.
+2.	Búsqueda y Filtrado Avanzado:
+o	Sistema de búsqueda por texto libre y filtros avanzados para que los usuarios puedan encontrar servicios o helpers por ubicación geográfica (mediante ZIP code), categoría de servicio, precio y calificación.
+3.	Publicación y Gestión de Ofertas:
+o	Función para que los usuarios publiquen ofertas de servicios detalladas, indicando la tarea a realizar, materiales necesarios, ubicación exacta, fecha preferida, y presupuesto.
+o	Opciones de visibilidad para controlar la privacidad de las ofertas publicadas.
+4.	Mensajería y Comunicación:
+o	Sistema de mensajería instantánea entre usuarios y helpers para coordinar detalles y responder preguntas.
+o	Notificaciones de nuevos mensajes y actualizaciones a través de notificaciones push.
+5.	Gestión de Transacciones y Pagos:
+o	Funcionalidad para procesar pagos en línea de forma segura, integrando pasarelas de pago confiables.
+o	Generación de facturas detalladas para cada transacción realizada dentro de la plataforma.
+6.	Calificación y Reseñas:
+o	Sistema de calificación de 1 a 5 estrellas y reseñas escritas, que permite a los usuarios dejar su opinión sobre los servicios recibidos.
+o	Cálculo de la reputación de cada usuario y helper basado en las calificaciones y comentarios obtenidos.
+7.	Geolocalización:
+o	Uso de APIs de mapas (por ejemplo, Google Maps) para mostrar la ubicación de los usuarios y helpers en un mapa interactivo.
+o	Funcionalidad para calcular distancias y ofrecer un radio de búsqueda geográfico a los usuarios.
+OiDiVi Helper Mobile - Aplicación Móvil
+La aplicación móvil OiDiVi Helper será una extensión de la plataforma web, diseñada y optimizada para ser utilizada en dispositivos móviles con sistemas operativos Android e iOS. La funcionalidad principal de la aplicación incluirá:
+1.	Acceso a Servicios:
+o	Los usuarios podrán acceder a los servicios y realizar búsquedas de helpers, realizar transacciones, calificar y comentar sobre los servicios recibidos, de manera similar a la plataforma web, pero adaptada a la experiencia móvil.
+2.	Optimización para Dispositivos Móviles:
+o	Interfaz intuitiva y fácil de usar, que permita a los usuarios acceder a todas las funciones necesarias en un formato optimizado para smartphones y tabletas.
+3.	Geolocalización Avanzada:
+o	Funcionalidad móvil para mostrar la ubicación del usuario en tiempo real y la distancia a los helpers cercanos.
+4.	Notificaciones Push:
+o	Envío de notificaciones push para alertar a los usuarios sobre actualizaciones de servicios, mensajes, confirmación de pagos, entre otros.
+5.	Sincronización entre Web y Móvil:
+o	La plataforma web y la aplicación móvil deben estar completamente sincronizadas, permitiendo que las actividades realizadas en una plataforma se reflejen de manera instantánea en la otra.
+Alcance del Proyecto
+El desarrollo de las plataformas OiDiVi Helper y OiDiVi Helper Mobile debe cumplir con los siguientes requerimientos funcionales y técnicos:
+•	Integración de sistemas de pagos seguros para facilitar las transacciones de los usuarios.
+•	Sistema de verificación de identidad para garantizar la seguridad de los usuarios.
+•	Flexibilidad de búsqueda con filtros avanzados basados en ubicación geográfica (ZIP code), categorías de servicio, y otros parámetros.
+•	Escalabilidad y seguridad para manejar un gran volumen de usuarios y datos personales de forma confiable.
+Ambas plataformas deberán cumplir con estándares internacionales de seguridad y privacidad de los datos, asegurando que toda la información personal de los usuarios esté protegida en todo momento.
+4. Duración del Contrato
+El presente contrato tendrá una duración inicial estimada de ocho (8) meses, contados a partir de la fecha de suscripción del contrato (23 de noviembre de 2024). Este plazo estará sujeto a revisión y ajustes de acuerdo con el progreso del proyecto y/o a la identificación de nuevos requerimientos o circunstancias imprevistas que puedan afectar el desarrollo de las plataformas.
+Plazo de Ejecución
+1.	El FreeLancer se compromete a completar el desarrollo de las plataformas OiDiVi Helper y OiDiVi Helper Mobile dentro del plazo acordado de ocho (8) meses, a menos que ambas partes acuerden una extensión debido a modificaciones en los requerimientos del proyecto o circunstancias imprevistas que justifiquen el ajuste del tiempo estimado para la finalización del proyecto.
+2.	Si durante la ejecución del proyecto se identifican cambios en el alcance del proyecto, nuevas funcionalidades o ajustes en la planificación, ambas partes acordarán por escrito las modificaciones necesarias en el cronograma y el presupuesto del proyecto.
+3.	El Contratante y el FreeLancer se comprometen a mantener una comunicación abierta y continua sobre el progreso del proyecto. Si en cualquier momento se identifican desviaciones del cronograma original, las partes definirán las acciones correctivas necesarias para mitigar esto.
+Extensión del Plazo
+1.	En caso de que ambas partes acuerden que el plazo de ejecución original debe ser extendido debido a factores imprevistos o cambios en el alcance del proyecto, las partes deberán firmar un anexo al contrato que especifique la nueva fecha de entrega estimada, así como cualquier ajuste relacionado con los costos adicionales que puedan derivarse de la extensión del plazo.
+2.	En todo caso, se entiende que el objetivo primordial es la culminación exitosa del proyecto y la puesta en marcha de las plataformas conforme a los estándares técnicos y de calidad previamente acordados.
+5. Compensación, Participación en Utilidades y Modalidad de Pago
+5.1. Honorarios del FreeLancer
+El Contratante se compromete a pagar al FreeLancer una compensación mensual de dos millones de pesos colombianos ($2.000.000 COP), pagada en dos partes quincenales de un millón de pesos ($1.000.000 COP) cada una. Las transferencias se realizarán a la cuenta bancaria indicada por el FreeLancer.
+5.2. Tasas y Comisiones Internacionales
+Cualquier tasa o comisión aplicable a las transferencias internacionales será asumida exclusivamente por el Contratante, quien exime al FreeLancer de estos costos.
+5.3. Incremento de Compensación
+Una vez que el proyecto haya alcanzado un avance significativo en las funcionalidades (según valoración de ambas partes), el Contratante incrementará la compensación mensual entre un 30% y un 50%, ajustándola a un rango de $2.600.000 a $3.000.000 COP mensuales hasta la finalización del contrato. Este ajuste también se dividirá en pagos quincenales.
+5.4 Participación en Utilidades
+1.	Una vez que las plataformas OiDiVi Helper y OiDiVi Helper Mobile estén en funcionamiento y generen ingresos, el FreeLancer recibirá el 10% de las utilidades netas generadas por el proyecto, según los cálculos realizados por el Contratante. Estas utilidades se calcularán después de deducir los costos operativos, incluyendo, pero no limitados a gastos de infraestructura, marketing y operaciones.
+2.	El Contratante se compromete a proporcionar al FreeLancer acceso a una auditoría de las utilidades netas generadas, en caso de que el FreeLancer lo solicite, para verificar el cálculo y asegurarse de que las ganancias y el porcentaje asignado al FreeLancer son correctos.
+6. Propiedad Intelectual y Confidencialidad
+6.1. Propiedad Intelectual
+El Contratante será el propietario exclusivo de todos los derechos de propiedad intelectual relacionados con las plataformas OiDiVi Helper y OiDiVi Helper Mobile, incluidos, pero no limitados a:
+•	Códigos fuente, diseño, contenido, bases de datos y cualquier otro material creado y/o desarrollado en el marco de este proyecto.
+•	Derechos de uso y modificación sobre el software y las plataformas desarrolladas, que serán entregadas al Contratante tras la finalización del proyecto.
+El FreeLancer se compromete a no utilizar, copiar, reproducir o distribuir ninguno de los materiales y/o software desarrollados en el marco del proyecto fuera de los términos establecidos en este contrato.
+6.2. Confidencialidad
+El FreeLancer se compromete a mantener la confidencialidad de toda la información relacionada con el proyecto, así como de cualquier información adicional proporcionada por el Contratante durante la vigencia de este contrato. Esta obligación se extiende a:
+•	Información técnica, comercial, financiera o de cualquier otro tipo relacionada con el proyecto.
+•	Cualquier dato personal o sensible de los usuarios o empleados del Contratante.
+6.3. Uso de Librerías y Herramientas de Terceros 
+Cualquier librería o herramienta de terceros utilizada en el desarrollo estará sujeta a las licencias de sus respectivos proveedores, y el Contratante acepta que tales herramientas podrán estar restringidas en cuanto a uso, distribución o modificación según las condiciones de dichas licencias. El FreeLancer deberá informar al Contratante sobre las licencias y condiciones asociadas a cualquier software de terceros utilizado y entregará la documentación respectiva al momento de la finalización del proyecto.
+6.4. Derechos de Uso Futuro
+El Contratante tendrá el derecho a modificar, adaptar o mejorar el software de acuerdo con sus necesidades futuras, ya sea internamente o con la colaboración de terceros. Esta disposición garantiza la plena autonomía del Contratante en la evolución de las plataformas, asegurando que el código fuente y los derechos de uso sean íntegramente suyos.
+7. Entregables y Soporte Técnico
+7.1. Entregables
+El FreeLancer se compromete a entregar los siguientes entregables durante el desarrollo del proyecto:
+1.	Fase de planificación: Documentación detallada sobre el diseño y las especificaciones técnicas de las plataformas.
+2.	Prototipo funcional: Primera versión funcional de la plataforma web OiDiVi Helper para su revisión.
+3.	Versión beta de la aplicación móvil: Primera versión funcional de la aplicación móvil OiDiVi Helper, con pruebas iniciales de usabilidad.
+4.	Plataforma web OiDiVi Helper completa: Versión final, lista para su lanzamiento y con todas las funcionalidades implementadas.
+5.	Aplicación móvil OiDiVi Helper completa: Versión final de la app, optimizada para dispositivos móviles.
+7.2. Soporte Técnico
+El FreeLancer se compromete a proporcionar soporte técnico durante un periodo de 4 meses posterior a la entrega final de las plataformas. Este soporte incluirá:
+1.	Corrección de errores: Reparación de cualquier bug o falla que surja en el funcionamiento de las plataformas.
+2.	Asesoría técnica: Provisión de asesoramiento relacionado con el uso y optimización de las plataformas, según sea necesario.
+El soporte técnico estará disponible durante el horario laboral, de acuerdo con lo establecido entre las partes.
+8. Relación No Laboral y Responsabilidad
+8.1. Relación No Laboral
+Este contrato establece una relación de Freelance independientes entre el Contratante y el FreeLancer. En consecuencia:
+•	El FreeLancer no será considerado un empleado del Contratante en ningún momento.
+•	El FreeLancer será responsable de gestionar sus propios horarios de trabajo, recursos y herramientas necesarias para la ejecución de los servicios.
+•	El FreeLancer es responsable de cumplir con todas las obligaciones fiscales y de seguridad social que correspondan según la legislación vigente.
+8.2. Responsabilidad
+1.	Responsabilidad del FreeLancer: El FreeLancer se compromete a entregar el trabajo acordado de acuerdo con los requisitos técnicos y funcionales establecidos en este contrato. El FreeLancer será responsable de cualquier error o fallo técnico que surja debido a un trabajo deficiente, sin perjuicio de que se realicen las correcciones necesarias durante el periodo de soporte técnico acordado, pero el mismo, queda exonerado de cualquier responsabilidad en caso de problemas de compatibilidad que puedan surgir en el futuro debido a actualizaciones o cambios en las versiones de sistemas operativos (como iOS o Android), navegadores u otros componentes tecnológicos externos.
+2.	Responsabilidad del Contratante: El Contratante será responsable de proporcionar al FreeLancer toda la información, recursos y acceso necesarios para la correcta ejecución del proyecto. El Contratante también se compromete a revisar los entregables en los plazos establecidos y proporcionar retroalimentación oportuna para garantizar que el proyecto avance conforme al cronograma.
+3.	Exoneración de Responsabilidad: Ninguna de las partes será responsable de daños indirectos, consecuenciales, perjuicios o pérdidas de beneficios derivados del incumplimiento de este contrato, salvo en casos de negligencia grave o conducta intencional.
+8.3. Resolución de Conflictos
+Cualquier disputa o controversia derivada de la interpretación, cumplimiento o ejecución de este contrato será resuelta por medio de negociación directa. Las partes acuerdan intentar resolver cualquier diferencia mediante negociación directa y amistosa. Ambas partes mantendrán comunicación abierta y harán sus mejores esfuerzos para resolver la disputa en un plazo no mayor a 30 días.
+9. Finalización del Contrato
+9.1. Causales de Terminación
+Este contrato podrá ser terminado por cualquiera de las partes, sin necesidad de expresión de causa, en cualquier momento, mediante notificación escrita con una antelación de 15 días. Además, se podrá rescindir este contrato en los siguientes casos:
+1.	Incumplimiento de las obligaciones esenciales del contrato por cualquiera de las partes, que no sea subsanado en un plazo razonable tras la notificación de la otra parte.
+2.	Fuerza mayor: En caso de eventos fuera del control de las partes, como desastres naturales, pandemias, huelgas o situaciones que impidan el cumplimiento de las obligaciones contractuales.
+3.	Mutuo acuerdo entre las partes, en cuyo caso se formalizará una terminación por mutuo acuerdo.
+9.2. Obligaciones Tras la Terminación
+Al finalizar el contrato, el FreeLancer deberá entregar todos los entregables finales según lo estipulado en este contrato y devolver cualquier propiedad del Contratante que haya recibido para llevar a cabo el proyecto, como documentos, equipos, accesos, entre otros.
+El Contratante pagará al FreeLancer cualquier cantidad pendiente por los trabajos realizados hasta la fecha de terminación, de acuerdo con el calendario de pagos acordado.
+9.3. Efectos de la Terminación
+Tras la finalización del contrato:
+•	Propiedad intelectual: El Contratante mantendrá todos los derechos sobre la propiedad intelectual creada durante el desarrollo del proyecto, de conformidad con lo establecido en la cláusula 6.
+•	Confidencialidad: Las obligaciones de confidencialidad establecidas en este contrato permanecerán vigentes incluso tras la finalización del mismo.
+10. Firmas
+En constancia de lo anterior, ambas partes manifiestan su conformidad y aceptación de los términos y condiciones establecidos en este contrato, y firman en señal de acuerdo, el día X.
+________________________________________
+Firma del Contratante:
+Nombre: Williams Harry Celis Camacho
+Cédula: [Número de cédula o identificación]
+Dirección: 1777 NW 57 St, Miami F. 33142, Estados Unidos de América
+
+Firma: _____________________________
+________________________________________
+Firma del FreeLancer:
+Nombre: Jaime Alberto Sierra Mazo
+Cédula: 71318371 Medellín - Antioquia
+Dirección: Cra. 31 AA # 85B-74 Medellín – Antioquia, Colombia
+
+Firma: _____________________________
+________________________________________
+Firma Electrónica (si aplica):
+Si las partes deciden proceder con la firma electrónica del presente contrato, se considerará válida como una firma manuscrita, de acuerdo con la normativa vigente en materia de firmas electrónicas en EEUU y Colombia. Las partes acuerdan que la firma digital o electrónica tendrá la misma validez legal que una firma física.
+

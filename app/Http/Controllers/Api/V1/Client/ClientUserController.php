@@ -4,11 +4,13 @@ namespace App\Http\Controllers\Api\V1\Client;
 
 use App\Http\Controllers\Controller;
 use Exception;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use App\Http\Resources\ClientAuthResource;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
+use App\Models\User;
 
 class ClientUserController extends Controller
 {
@@ -122,5 +124,53 @@ class ClientUserController extends Controller
                 'error' => $e->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * Actualizar las habilidades del usuario.
+     */
+    public function updateSkills(Request $request): JsonResponse
+    {
+        $request->validate([
+            'skills' => 'array',
+            'skills.*' => 'exists:skills,id',
+        ]);
+
+        $user = $request->user();
+        $user->skills()->sync($request->skills);
+
+        return response()->json(['message' => 'Skills successfully updated!', 'skills' => $user->skills]);
+    }
+
+    /**
+     * Buscar usuarios por criterios específicos.
+     */
+    public function search(Request $request)
+    {
+        $query = $request->input('query');
+        $skillIds = $request->input('skills');
+        $categoryIds = $request->input('categories');
+
+        $users = User::query()
+            ->when($query, function ($q) use ($query) {
+                return $q->where('name', 'like', "%{$query}%")
+                         ->orWhere('email', 'like', "%{$query}%");
+            })
+            ->when($skillIds, function ($q) use ($skillIds) {
+                return $q->whereHas('skills', function ($q) use ($skillIds) {
+                    $q->whereIn('skills.id', $skillIds);
+                });
+            })
+            ->when($categoryIds, function ($q) use ($categoryIds) {
+                return $q->whereHas('skills.categories', function ($q) use ($categoryIds) {
+                    $q->whereIn('categories.id', $categoryIds);
+                });
+            })
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => ClientAuthResource::collection($users),
+        ]);
     }
 }
