@@ -19,26 +19,25 @@ jobs:
           script: |
             cd /var/www/oidivi-api
 
-            # Dar permisos a ubuntu temporalmente para evitar errores
-            # sudo chown -R ubuntu:ubuntu .
+            # Configurar el directorio seguro para Git (opcional, pero recomendado)
+            git config --global --add safe.directory /var/www/oidivi-api
 
-            # Resetear y traer los últimos cambios del repositorio
+            # Resetear el repositorio y traer los últimos cambios de la rama master
             git reset --hard
-            git pull origin main
+            git pull origin master
 
-            # Restaurar los permisos adecuados para el servidor web
+            # Restaurar los permisos adecuados (si es necesario, descomentar estas líneas)
             # sudo chown -R www-data:www-data storage bootstrap/cache
             # sudo chmod -R 775 storage bootstrap/cache
 
-            # Si estás usando Laravel Octane o queues, reinicia los servicios necesarios
+            # Reiniciar Apache, limpiar caché y ejecutar migraciones
             sudo systemctl restart apache2
             php artisan cache:clear
             php artisan config:clear
             php artisan view:clear
             php artisan route:clear
 
-            # Ejecutar las migraciones en producción
             php artisan migrate --force
 
-            # Reiniciar el servidor web (ejemplo con Apache)
+            # Reiniciar Apache nuevamente si es necesario
             sudo systemctl restart apache2
