@@ -15,7 +15,7 @@ jobs:
         with:
           host: 3.148.55.185
           username: ubuntu
-          key: ${{ secrets.LIGHTSAIL_SSH_KEY }}
+          key: ${{ secrets.OIDIVI_API_LIGHTSAIL_SSH_KEY }}
           script: |
             cd /var/www/oidivi-api
 
