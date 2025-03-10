@@ -4,8 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     /**
      * Run the migrations.
      */
@@ -15,15 +14,15 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('email')->unique();
-            $table->timestamp('email_verified_at')->nullable();
+            $table->timestamp('email_verified_at')->nullable();  // Fecha de verificación del correo
             $table->string('password');
-            $table->boolean('is_active')->default(true); // Estado del usuario
-            $table->boolean('accepted_terms')->default(false); // Aceptó términos y condiciones
-            $table->string('profile_photo_url')->nullable(); // URL de la foto de perfil
-            $table->string('profile_video_url')->nullable(); // URL del video del perfil
+            $table->boolean('is_active')->default(true);  // Estado del usuario
+            $table->boolean('accepted_terms')->default(false);  // Aceptó términos y condiciones
+            $table->string('profile_photo_url')->nullable();  // URL de la foto de perfil
+            $table->string('profile_video_url')->nullable();  // URL del video del perfil
             // phone
             $table->string('phone')->nullable();
-            $table->string('phone_verified_at')->nullable();
+            $table->timestamp('phone_verified_at')->nullable();
             $table->string('two_factor_authentication_code')->nullable();
             $table->timestamp('two_factor_authentication_code_sent_at')->nullable();
             $table->timestamp('last_login_at')->nullable();
@@ -37,7 +36,7 @@ return new class extends Migration
 
             // Información de ubicación
             $table->string('address')->nullable();
-            $table->string('zip_code')->nullable(); // Código postal
+            $table->string('zip_code')->nullable();  // Código postal
             $table->float('latitude', 10)->nullable();
             $table->float('longitude', 10)->nullable();
 

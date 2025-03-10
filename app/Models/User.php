@@ -2,10 +2,11 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
+use Illuminate\Contracts\Auth\MustVerifyEmail;  // <-- Importar la interfaz
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;  // <-- Asegurarse de importar HasOne para la relación stats
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -64,6 +65,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Override 'sendVerificationNotification()' method to use the new notification.
+     */
+    public function sendEmailVerificationNotification()
+    {
+        $this->notify(new \App\Notifications\VerifyEmailNotification);
+    }
+
+    /**
      * The roles that belong to the user.
      */
     public function roles(): BelongsToMany
@@ -77,5 +86,13 @@ class User extends Authenticatable
     public function skills(): BelongsToMany
     {
         return $this->belongsToMany(Skill::class)->withTimestamps();
+    }
+
+    /**
+     * The statistics that belong to the user.
+     */
+    public function stats(): HasOne
+    {
+        return $this->hasOne(UserStat::class);
     }
 }

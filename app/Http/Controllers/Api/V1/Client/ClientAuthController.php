@@ -5,9 +5,9 @@ namespace App\Http\Controllers\Api\V1\Client;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ClientAuthResource;
 use App\Models\Role;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use App\Models\User;
 
 class ClientAuthController extends Controller
 {
@@ -23,6 +23,7 @@ class ClientAuthController extends Controller
             'password' => 'required|string|min:8|confirmed',
             'accepted_terms' => 'required|boolean',
             'address' => 'required|string|max:255',
+            'phone' => 'required|string|max:15|unique:users',
             'zip_code' => 'required|string|max:10',
             'latitude' => 'required|numeric',
             'longitude' => 'required|numeric',
@@ -42,28 +43,29 @@ class ClientAuthController extends Controller
             'accepted_terms' => $validatedData['accepted_terms'],
             'is_active' => true,
             'address' => $validatedData['address'],
+            'phone' => $validatedData['phone'],
             'zip_code' => $validatedData['zip_code'],
             'latitude' => $validatedData['latitude'],
             'longitude' => $validatedData['longitude'],
         ]);
 
-        // Asignar los roles de client y helper
-        $clientRole = Role::where('name', 'client')->first();
-        $helperRole = Role::where('name', 'helper')->first();
-
-        if ($clientRole && $helperRole) {
-            $user->roles()->attach([$clientRole->id, $helperRole->id]);
-        }
+        $clientRole = Role::firstOrCreate(['name' => 'client']);
+        $helperRole = Role::firstOrCreate(['name' => 'helper']);
+        $user->roles()->attach([$clientRole->id, $helperRole->id]);
 
         // Cargar los roles en el usuario
         $user->load('roles');
 
-        // Generar el token
+        // Enviar el email de verificación
+        $user->sendEmailVerificationNotification();
+
+        // Generar el token (si deseas permitir el login sin verificación o bien informarlo en el frontend)
         $token = $user->createToken('API Token')->plainTextToken;
 
         return $this->successResponse([
             'token' => $token,
             'user' => new ClientAuthResource($user),
+            'message' => 'User registered successfully. Please verify your email address.'  // Mensaje adicional
         ], 'User registered successfully.', 201);
     }
 

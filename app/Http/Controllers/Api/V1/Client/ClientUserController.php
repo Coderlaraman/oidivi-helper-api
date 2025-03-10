@@ -3,14 +3,16 @@
 namespace App\Http\Controllers\Api\V1\Client;
 
 use App\Http\Controllers\Controller;
-use Exception;
+use App\Http\Resources\ClientAuthResource;
+use App\Http\Resources\UserStatResource;
+use App\Models\User;
+use App\Models\UserStat;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use App\Http\Resources\ClientAuthResource;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
-use App\Models\User;
+use Exception;
 
 class ClientUserController extends Controller
 {
@@ -70,6 +72,29 @@ class ClientUserController extends Controller
         );
     }
 
+    public function deleteProfilePhoto()
+    {
+        try {
+            $user = Auth::user();
+
+            if ($user->profile_photo_url) {
+                Storage::disk('public')->delete($user->profile_photo_url);
+                $user->profile_photo_url = null;
+                $user->save();
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => __('messages.profile_photo_deleted')
+            ]);
+        } catch (Exception $e) {
+            return response()->json([
+                'message' => __('messages.general_error'),
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
     public function uploadProfileVideo(Request $request)
     {
         return $this->handleFileUpload(
@@ -77,7 +102,7 @@ class ClientUserController extends Controller
             'profile_video_url',
             'profile_videos',
             __('messages.profile_video_updated'),
-            ['mimes:mp4,mov,avi,wmv', 'max:10240'] // Reglas específicas para videos
+            ['mimes:mp4,mov,avi,wmv', 'max:10240']  // Reglas específicas para videos
         );
     }
 
@@ -153,8 +178,9 @@ class ClientUserController extends Controller
 
         $users = User::query()
             ->when($query, function ($q) use ($query) {
-                return $q->where('name', 'like', "%{$query}%")
-                         ->orWhere('email', 'like', "%{$query}%");
+                return $q
+                    ->where('name', 'like', "%{$query}%")
+                    ->orWhere('email', 'like', "%{$query}%");
             })
             ->when($skillIds, function ($q) use ($skillIds) {
                 return $q->whereHas('skills', function ($q) use ($skillIds) {
@@ -171,6 +197,33 @@ class ClientUserController extends Controller
         return response()->json([
             'success' => true,
             'data' => ClientAuthResource::collection($users),
+        ]);
+    }
+
+    public function dashboard(Request $request)
+    {
+        $user = $request->user();
+
+        // Si no existen estadísticas asociadas, crearlas con valores por defecto
+        if (!$user->stats) {
+            $user->stats()->create([
+                'completed_tasks' => 0,
+                'active_services' => 0,
+                'total_earnings' => 0.0,
+                'rating' => 0.0,
+            ]);
+        }
+
+        // Cargar la relación para evitar consultas adicionales
+        $user->load('stats');
+
+        return response()->json([
+            'success' => true,
+            'message' => __('messages.dashboard_data_retrieved'),
+            'data' => [
+                'user' => new ClientAuthResource($user),
+                'stats' => new UserStatResource($user->stats),
+            ],
         ]);
     }
 }

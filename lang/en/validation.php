@@ -178,6 +178,9 @@ return [
             'email.required' => 'Your email address is required.',
             'email.email' => 'Please enter a valid email address.',
             'email.unique' => 'This email is already registered.',
+            'phone.required' => 'Your phone number is required for verification.',
+            'phone.min' => 'Your phone number must have at least 10 digits.',
+            'phone.max' => 'Your phone number cannot exceed 15 digits.',
             'password.required' => 'You need to provide a password.',
             'password.min' => 'Your password must have at least 8 characters.',
             'password.confirmed' => 'The password confirmation does not match.',
@@ -209,6 +212,7 @@ return [
     'attributes' => [
         'name' => 'name',
         'email' => 'email address',
+        'phone' => 'phone number',
         'password' => 'password',
         'address' => 'address',
         'zip_code' => 'ZIP code',

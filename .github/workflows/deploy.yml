@@ -1,0 +1,44 @@
+name: Deploy to Amazon Lightsail
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: SSH into Amazon Lightsail and pull latest code
+        uses: appleboy/ssh-action@master
+        with:
+          host: 3.148.55.185
+          username: ubuntu
+          key: ${{ secrets.LIGHTSAIL_SSH_KEY }}
+          script: |
+            cd /var/www/oidivi-api
+
+            # Dar permisos a ubuntu temporalmente para evitar errores
+            # sudo chown -R ubuntu:ubuntu .
+
+            # Resetear y traer los últimos cambios del repositorio
+            git reset --hard
+            git pull origin main
+
+            # Restaurar los permisos adecuados para el servidor web
+            # sudo chown -R www-data:www-data storage bootstrap/cache
+            # sudo chmod -R 775 storage bootstrap/cache
+
+            # Si estás usando Laravel Octane o queues, reinicia los servicios necesarios
+            sudo systemctl restart apache2
+            php artisan cache:clear
+            php artisan config:clear
+            php artisan view:clear
+            php artisan route:clear
+
+            # Ejecutar las migraciones en producción
+            php artisan migrate --force
+
+            # Reiniciar el servidor web (ejemplo con Apache)
+            sudo systemctl restart apache2

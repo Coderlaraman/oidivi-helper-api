@@ -2,9 +2,10 @@
 
 use App\Http\Controllers\Api\V1\Admin\AdminAuthController;
 use App\Http\Controllers\Api\V1\Admin\AdminUserController;
-use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\Client\ClientAuthController;
 use App\Http\Controllers\Api\V1\Client\ClientUserController;
+use App\Http\Controllers\Api\V1\Client\EmailVerificationController;
+use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\ServiceController;
 use App\Http\Controllers\Api\V1\SkillController;
 use Illuminate\Support\Facades\Route;
@@ -12,11 +13,13 @@ use Illuminate\Support\Facades\Route;
 // Versión 1 de la API
 
 // Rutas para Admin
-Route::prefix('v1/admin')->middleware(['auth:sanctum', 'role:admin'])->group(function () {
-    Route::get('/users', [AdminUserController::class, 'index']);
-    Route::post('/users', [AdminUserController::class, 'store']);
-    Route::delete('/users/{id}', [AdminUserController::class, 'destroy']);
-});
+Route::prefix('v1/admin')
+    ->middleware(['auth:sanctum', 'role:admin'])
+    ->group(function () {
+        Route::get('/users', [AdminUserController::class, 'index']);
+        Route::post('/users', [AdminUserController::class, 'store']);
+        Route::delete('/users/{id}', [AdminUserController::class, 'destroy']);
+    });
 
 // Rutas para Cliente
 Route::prefix('v1/client')->group(function () {
@@ -28,6 +31,12 @@ Route::prefix('v1/client')->group(function () {
     // Rutas de autenticación
     Route::post('/login', [ClientAuthController::class, 'login']);
     Route::post('/register', [ClientAuthController::class, 'register']);
+
+    // Endpoint para reenviar el email de verificación
+    Route::post('/email/verification-notification', [EmailVerificationController::class, 'sendVerificationEmail']);
+    // Endpoint de verificación (accedido a través del enlace del email)
+    Route::get('/email/verify/{id}/{hash}', [EmailVerificationController::class, 'verify'])
+        ->name('verification.verify');
 
     // Rutas de categorías
     Route::prefix('categories')->group(function () {
@@ -71,8 +80,9 @@ Route::prefix('v1/client')->group(function () {
         Route::get('/me', [ClientUserController::class, 'me']);
         Route::post('/update-profile', [ClientUserController::class, 'updateProfile']);
         Route::post('/logout', [ClientAuthController::class, 'logout']);
-        Route::put('user/skills', [ClientUserController::class, 'updateSkills']);
+        Route::put('/user/skills', [ClientUserController::class, 'updateSkills']);
         Route::post('/profile/photo', [ClientUserController::class, 'uploadProfilePhoto']);
+        Route::delete('/profile/photo', [ClientUserController::class, 'deleteProfilePhoto']);
         Route::post('/profile/video', [ClientUserController::class, 'uploadProfileVideo']);
     });
 });
