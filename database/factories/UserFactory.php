@@ -27,7 +27,7 @@ class UserFactory extends Factory
         return [
             'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
-            'password' => static::$password ??= Hash::make('password'),
+            'password' => static::$password ??= Hash::make('Password1'),
             'is_active' => fake()->boolean(90), // 90% de probabilidad de que sea activo
             'accepted_terms' => true, // Simulando que aceptaron términos
             'profile_photo_url' => fake()->imageUrl(200, 200, 'people'), // Foto de perfil ficticia

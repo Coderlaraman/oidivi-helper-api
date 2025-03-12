@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Skill extends Model
 {
@@ -12,12 +11,10 @@ class Skill extends Model
 
     protected $fillable = ['name', 'description'];
 
-    /**
-     * Get the categories that the skill belongs to.
-     */
-    public function categories(): BelongsToMany
+    // Relación polimórfica con Category
+    public function categories()
     {
-        return $this->belongsToMany(Category::class);
+        return $this->morphToMany(Category::class, 'categorizable');
     }
 
     /**

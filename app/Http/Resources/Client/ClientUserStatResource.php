@@ -1,12 +1,12 @@
 <?php
 // app/Http/Resources/UserStatResource.php
 
-namespace App\Http\Resources;
+namespace App\Http\Resources\Client;
 
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Http\Request;
 
-class UserStatResource extends JsonResource
+class ClientUserStatResource extends JsonResource
 {
     public function toArray(Request $request): array
     {

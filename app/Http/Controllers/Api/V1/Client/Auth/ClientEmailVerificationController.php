@@ -1,13 +1,13 @@
 <?php
 
-namespace App\Http\Controllers\Api\V1\Client;
+namespace App\Http\Controllers\Api\V1\Client\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Http\Request;
 
-class EmailVerificationController extends Controller
+class ClientEmailVerificationController extends Controller
 {
     /**
      * Reenvía el email de verificación.

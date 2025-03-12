@@ -1,88 +1,87 @@
 <?php
 
-use App\Http\Controllers\Api\V1\Admin\AdminAuthController;
 use App\Http\Controllers\Api\V1\Admin\AdminUserController;
-use App\Http\Controllers\Api\V1\Client\ClientAuthController;
-use App\Http\Controllers\Api\V1\Client\ClientUserController;
-use App\Http\Controllers\Api\V1\Client\EmailVerificationController;
-use App\Http\Controllers\Api\V1\CategoryController;
-use App\Http\Controllers\Api\V1\ServiceController;
-use App\Http\Controllers\Api\V1\SkillController;
+use App\Http\Controllers\Api\V1\Client\Auth\ClientAuthController;
+use App\Http\Controllers\Api\V1\Client\Auth\ClientEmailVerificationController;
+use App\Http\Controllers\Api\V1\Client\Profile\ClientUserController;
+use App\Http\Controllers\Api\V1\Client\Services\ClientCategoryController;
+use App\Http\Controllers\Api\V1\Client\Services\ClientServiceRequestController;
+use App\Http\Controllers\Api\V1\Client\Services\ClientSkillController;
 use Illuminate\Support\Facades\Route;
 
-// Versión 1 de la API
+/*
+ * |--------------------------------------------------------------------------
+ * | API Routes - V1
+ * |--------------------------------------------------------------------------
+ * |
+ * | Aquí definimos las rutas para la versión 1 de la API, separadas por dominios.
+ * |
+ */
 
-// Rutas para Admin
-Route::prefix('v1/admin')
-    ->middleware(['auth:sanctum', 'role:admin'])
-    ->group(function () {
-        Route::get('/users', [AdminUserController::class, 'index']);
-        Route::post('/users', [AdminUserController::class, 'store']);
-        Route::delete('/users/{id}', [AdminUserController::class, 'destroy']);
-    });
+Route::prefix('v1')->group(function () {
+    // Rutas para Admin
+    Route::prefix('admin')
+        ->middleware(['auth:sanctum', 'role:admin'])
+        ->group(function () {
+            Route::get('/users', [AdminUserController::class, 'index']);
+            Route::post('/users', [AdminUserController::class, 'store']);
+            Route::delete('/users/{id}', [AdminUserController::class, 'destroy']);
+        });
 
-// Rutas para Cliente
-Route::prefix('v1/client')->group(function () {
-    // Ruta de prueba
-    Route::get('/test', function () {
-        return response()->json(['message' => 'API is working']);
-    });
+    // Rutas para Cliente
+    Route::prefix('client')->group(function () {
+        // Ruta de prueba
+        Route::get('/test', function () {
+            return response()->json(['message' => 'API is working']);
+        });
 
-    // Rutas de autenticación
-    Route::post('/login', [ClientAuthController::class, 'login']);
-    Route::post('/register', [ClientAuthController::class, 'register']);
+        // Rutas de Autenticación (dentro de Auth)
+        Route::prefix('auth')->group(function () {
+            Route::post('/register', [ClientAuthController::class, 'register']);
+            Route::post('/login', [ClientAuthController::class, 'login']);
+            Route::post('/logout', [ClientAuthController::class, 'logout'])->middleware('auth:sanctum');
+            Route::post('/email/verification-notification', [ClientEmailVerificationController::class, 'sendVerificationEmail']);
+            Route::get('/email/verify/{id}/{hash}', [ClientEmailVerificationController::class, 'verify'])
+                ->name('verification.verify');
+        });
 
-    // Endpoint para reenviar el email de verificación
-    Route::post('/email/verification-notification', [EmailVerificationController::class, 'sendVerificationEmail']);
-    // Endpoint de verificación (accedido a través del enlace del email)
-    Route::get('/email/verify/{id}/{hash}', [EmailVerificationController::class, 'verify'])
-        ->name('verification.verify');
+        // Rutas de Perfil (dentro de Profile) - protegidas por Sanctum
+        Route::prefix('profile')->middleware('auth:sanctum')->group(function () {
+            Route::get('/me', [ClientUserController::class, 'showProfile']);
+            Route::post('/update', [ClientUserController::class, 'updateProfile']);
+            Route::post('/photo', [ClientUserController::class, 'uploadProfilePhoto']);
+            Route::delete('/photo', [ClientUserController::class, 'deleteProfilePhoto']);
+            Route::post('/video', [ClientUserController::class, 'uploadProfileVideo']);
+            Route::put('/skills', [ClientUserController::class, 'updateSkills']);
+            Route::get('/dashboard', [ClientUserController::class, 'dashboard']);
+        });
 
-    // Rutas de categorías
-    Route::prefix('categories')->group(function () {
-        Route::get('/', [CategoryController::class, 'index']);
-        Route::get('/{category}', [CategoryController::class, 'show']);
-        Route::post('/', [CategoryController::class, 'store'])->middleware('auth:sanctum');
-        Route::put('/{category}', [CategoryController::class, 'update'])->middleware('auth:sanctum');
-        Route::delete('/{category}', [CategoryController::class, 'destroy'])->middleware('auth:sanctum');
-    });
+        // Rutas de Servicios (dentro de Services)
+        Route::prefix('services')->middleware('auth:sanctum')->group(function () {
+            Route::get('/', [ClientServiceRequestController::class, 'index']);
+            Route::get('/{id}', [ClientServiceRequestController::class, 'show']);
+            Route::post('/', [ClientServiceRequestController::class, 'store']);
+            Route::put('/{id}', [ClientServiceRequestController::class, 'update']);
+            Route::delete('/{id}', [ClientServiceRequestController::class, 'destroy']);
+            Route::post('/{serviceId}/reviews', [ClientServiceRequestController::class, 'storeReview']);
+            Route::post('/{serviceId}/transactions', [ClientServiceRequestController::class, 'storeTransaction']);
+        });
 
-    // Rutas de habilidades
-    Route::prefix('skills')->group(function () {
-        Route::get('/', [SkillController::class, 'index']);
-        Route::get('/{skill}', [SkillController::class, 'show']);
-        Route::post('/', [SkillController::class, 'store'])->middleware('auth:sanctum');
-        Route::put('/{skill}', [SkillController::class, 'update'])->middleware('auth:sanctum');
-        Route::delete('/{skill}', [SkillController::class, 'destroy'])->middleware('auth:sanctum');
-    });
+        // Rutas de Categorías y Habilidades (dentro de Services)
+        Route::prefix('categories')->group(function () {
+            Route::get('/', [ClientCategoryController::class, 'index']);
+            Route::get('/{id}', [ClientCategoryController::class, 'show']);
+            Route::post('/', [ClientCategoryController::class, 'store'])->middleware('auth:sanctum');
+            Route::put('/{id}', [ClientCategoryController::class, 'update'])->middleware('auth:sanctum');
+            Route::delete('/{id}', [ClientCategoryController::class, 'destroy'])->middleware('auth:sanctum');
+        });
 
-    // Rutas de servicios
-    Route::prefix('services')->group(function () {
-        Route::get('/', [ServiceController::class, 'index']);
-        Route::get('/{id}', [ServiceController::class, 'show']);
-        Route::post('/', [ServiceController::class, 'store'])->middleware('auth:sanctum');
-        Route::put('/{id}', [ServiceController::class, 'update'])->middleware('auth:sanctum');
-        Route::delete('/{id}', [ServiceController::class, 'destroy'])->middleware('auth:sanctum');
-        Route::post('/{serviceId}/reviews', [ServiceController::class, 'storeReview'])->middleware('auth:sanctum');
-        Route::post('/{serviceId}/transactions', [ServiceController::class, 'storeTransaction'])->middleware('auth:sanctum');
-    });
-
-    // Rutas de usuarios
-    Route::prefix('users')->group(function () {
-        // Buscar usuarios
-        Route::get('/search', [ClientUserController::class, 'search']);
-        Route::get('/find', [ClientUserController::class, 'find']);
-    });
-
-    // Rutas protegidas por autenticación
-    Route::middleware('auth:sanctum')->group(function () {
-        Route::get('/dashboard', [ClientUserController::class, 'dashboard']);
-        Route::get('/me', [ClientUserController::class, 'me']);
-        Route::post('/update-profile', [ClientUserController::class, 'updateProfile']);
-        Route::post('/logout', [ClientAuthController::class, 'logout']);
-        Route::put('/user/skills', [ClientUserController::class, 'updateSkills']);
-        Route::post('/profile/photo', [ClientUserController::class, 'uploadProfilePhoto']);
-        Route::delete('/profile/photo', [ClientUserController::class, 'deleteProfilePhoto']);
-        Route::post('/profile/video', [ClientUserController::class, 'uploadProfileVideo']);
+        Route::prefix('skills')->group(function () {
+            Route::get('/', [ClientSkillController::class, 'index']);
+            Route::get('/{id}', [ClientSkillController::class, 'show']);
+            Route::post('/', [ClientSkillController::class, 'store'])->middleware('auth:sanctum');
+            Route::put('/{id}', [ClientSkillController::class, 'update'])->middleware('auth:sanctum');
+            Route::delete('/{id}', [ClientSkillController::class, 'destroy'])->middleware('auth:sanctum');
+        });
     });
 });
