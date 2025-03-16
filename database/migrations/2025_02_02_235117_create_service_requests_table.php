@@ -18,7 +18,7 @@ return new class extends Migration {
             $table->string('zip_code', 10);
             $table->decimal('latitude', 10, 7);
             $table->decimal('longitude', 10, 7);
-            $table->decimal('budget', 10, 2);
+            $table->decimal('budget', 10);
             $table->enum('visibility', ['public', 'private'])->default('public');
             $table->string('status')->default('published');
             $table->timestamps();

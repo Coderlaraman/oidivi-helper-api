@@ -1,27 +1,30 @@
 <?php
 
-namespace App\Http\Controllers\Api\V1;
+namespace App\Http\Controllers\Api\V1\Client\Services;
 
 use App\Http\Controllers\Controller;
 use App\Models\Skill;
+use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
 
-class SkillController extends Controller
+class ClientSkillController extends Controller
 {
+    use ApiResponseTrait;
+
     /**
-     * Listar todas las habilidades con sus categorías.
+     * List all skills with their categories.
      */
     public function index(): JsonResponse
     {
         $skills = Skill::with('categories')->get();
-        return response()->json($skills);
+        return $this->successResponse($skills, 'Skills retrieved successfully.');
     }
 
     /**
-     * Obtener una habilidad específica junto con sus categorías.
+     * Get a specific skill with its categories.
      */
     public function show(Skill $skill): JsonResponse
     {
-        return response()->json($skill->load('categories'));
+        return $this->successResponse($skill->load('categories'), 'Skill retrieved successfully.');
     }
 }

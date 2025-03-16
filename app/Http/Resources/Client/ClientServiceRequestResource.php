@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Client;
 
+use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class ClientServiceRequestResource extends JsonResource
@@ -9,7 +10,7 @@ class ClientServiceRequestResource extends JsonResource
     /**
      * Transforma el recurso en un array.
      *
-     * @param  \Illuminate\Http\Request  $request
+     * @param  Request  $request
      * @return array<string, mixed>
      */
     public function toArray($request): array
@@ -24,8 +25,8 @@ class ClientServiceRequestResource extends JsonResource
             'budget' => $this->budget,
             'visibility' => $this->visibility,
             'status' => $this->status,
-            'user' => new ClientUserProfileResource($this->whenLoaded('user')),  // Se asume la existencia de UserResource
-            'categories' => ClientCategoryResource::collection($this->whenLoaded('categories')),  // Se asume CategoryResource
+            'user' => new ClientUserProfileResource($this->whenLoaded('user')),
+            'categories' => ClientCategoryResource::collection($this->whenLoaded('categories')),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

@@ -4,24 +4,27 @@ namespace App\Http\Controllers\Api\V1\Client\Services;
 
 use App\Http\Controllers\Controller;
 use App\Models\Category;
+use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
 
-class CategoryController extends Controller
+class ClientCategoryController extends Controller
 {
+    use ApiResponseTrait;
+
     /**
-     * Listar todas las categorías.
+     * List all categories with related skills.
      */
     public function index(): JsonResponse
     {
         $categories = Category::with('skills')->get();
-        return response()->json($categories);
+        return $this->successResponse($categories, 'Categories retrieved successfully.');
     }
 
     /**
-     * Obtener una categoría específica junto con sus habilidades.
+     * Get a specific category along with its skills.
      */
     public function show(Category $category): JsonResponse
     {
-        return response()->json($category->load('skills'));
+        return $this->successResponse($category->load('skills'), 'Category retrieved successfully.');
     }
 }

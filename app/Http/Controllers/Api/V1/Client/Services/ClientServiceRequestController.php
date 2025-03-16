@@ -1,34 +1,39 @@
 <?php
 
-namespace App\Http\Controllers\Api\V1;
+namespace App\Http\Controllers\Api\V1\Client\Services;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\StoreReviewRequest;
-use App\Http\Requests\StoreServiceRequest;
-use App\Http\Requests\StoreTransactionRequest;
-use App\Http\Requests\UpdateServiceRequest;
-use App\Http\Resources\ServiceRequestResource;
+use App\Http\Requests\Client\StoreClientReviewRequest;
+use App\Http\Requests\Client\StoreClientServiceRequest;
+use App\Http\Requests\Client\StoreClientTransactionRequest;
+use App\Http\Requests\Client\UpdateClientServiceRequest;
+use App\Http\Resources\Client\ClientServiceRequestResource;
 use App\Models\ServiceRequest;
+use App\Traits\ApiResponseTrait;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
-class ServiceRequestController extends Controller
+class ClientServiceRequestController extends Controller
 {
-    // Listado de ofertas de servicio con filtros avanzados
-    public function index(\Illuminate\Http\Request $request)
+    use ApiResponseTrait;
+
+    /**
+     * List service requests with filters.
+     */
+    public function index(Request $request): JsonResponse
     {
         $query = ServiceRequest::query();
 
-        // Búsqueda de texto libre en título y descripción
         if ($request->filled('query')) {
             $q = $request->input('query');
             $query->where(function ($qBuilder) use ($q) {
                 $qBuilder
-                    ->where('title', 'like', "%{$q}%")
-                    ->orWhere('description', 'like', "%{$q}%");
+                    ->where('title', 'like', "%$q%")
+                    ->orWhere('description', 'like', "%$q%");
             });
         }
 
-        // Filtro por categoría
         if ($request->filled('category_id')) {
             $categoryId = $request->input('category_id');
             $query->whereHas('categories', function ($q) use ($categoryId) {
@@ -36,48 +41,43 @@ class ServiceRequestController extends Controller
             });
         }
 
-        // Agregar otros filtros (presupuesto, ubicación, etc.) según necesidad
-
         $services = $query->paginate(10);
-        return ServiceRequestResource::collection($services);
+        return $this->successResponse(ClientServiceRequestResource::collection($services), 'Service requests retrieved successfully.');
     }
 
-    // Publicar una nueva oferta de servicio
-    public function store(StoreServiceRequest $request)
+    /**
+     * Store a new service request.
+     */
+    public function store(StoreClientServiceRequest $request): JsonResponse
     {
-        // Los datos validados se obtienen desde el Request personalizado
         $data = $request->validated();
-
-        // Crear la oferta asociada al usuario autenticado
         $service = ServiceRequest::create(array_merge(
             $data,
             ['user_id' => Auth::id(), 'status' => 'published']
         ));
-
-        // Asignar categorías usando la relación polimórfica
         $service->categories()->sync($data['category_ids']);
 
-        return (new ServiceRequestResource($service))
-            ->additional(['message' => 'Service published successfully'])
-            ->response()
-            ->setStatusCode(201);
+        return $this->successResponse(new ClientServiceRequestResource($service), 'Service published successfully.', 201);
     }
 
-    // Mostrar detalles de una oferta
-    public function show($id)
+    /**
+     * Show service request details.
+     */
+    public function show($id): JsonResponse
     {
         $service = ServiceRequest::with(['categories', 'user'])->findOrFail($id);
-        return new ServiceRequestResource($service);
+        return $this->successResponse(new ClientServiceRequestResource($service), 'Service retrieved successfully.');
     }
 
-    // Actualizar una oferta existente
-    public function update(UpdateServiceRequest $request, $id)
+    /**
+     * Update an existing service request.
+     */
+    public function update(UpdateClientServiceRequest $request, $id): JsonResponse
     {
         $service = ServiceRequest::findOrFail($id);
 
-        // Verificar que el usuario autenticado es el propietario de la oferta
         if ($service->user_id !== Auth::id()) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+            return $this->errorResponse('Unauthorized', 403);
         }
 
         $data = $request->validated();
@@ -87,74 +87,61 @@ class ServiceRequestController extends Controller
             $service->categories()->sync($data['category_ids']);
         }
 
-        return (new ServiceRequestResource($service))
-            ->additional(['message' => 'Service updated successfully']);
+        return $this->successResponse(new ClientServiceRequestResource($service), 'Service updated successfully.');
     }
 
-    // Eliminar una oferta (o cancelarla)
-    public function destroy($id)
+    /**
+     * Delete (or cancel) a service request.
+     */
+    public function destroy($id): JsonResponse
     {
         $service = ServiceRequest::findOrFail($id);
 
         if ($service->user_id !== Auth::id()) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+            return $this->errorResponse('Unauthorized', 403);
         }
 
         $service->delete();
-        return response()->json(['message' => 'Service deleted successfully']);
+        return $this->successResponse([], 'Service deleted successfully.');
     }
 
-    // Almacenar reseña para una oferta
-    public function storeReview(StoreReviewRequest $request, $serviceId)
+    /**
+     * Store a review for a service.
+     */
+    public function storeReview(StoreClientReviewRequest $request, $serviceId): JsonResponse
     {
         $service = ServiceRequest::findOrFail($serviceId);
         $data = $request->validated();
 
-        // Se asume que existe la relación 'reviews' en el modelo ServiceRequest
-        // y un modelo Review con campos 'user_id', 'rating' y 'comment'
         $review = $service->reviews()->create([
             'user_id' => Auth::id(),
             'rating' => $data['rating'],
             'comment' => $data['comment'],
         ]);
 
-        return response()->json([
-            'message' => 'Review saved successfully',
-            'data' => $review
-        ], 201);
+        return $this->successResponse($review, 'Review saved successfully.', 201);
     }
 
-    // Registrar la contratación (transacción) de una oferta
-    public function storeTransaction(StoreTransactionRequest $request, $serviceId)
+    /**
+     * Register a transaction for a service request.
+     */
+    public function storeTransaction(StoreClientTransactionRequest $request, $serviceId): JsonResponse
     {
         $service = ServiceRequest::findOrFail($serviceId);
         $data = $request->validated();
 
-        // Verificar que el usuario autenticado es un helper (por ejemplo, mediante un método hasRole)
         if (!Auth::user()->hasRole('helper')) {
-            return response()->json(['message' => 'Only helpers can register a transaction'], 403);
+            return $this->errorResponse('Only helpers can register a transaction', 403);
         }
 
-        // Se puede agregar lógica para validar que el helper cuenta con las habilidades requeridas,
-        // por ejemplo, comparando las categorías asociadas al servicio con las habilidades del helper.
-        // Esto se deja a implementación según tu lógica de negocio.
-
-        // Actualizar el estado de la oferta a 'in_progress' (o el que corresponda)
         $service->update(['status' => 'in_progress']);
 
-        // Se asume la existencia de una relación 'transactions' en ServiceRequest
-        // y un modelo Transaction que almacene los detalles de la contratación.
         $transaction = $service->transactions()->create([
             'helper_id' => Auth::id(),
-            'proposed_price' => $data['proposed_price'],  // Ejemplo de campo
+            'proposed_price' => $data['proposed_price'],
             'message' => $data['message'] ?? null,
         ]);
 
-        // Se podría notificar al cliente y al helper a través de eventos o notificaciones
-
-        return response()->json([
-            'message' => 'Transaction registered successfully',
-            'data' => $transaction
-        ], 201);
+        return $this->successResponse($transaction, 'Transaction registered successfully.', 201);
     }
 }

@@ -9,6 +9,7 @@ use App\Http\Resources\Client\ClientAuthResource;
 use App\Models\Role;
 use App\Models\User;
 use App\Traits\ApiResponseTrait;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
@@ -20,7 +21,7 @@ class ClientAuthController extends Controller
      * Registra un nuevo usuario cliente.
      *
      * @param  RegisterClientAuthRequest  $request
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
     public function register(RegisterClientAuthRequest $request)
     {
@@ -67,7 +68,7 @@ class ClientAuthController extends Controller
      * Inicia sesión para un usuario cliente existente.
      *
      * @param  LoginClientAuthRequest  $request
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
     public function login(LoginClientAuthRequest $request)
     {
@@ -79,6 +80,12 @@ class ClientAuthController extends Controller
             return $this->errorResponse('Invalid credentials.', 401);
         }
 
+        // Validar si el usuario ha verificado su correo
+        if (!$user->hasVerifiedEmail()) {
+            return $this->errorResponse('Please verify your email before logging in.', 403);
+        }
+
+        // Generar token de acceso
         $token = $user->createToken('API Token')->plainTextToken;
 
         return $this->successResponse([
@@ -87,15 +94,16 @@ class ClientAuthController extends Controller
         ], 'Login successful.');
     }
 
+
     /**
      * Cierra la sesión del usuario autenticado.
      *
      * @param  Request  $request
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
     public function logout(Request $request)
     {
-        $request->user()->currentAccessToken()->delete();
+        $request->user()->tokens()->where('id', $request->user()->currentAccessToken()->id)->delete();
 
         return $this->successResponse([], 'Logout successful.');
     }

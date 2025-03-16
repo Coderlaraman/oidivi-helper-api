@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Client;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Auth;
 
 class UpdateClientUserProfileRequest extends FormRequest
 {
@@ -11,8 +12,8 @@ class UpdateClientUserProfileRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        // Se validará en el controlador que el usuario sea el propietario.
-        return auth()->check();
+        // Se validará en el controlador que el usuario sea el propietario y esté autenticado.
+        return Auth::check();
     }
 
     /**
