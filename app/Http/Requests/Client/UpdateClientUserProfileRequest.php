@@ -29,6 +29,8 @@ class UpdateClientUserProfileRequest extends FormRequest
             'zip_code' => 'sometimes|required|string|max:10',
             'latitude' => 'sometimes|required|numeric',
             'longitude' => 'sometimes|required|numeric',
+            'biography' => 'sometimes|nullable|string|max:1000',
+            'verification_documents.*' => 'sometimes|required|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:5120', // 5MB max
         ];
     }
 
@@ -44,7 +46,11 @@ class UpdateClientUserProfileRequest extends FormRequest
             'address.required' => 'La dirección es obligatoria cuando se actualiza el perfil.',
             'zip_code.required' => 'El código postal es obligatorio cuando se actualiza el perfil.',
             'latitude.required' => 'La latitud es obligatoria cuando se actualiza el perfil.',
-            'longitude.required' => 'La longitud es obligatoria cuando se actualiza el perfil.'
+            'longitude.required' => 'La longitud es obligatoria cuando se actualiza el perfil.',
+            'biography.max' => 'La biografía no puede exceder los 1000 caracteres.',
+            'verification_documents.*.file' => 'El documento debe ser un archivo válido.',
+            'verification_documents.*.mimes' => 'El documento debe ser un archivo PDF, DOC, DOCX, JPG, JPEG o PNG.',
+            'verification_documents.*.max' => 'El documento no puede ser mayor a 5MB.',
         ];
     }
 }

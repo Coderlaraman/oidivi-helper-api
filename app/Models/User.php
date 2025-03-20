@@ -31,6 +31,10 @@ class User extends Authenticatable
         'accepted_terms',
         'profile_photo_url',
         'profile_video_url',
+        'biography',
+        'verification_documents',
+        'verification_status',
+        'verification_notes',
         'phone',
         'address',
         'zip_code',
@@ -58,12 +62,38 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'phone_verified_at' => 'datetime',
+            'documents_verified_at' => 'datetime',
+            'verification_documents' => 'array',
             'password' => 'hashed',
             'is_active' => 'boolean',
             'accepted_terms' => 'boolean',
             'latitude' => 'float',
             'longitude' => 'float',
         ];
+    }
+
+    // Constantes para estados de verificación
+    const VERIFICATION_PENDING = 'pending';
+    const VERIFICATION_VERIFIED = 'verified';
+    const VERIFICATION_REJECTED = 'rejected';
+
+    // Método helper para verificar si el usuario está verificado
+    public function isVerified(): bool
+    {
+        return $this->verification_status === self::VERIFICATION_VERIFIED;
+    }
+
+    // Método para agregar un documento verificable
+    public function addVerificationDocument(string $documentUrl, string $documentType): void
+    {
+        $documents = $this->verification_documents ?? [];
+        $documents[] = [
+            'url' => $documentUrl,
+            'type' => $documentType,
+            'uploaded_at' => now()->toDateTimeString(),
+        ];
+        $this->verification_documents = $documents;
+        $this->save();
     }
 
     /**

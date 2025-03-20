@@ -15,6 +15,10 @@ class ClientCategoryResource extends JsonResource
      */
     public function toArray($request): array
     {
-        return [];
+        return [
+            'id' => $this->id,
+            'name' => $this->name,
+            'description' => $this->description
+        ];
     }
 }
