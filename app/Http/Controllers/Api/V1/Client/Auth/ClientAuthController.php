@@ -3,12 +3,13 @@
 namespace App\Http\Controllers\Api\V1\Client\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Client\LoginClientAuthRequest;
-use App\Http\Requests\Client\RegisterClientAuthRequest;
+use App\Http\Requests\Client\Auth\LoginClientAuthRequest;
+use App\Http\Requests\Client\Auth\RegisterClientAuthRequest;
 use App\Http\Resources\Client\ClientAuthResource;
 use App\Models\Role;
 use App\Models\User;
 use App\Traits\ApiResponseTrait;
+use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -23,45 +24,61 @@ class ClientAuthController extends Controller
      * @param  RegisterClientAuthRequest  $request
      * @return JsonResponse
      */
-    public function register(RegisterClientAuthRequest $request)
+    public function register(RegisterClientAuthRequest $request): JsonResponse
     {
-        $data = $request->validated();
+        try {
+            $validated = $request->validated();
 
-        if (!$data['accepted_terms']) {
-            return $this->errorResponse('You must accept the terms and conditions to proceed.', 422);
+            if (!$validated['accepted_terms']) {
+                return $this->errorResponse(
+                    'You must accept the terms and conditions',
+                    422
+                );
+            }
+
+            $user = User::create([
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'password' => Hash::make($validated['password']),
+                'accepted_terms' => $validated['accepted_terms'],
+                'is_active' => true,
+                'address' => $validated['address'],
+                'phone' => $validated['phone'],
+                'zip_code' => $validated['zip_code'],
+                'latitude' => $validated['latitude'],
+                'longitude' => $validated['longitude'],
+            ]);
+
+            // Asignar roles
+            $clientRole = Role::firstOrCreate(['name' => 'client']);
+            $helperRole = Role::firstOrCreate(['name' => 'helper']);
+            $user->roles()->attach([$clientRole->id, $helperRole->id]);
+
+            // Cargar relaciones
+            $user->load('roles');
+
+            // Enviar email de verificación
+            $user->sendEmailVerificationNotification();
+
+            // Generar token
+            $token = $user->createToken('API Token')->plainTextToken;
+
+            return $this->successResponse(
+                [
+                    'token' => $token,
+                    'user' => new ClientAuthResource($user)
+                ],
+                'User registered successfully. Please verify your email.',
+                201
+            );
+
+        } catch (Exception $e) {
+            return $this->errorResponse(
+                'Error during registration',
+                500,
+                ['error' => $e->getMessage()]
+            );
         }
-
-        $user = User::create([
-            'name' => $data['name'],
-            'email' => $data['email'],
-            'password' => Hash::make($data['password']),
-            'accepted_terms' => $data['accepted_terms'],
-            'is_active' => true,
-            'address' => $data['address'],
-            'phone' => $data['phone'],
-            'zip_code' => $data['zip_code'],
-            'latitude' => $data['latitude'],
-            'longitude' => $data['longitude'],
-        ]);
-
-        // Asignar roles de 'client' y 'helper'
-        $clientRole = Role::firstOrCreate(['name' => 'client']);
-        $helperRole = Role::firstOrCreate(['name' => 'helper']);
-        $user->roles()->attach([$clientRole->id, $helperRole->id]);
-
-        // Cargar roles para incluirlos en la respuesta
-        $user->load('roles');
-
-        // Enviar email de verificación
-        $user->sendEmailVerificationNotification();
-
-        // Generar token de acceso
-        $token = $user->createToken('API Token')->plainTextToken;
-
-        return $this->successResponse([
-            'token' => $token,
-            'user' => new ClientAuthResource($user),
-        ], 'User registered successfully. Please verify your email address.', 201);
     }
 
     /**
@@ -70,30 +87,44 @@ class ClientAuthController extends Controller
      * @param  LoginClientAuthRequest  $request
      * @return JsonResponse
      */
-    public function login(LoginClientAuthRequest $request)
+    public function login(LoginClientAuthRequest $request): JsonResponse
     {
-        $data = $request->validated();
+        try {
+            $validated = $request->validated();
+            $user = User::where('email', $validated['email'])->first();
 
-        $user = User::where('email', $data['email'])->first();
+            if (!$user || !Hash::check($validated['password'], $user->password)) {
+                return $this->errorResponse(
+                    'Invalid credentials',
+                    401
+                );
+            }
 
-        if (!$user || !Hash::check($data['password'], $user->password)) {
-            return $this->errorResponse('Invalid credentials.', 401);
+            if (!$user->hasVerifiedEmail()) {
+                return $this->errorResponse(
+                    'Please verify your email before logging in',
+                    403
+                );
+            }
+
+            $token = $user->createToken('API Token')->plainTextToken;
+
+            return $this->successResponse(
+                [
+                    'token' => $token,
+                    'user' => new ClientAuthResource($user)
+                ],
+                'Login successful'
+            );
+
+        } catch (Exception $e) {
+            return $this->errorResponse(
+                'Error during login',
+                500,
+                ['error' => $e->getMessage()]
+            );
         }
-
-        // Validar si el usuario ha verificado su correo
-        if (!$user->hasVerifiedEmail()) {
-            return $this->errorResponse('Please verify your email before logging in.', 403);
-        }
-
-        // Generar token de acceso
-        $token = $user->createToken('API Token')->plainTextToken;
-
-        return $this->successResponse([
-            'token' => $token,
-            'user' => new ClientAuthResource($user),
-        ], 'Login successful.');
     }
-
 
     /**
      * Cierra la sesión del usuario autenticado.
@@ -101,10 +132,22 @@ class ClientAuthController extends Controller
      * @param  Request  $request
      * @return JsonResponse
      */
-    public function logout(Request $request)
+    public function logout(): JsonResponse
     {
-        $request->user()->tokens()->where('id', $request->user()->currentAccessToken()->id)->delete();
+        try {
+            auth()->user()->currentAccessToken()->delete();
 
-        return $this->successResponse([], 'Logout successful.');
+            return $this->successResponse(
+                [],
+                'Logout successful'
+            );
+
+        } catch (Exception $e) {
+            return $this->errorResponse(
+                'Error during logout',
+                500,
+                ['error' => $e->getMessage()]
+            );
+        }
     }
 }

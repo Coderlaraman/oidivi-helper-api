@@ -4,9 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
+use Illuminate\Database\Eloquent\Model;
 
 class ServiceRequest extends Model
 {
@@ -14,26 +14,38 @@ class ServiceRequest extends Model
 
     protected $fillable = [
         'user_id',
+        'category_id',
         'title',
         'description',
+        'address',
         'zip_code',
         'latitude',
         'longitude',
         'budget',
         'visibility',
         'status',
+        'payment_method',
+        'service_type'
     ];
 
-    // Relación con el usuario que crea la solicitud
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    // Relación polimórfica con Category
     public function categories(): MorphToMany
     {
         return $this->morphToMany(Category::class, 'categorizable');
+    }
+
+    public function offers(): HasMany
+    {
+        return $this->hasMany(ServiceOffer::class);
+    }
+
+    public function contract(): HasMany
+    {
+        return $this->hasMany(Contract::class);
     }
 
     public function reviews(): HasMany

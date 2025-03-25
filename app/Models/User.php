@@ -127,4 +127,25 @@ class User extends Authenticatable
     {
         return $this->hasOne(UserStat::class);
     }
+
+    public function reviewsGiven()
+{
+    return $this->hasMany(Review::class, 'reviewer_id');
+}
+
+public function reviewsReceived()
+{
+    return $this->hasMany(Review::class, 'reviewed_id');
+}
+
+public function reportsMade()
+{
+    return $this->hasMany(Report::class, 'reported_by');
+}
+
+public function reportsReceived()
+{
+    return $this->hasMany(Report::class, 'reported_user');
+}
+
 }

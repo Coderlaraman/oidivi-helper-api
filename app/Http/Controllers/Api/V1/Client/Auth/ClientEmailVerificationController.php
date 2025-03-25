@@ -4,63 +4,115 @@ namespace App\Http\Controllers\Api\V1\Client\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Traits\ApiResponseTrait;
 use Illuminate\Auth\Events\Verified;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Exception;
 
 class ClientEmailVerificationController extends Controller
 {
+    use ApiResponseTrait;
+
     /**
      * Reenvía el email de verificación.
      */
-    public function sendVerificationEmail(Request $request)
+    public function sendVerificationEmail(Request $request): JsonResponse
     {
-        if ($request->user()->hasVerifiedEmail()) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Email already verified.'
-            ]);
+        try {
+            $user = $request->user();
+
+            if ($user->hasVerifiedEmail()) {
+                return $this->successResponse(
+                    [],
+                    'Email already verified'
+                );
+            }
+
+            $user->sendEmailVerificationNotification();
+
+            return $this->successResponse(
+                [],
+                'Verification email sent successfully'
+            );
+
+        } catch (Exception $e) {
+            return $this->errorResponse(
+                'Error sending verification email',
+                500,
+                ['error' => $e->getMessage()]
+            );
         }
-
-        $request->user()->sendEmailVerificationNotification();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Verification email sent.'
-        ]);
     }
 
     /**
      * Verifica el email del usuario.
      */
-    public function verify(Request $request, $id, $hash)
+    public function verify(Request $request, $id, $hash): JsonResponse
     {
-        // 1. Buscar al usuario por ID
-        $user = User::findOrFail($id);
+        try {
+            $user = User::findOrFail($id);
 
-        // 2. Validar que el hash coincida con el correo del usuario
-        if (!hash_equals((string) $hash, sha1($user->getEmailForVerification()))) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid verification hash.'
-            ], 403);
+            if (!hash_equals(
+                (string) $hash,
+                sha1($user->getEmailForVerification())
+            )) {
+                return $this->errorResponse(
+                    'Invalid verification link',
+                    403
+                );
+            }
+
+            if ($user->hasVerifiedEmail()) {
+                return $this->successResponse(
+                    [],
+                    'Email already verified'
+                );
+            }
+
+            if ($user->markEmailAsVerified()) {
+                event(new Verified($user));
+            }
+
+            return $this->successResponse(
+                [],
+                'Email verified successfully'
+            );
+
+        } catch (Exception $e) {
+            return $this->errorResponse(
+                'Error verifying email',
+                500,
+                ['error' => $e->getMessage()]
+            );
         }
+    }
 
-        // 3. Verificar si el usuario ya tiene el email verificado
-        if ($user->hasVerifiedEmail()) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Email already verified.'
-            ]);
+    public function resend(Request $request): JsonResponse
+    {
+        try {
+            $user = $request->user();
+
+            if ($user->hasVerifiedEmail()) {
+                return $this->errorResponse(
+                    'Email already verified',
+                    400
+                );
+            }
+
+            $user->sendEmailVerificationNotification();
+
+            return $this->successResponse(
+                [],
+                'Verification email resent successfully'
+            );
+
+        } catch (Exception $e) {
+            return $this->errorResponse(
+                'Error resending verification email',
+                500,
+                ['error' => $e->getMessage()]
+            );
         }
-
-        // 4. Marcar como verificado
-        if ($user->markEmailAsVerified()) {
-            event(new Verified($user));
-        }
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Email successfully verified.'
-        ]);
     }
 }

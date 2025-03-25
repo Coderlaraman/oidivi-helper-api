@@ -82,18 +82,15 @@ class ServiceRequestSeeder extends Seeder
                 'title' => $request['title'],
                 'description' => $request['description'],
                 'budget' => $request['budget'],
-                'zip_code' => '90210',
+                'zip_code' => '12345',
+                'address' => '123 Main St, Los Angeles, CA 90038',
                 'latitude' => rand(3300, 4800) / 100,
                 'longitude' => rand(-11800, -11700) / 100,
                 'visibility' => 'public',
                 'status' => 'published',
+                'category_id' => Category::where('name', $request['category'])->first()->id,
             ]);
-
-            // Assign the corresponding category
-            $category = Category::where('name', $request['category'])->first();
-            if ($category) {
-                $serviceRequest->categories()->attach($category->id);
-            }
         }
     }
 }
+

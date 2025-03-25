@@ -196,6 +196,92 @@ return [
             'password.required' => 'You need to provide your password.',
             'invalid_credentials' => 'The provided credentials are incorrect. Please try again.',
         ],
+        'profile' => [
+            'name.required' => 'Your profile name is required.',
+            'name.max' => 'Your name cannot exceed :max characters.',
+            'biography.max' => 'Your biography cannot exceed :max characters.',
+            'profile_photo.image' => 'The profile photo must be an image.',
+            'profile_photo.max' => 'The profile photo cannot exceed :max kilobytes.',
+            'profile_video.mimes' => 'The profile video must be in a valid format (mp4, mov, avi).',
+            'profile_video.max' => 'The profile video cannot exceed :max kilobytes.',
+            'verification_documents.*.file' => 'Each verification document must be a valid file.',
+            'verification_documents.*.mimes' => 'Verification documents must be in PDF or image format.',
+        ],
+        'service_requests' => [
+            'title.required' => 'Please provide a title for your service request.',
+            'title.max' => 'The title cannot exceed :max characters.',
+            'description.required' => 'A detailed description of the service is required.',
+            'description.min' => 'The description must be at least :min characters long.',
+            'budget.required' => 'Please specify your budget for this service.',
+            'budget.numeric' => 'The budget must be a valid number.',
+            'budget.min' => 'The minimum budget must be at least :min.',
+            'category_id.required' => 'Please select a service category.',
+            'category_id.exists' => 'The selected category is invalid.',
+            'service_type.required' => 'Please specify the type of service.',
+            'service_type.in' => 'Invalid service type selected.',
+        ],
+        'reviews' => [
+            'rating.required' => 'Please provide a rating.',
+            'rating.between' => 'The rating must be between 1 and 5 stars.',
+            'comment.required' => 'Please provide a review comment.',
+            'comment.min' => 'The review comment must be at least :min characters.',
+            'service_request_id.required' => 'The service request reference is required.',
+            'service_request_id.exists' => 'Invalid service request reference.',
+        ],
+        'payments' => [
+            'amount.required' => 'The payment amount is required.',
+            'amount.numeric' => 'The amount must be a valid number.',
+            'amount.min' => 'The minimum payment amount is :min.',
+            'payment_method_id.required' => 'Please select a payment method.',
+            'payment_method_id.exists' => 'The selected payment method is invalid.',
+            'transaction_id.required' => 'Transaction reference is required.',
+            'currency.required' => 'Please specify the currency.',
+            'currency.in' => 'Invalid currency selected.',
+        ],
+        'tickets' => [
+            'category.required' => 'Please select a ticket category.',
+            'category.in' => 'Invalid ticket category selected.',
+            'message.required' => 'Please describe your issue.',
+            'message.min' => 'The description must be at least :min characters.',
+            'priority.required' => 'Please select a priority level.',
+            'priority.in' => 'Invalid priority level selected.',
+            'attachments.*.file' => 'Each attachment must be a valid file.',
+            'attachments.*.mimes' => 'Attachments must be in PDF or image format.',
+        ],
+        'location' => [
+            'latitude.required' => 'Latitude is required for location tracking.',
+            'latitude.between' => 'Latitude must be between -90 and 90 degrees.',
+            'longitude.required' => 'Longitude is required for location tracking.',
+            'longitude.between' => 'Longitude must be between -180 and 180 degrees.',
+            'accuracy.min' => 'Location accuracy cannot be negative.',
+            'speed.min' => 'Speed cannot be negative.',
+            'heading.between' => 'Heading must be between 0 and 360 degrees.',
+        ],
+        'skills' => [
+            'name.required' => 'Skill name is required.',
+            'name.max' => 'Skill name cannot exceed :max characters.',
+            'description.required' => 'Please provide a skill description.',
+            'category_ids.required' => 'Please select at least one category.',
+            'category_ids.*.exists' => 'One or more selected categories are invalid.',
+            'experience_level.required' => 'Please specify your experience level.',
+            'experience_level.between' => 'Experience level must be between 1 and 5.',
+        ],
+        'subscriptions' => [
+            'plan_name.required' => 'Please select a subscription plan.',
+            'plan_name.in' => 'Invalid subscription plan selected.',
+            'payment_method_id.required' => 'Please select a payment method for subscription.',
+            'billing_cycle.required' => 'Please select a billing cycle.',
+            'billing_cycle.in' => 'Invalid billing cycle selected.',
+            'auto_renew.required' => 'Please specify auto-renewal preference.',
+        ],
+        'reports' => [
+            'type.required' => 'Please specify the report type.',
+            'type.in' => 'Invalid report type selected.',
+            'description.required' => 'Please describe the issue you are reporting.',
+            'description.min' => 'The description must be at least :min characters.',
+            'evidence.*.file' => 'Each piece of evidence must be a valid file.',
+            'evidence.*.mimes' => 'Evidence must be in PDF or image format.',
+        ],
     ],
 
     /*
@@ -204,8 +290,8 @@ return [
     |--------------------------------------------------------------------------
     |
     | The following language lines are used to swap our attribute placeholder
-    | with something more reader friendly such as “E-Mail Address” instead
-    | of “email”. This simply helps us make our message more expressive.
+    | with something more reader friendly such as "E-Mail Address" instead
+    | of "email". This simply helps us make our message more expressive.
     |
     */
 
@@ -219,6 +305,26 @@ return [
         'latitude' => 'latitude',
         'longitude' => 'longitude',
         'accepted_terms' => 'terms and conditions',
+        'biography' => 'biography',
+        'profile_photo' => 'profile photo',
+        'profile_video' => 'profile video',
+        'verification_documents' => 'verification documents',
+        'title' => 'title',
+        'description' => 'description',
+        'budget' => 'budget',
+        'category_id' => 'category',
+        'service_type' => 'service type',
+        'rating' => 'rating',
+        'comment' => 'comment',
+        'amount' => 'amount',
+        'payment_method_id' => 'payment method',
+        'transaction_id' => 'transaction reference',
+        'currency' => 'currency',
+        'experience_level' => 'experience level',
+        'certifications' => 'certifications',
+        'plan_name' => 'subscription plan',
+        'billing_cycle' => 'billing cycle',
+        'auto_renew' => 'auto-renewal',
     ],
 
 ];

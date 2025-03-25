@@ -13,9 +13,11 @@ class ServiceRequestFactory extends Factory
     public function definition(): array
     {
         return [
-            'user_id' => User::factory(),  // o puedes asignar un usuario ya existente
+            'user_id' => User::factory(),
+            'category_id' => Category::factory(),
             'title' => $this->faker->sentence(6, true),
             'description' => $this->faker->paragraph(3, true),
+            'address' => $this->faker->address,
             'zip_code' => $this->faker->postcode,
             'latitude' => $this->faker->latitude,
             'longitude' => $this->faker->longitude,

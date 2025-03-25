@@ -13,14 +13,18 @@ return new class extends Migration {
         Schema::create('service_requests', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->foreignId('category_id')->constrained('categories')->onDelete('cascade');
             $table->string('title');
             $table->text('description');
-            $table->string('zip_code', 10);
-            $table->decimal('latitude', 10, 7);
-            $table->decimal('longitude', 10, 7);
-            $table->decimal('budget', 10);
+            $table->string('address');
+            $table->string('zip_code', 10)->nullable();
+            $table->decimal('latitude', 10, 7)->nullable();
+            $table->decimal('longitude', 10, 7)->nullable();
+            $table->decimal('budget', 10, 2);
             $table->enum('visibility', ['public', 'private'])->default('public');
-            $table->string('status')->default('published');
+            $table->enum('status', ['published', 'in_progress', 'completed', 'canceled'])->default('published');
+            $table->enum('payment_method', ['paypal', 'credit_card', 'bank_transfer'])->nullable();
+            $table->enum('service_type', ['one_time', 'recurring'])->default('one_time');
             $table->timestamps();
         });
     }

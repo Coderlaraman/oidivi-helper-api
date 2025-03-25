@@ -25,7 +25,7 @@ class ClientServiceRequestResource extends JsonResource
             'budget' => $this->budget,
             'visibility' => $this->visibility,
             'status' => $this->status,
-            'user' => new ClientUserProfileResource($this->whenLoaded('user')),
+            'user' => new ClientProfileResource($this->whenLoaded('user')),
             'categories' => ClientCategoryResource::collection($this->whenLoaded('categories')),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,

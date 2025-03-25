@@ -11,6 +11,7 @@
     "require": {
         "php": "^8.2",
         "laravel-lang/common": "^6.4",
+        "laravel/cashier": "^15.6",
         "laravel/framework": "^11.31",
         "laravel/reverb": "^1.0",
         "laravel/sanctum": "^4.0",
@@ -30,7 +31,10 @@
             "App\\": "app/",
             "Database\\Factories\\": "database/factories/",
             "Database\\Seeders\\": "database/seeders/"
-        }
+        },
+        "files": [
+            "app/Helpers/LocaleHelper.php"
+        ]
     },
     "autoload-dev": {
         "psr-4": {

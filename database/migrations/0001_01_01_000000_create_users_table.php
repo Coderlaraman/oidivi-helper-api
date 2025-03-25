@@ -14,6 +14,7 @@ return new class extends Migration {
             $table->id();
             $table->string('name');
             $table->string('email')->unique();
+            $table->string('preferred_language', 2)->default('en')->nullable();
             $table->timestamp('email_verified_at')->nullable();  // Fecha de verificación del correo
             $table->string('password');
             $table->boolean('is_active')->default(true);  // Estado del usuario
