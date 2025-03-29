@@ -16,12 +16,15 @@ class UserSeeder extends Seeder
     {
         // Crear rol de admin si no existe
         $adminRole = Role::firstOrCreate(['name' => 'admin']);
+        $userRole = Role::firstOrCreate(['name' => 'user']);
+        $moderatorRole = Role::firstOrCreate(['name' => 'moderator']);
+        $supportRole = Role::firstOrCreate(['name' => 'support']);
 
         // Crear usuario admin
         $admin = User::factory()->create([
-            'name' => 'Admin User',
-            'email' => 'admin@example.com',
-            'password' => bcrypt('password'),
+            'name' => 'Jaime Sierra',
+            'email' => 'coderman1980@gmail.com',
+            'password' => bcrypt('Password1'),
             'email_verified_at' => now(),
             'is_active' => true,
             'verification_status' => 'verified'
@@ -33,15 +36,9 @@ class UserSeeder extends Seeder
         // Verificar la asignación
         \Log::info('Admin user roles: ', $admin->roles->pluck('name')->toArray());
 
-        // Obtener roles
-        $clientRole = Role::where('name', 'client')->firstOrFail();
-        $helperRole = Role::where('name', 'helper')->firstOrFail();
-        $moderatorRole = Role::where('name', 'moderator')->firstOrFail();
-        $supportRole = Role::where('name', 'support')->firstOrFail();
-
-        // Crear usuarios con roles client y helper
-        User::factory(10)->create()->each(function ($user) use ($clientRole, $helperRole) {
-            $user->roles()->attach([$clientRole->id, $helperRole->id]);
+        // Crear usuarios normales (rol 'user')
+        User::factory(10)->create()->each(function ($user) use ($userRole) {
+            $user->roles()->attach($userRole);
             
             // Asignar habilidades aleatorias
             $skillCount = rand(1, 3);

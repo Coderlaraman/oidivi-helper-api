@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api\V1\Admin\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Admin\Auth\AdminLoginAuthRequest;
+use App\Http\Requests\Admin\Auth\AdminLoginRequest;
 use App\Http\Resources\Admin\AdminAuthResource;
 use App\Models\User;
 use App\Traits\ApiResponseTrait;
@@ -21,7 +21,7 @@ class AdminAuthController extends Controller
     /**
      * Iniciar sesión como administrador
      */
-    public function login(AdminLoginAuthRequest $request): JsonResponse
+    public function login(AdminLoginRequest $request): JsonResponse
     {
         $user = User::where('email', $request->email)->first();
 

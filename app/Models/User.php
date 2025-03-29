@@ -29,7 +29,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'role',
+        'preferred_language',
         'is_active',
         'metadata',
         'accepted_terms',
@@ -45,6 +45,8 @@ class User extends Authenticatable
         'latitude',
         'longitude',
     ];
+
+    // Remove the 'role' from fillable as we're using relationships
 
     /**
      * The attributes that should be hidden for serialization.
@@ -79,16 +81,6 @@ class User extends Authenticatable
     const VERIFICATION_PENDING = 'pending';
     const VERIFICATION_VERIFIED = 'verified';
     const VERIFICATION_REJECTED = 'rejected';
-
-    /**
-     * The possible role values for a user.
-     *
-     * @var array<string>
-     */
-    public const ROLES = [
-        'user' => 'Usuario',
-        'admin' => 'Administrador',
-    ];
 
     // Método helper para verificar si el usuario está verificado
     public function isVerified(): bool
@@ -161,21 +153,6 @@ class User extends Authenticatable
         return $this->hasMany(ServiceRequest::class);
     }
 
-    /**
-     * Get the role text.
-     */
-    public function getRoleTextAttribute(): string
-    {
-        return self::ROLES[$this->role] ?? $this->role;
-    }
-
-    /**
-     * Check if the user is an admin.
-     */
-    public function isAdmin(): bool
-    {
-        return $this->role === 'admin';
-    }
 
     /**
      * Check if the user is active.
@@ -223,5 +200,23 @@ class User extends Authenticatable
     public function getCancelledServiceRequestsCountAttribute(): int
     {
         return $this->serviceRequests()->where('status', 'cancelled')->count();
+    }
+
+    /**
+     * Get the user's primary role.
+     */
+    public function getMainRoleAttribute(): ?string
+    {
+        return $this->roles->first()?->name;
+    }
+
+    /**
+     * Set the user's primary role.
+     */
+    public function setMainRoleAttribute(string $roleName): void
+    {
+        if ($role = Role::where('name', $roleName)->first()) {
+            $this->roles()->sync([$role->id]);
+        }
     }
 }

@@ -1,0 +1,747 @@
+<?php
+
+namespace App\Http\Controllers\Api\V1\Admin\Users;
+
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\User\AdminListUserRequest;
+use App\Http\Requests\Admin\User\AdminStoreUserRequest;
+use App\Http\Requests\Admin\User\AdminUpdateUserRequest;
+use App\Http\Resources\Admin\AdminUserResource;
+use App\Models\Role;
+use App\Models\User;
+use App\Traits\ApiResponseTrait;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+
+class AdminUserController extends Controller
+{
+    use ApiResponseTrait;
+
+    /**
+     * Display a listing of the users.
+     */
+    public function index(AdminListUserRequest $request)
+    {
+        $query = User::query()->with('roles');
+
+        // Apply search filter
+        if ($request->has('search')) {
+            $search = $request->input('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+
+        // Apply role filter
+        if ($request->has('role')) {
+            $role = $request->input('role');
+            $query->whereHas('roles', function ($q) use ($role) {
+                $q->where('name', $role);
+            });
+        }
+
+        // Apply active status filter
+        if ($request->has('is_active')) {
+            $query->where('is_active', $request->boolean('is_active'));
+        }
+
+        // Include soft deleted users if requested
+        if ($request->boolean('show_deleted')) {
+            $query->withTrashed();
+        }
+
+        // Apply sorting
+        $sortBy = $request->input('sort_by', 'created_at');
+        $sortDirection = $request->input('sort_direction', 'desc');
+        $query->orderBy($sortBy, $sortDirection);
+
+        // Paginate results
+        $perPage = $request->input('per_page', 15);
+        $users = $query->paginate($perPage);
+
+        return $this->successResponse(
+            AdminUserResource::collection($users)->response()->getData(true),
+            'Users retrieved successfully'
+        );
+    }
+
+    /**
+     * Store a newly created user in storage.
+     */
+    public function store(AdminStoreUserRequest $request)
+    {
+        try {
+            DB::beginTransaction();
+
+            $userData = $request->validated();
+            $roles = $userData['roles'];
+            unset($userData['roles']);
+
+            // Set default values
+            $userData['password'] = Hash::make($userData['password']);
+            $userData['is_active'] = $userData['is_active'] ?? true;
+
+            $user = User::create($userData);
+
+            // Assign roles
+            foreach ($roles as $roleName) {
+                $role = Role::where('name', $roleName)->first();
+                if ($role) {
+                    $user->roles()->attach($role);
+                }
+            }
+
+            DB::commit();
+
+            return $this->successResponse(
+                new AdminUserResource($user),
+                'User created successfully',
+                201
+            );
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return $this->errorResponse('Failed to create user: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Display the specified user.
+     */
+    public function show(int $id)
+    {
+        $user = User::with('roles')->findOrFail($id);
+
+        return $this->successResponse(
+            new AdminUserResource($user),
+            'User retrieved successfully'
+        );
+    }
+
+    /**
+     * Update the specified user in storage.
+     */
+    public function update(AdminUpdateUserRequest $request, int $id)
+    {
+        try {
+            DB::beginTransaction();
+
+            $user = User::findOrFail($id);
+            $userData = $request->validated();
+
+            // Handle roles if provided
+            if (isset($userData['roles'])) {
+                $roles = $userData['roles'];
+                unset($userData['roles']);
+
+                // Sync roles
+                $roleIds = Role::whereIn('name', $roles)->pluck('id')->toArray();
+                $user->roles()->sync($roleIds);
+            }
+
+            // Hash password if provided
+            if (isset($userData['password'])) {
+                $userData['password'] = Hash::make($userData['password']);
+            }
+
+            $user->update($userData);
+
+            DB::commit();
+
+            return $this->successResponse(
+                new AdminUserResource($user),
+                'User updated successfully'
+            );
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return $this->errorResponse('Failed to update user: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Remove the specified user from storage.
+     */
+    public function destroy(int $id)
+    {
+        try {
+            $user = User::findOrFail($id);
+
+            // Prevent deleting yourself
+            if ($user->id === auth()->id()) {
+                return $this->errorResponse('You cannot delete your own account', 403);
+            }
+
+            $user->delete();
+
+            return $this->successResponse(
+                null,
+                'User deleted successfully'
+            );
+        } catch (\Exception $e) {
+            return $this->errorResponse('Failed to delete user: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Restore a soft-deleted user.
+     */
+    public function restore(int $id)
+    {
+        try {
+            $user = User::withTrashed()->findOrFail($id);
+            $user->restore();
+
+            return $this->successResponse(
+                new AdminUserResource($user),
+                'User restored successfully'
+            );
+        } catch (\Exception $e) {
+            return $this->errorResponse('Failed to restore user: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Permanently delete a user.
+     */
+    public function forceDelete(int $id)
+    {
+        try {
+            $user = User::withTrashed()->findOrFail($id);
+
+            // Prevent deleting yourself
+            if ($user->id === auth()->id()) {
+                return $this->errorResponse('You cannot delete your own account', 403);
+            }
+
+            // Detach all roles
+            $user->roles()->detach();
+
+            // Force delete
+            $user->forceDelete();
+
+            return $this->successResponse(
+                null,
+                'User permanently deleted'
+            );
+        } catch (\Exception $e) {
+            return $this->errorResponse('Failed to permanently delete user: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Update user's active status.
+     */
+    public function toggleActive(int $id)
+    {
+        try {
+            $user = User::findOrFail($id);
+
+            // Prevent deactivating yourself
+            if ($user->id === auth()->id()) {
+                return $this->errorResponse('You cannot change your own active status', 403);
+            }
+
+            $user->is_active = !$user->is_active;
+            $user->save();
+
+            $status = $user->is_active ? 'activated' : 'deactivated';
+
+            return $this->successResponse(
+                new AdminUserResource($user),
+                "User {$status} successfully"
+            );
+        } catch (\Exception $e) {
+            return $this->errorResponse('Failed to update user status: ' . $e->getMessage());
+        }
+    }
+}
+
+
+<?php
+
+namespace App\Http\Requests\Admin\User;
+
+use Illuminate\Foundation\Http\FormRequest;
+
+class AdminListUserRequest extends FormRequest
+{
+    /**
+     * Determine if the user is authorized to make this request.
+     */
+    public function authorize(): bool
+    {
+        return $this->user() && $this->user()->hasRole('admin');
+    }
+
+    /**
+     * Get the validation rules that apply to the request.
+     */
+    public function rules(): array
+    {
+        return [
+            'search' => 'nullable|string|max:100',
+            'role' => 'nullable|string|exists:roles,name',
+            'is_active' => 'nullable|boolean',
+            'sort_by' => 'nullable|string|in:name,email,created_at,updated_at',
+            'sort_direction' => 'nullable|string|in:asc,desc',
+            'per_page' => 'nullable|integer|min:1|max:100',
+            'page' => 'nullable|integer|min:1',
+            'show_deleted' => 'nullable|boolean',
+        ];
+    }
+}
+
+<?php
+
+namespace App\Http\Requests\Admin\User;
+
+use Illuminate\Foundation\Http\FormRequest;
+
+class AdminStoreUserRequest extends FormRequest
+{
+    /**
+     * Determine if the user is authorized to make this request.
+     */
+    public function authorize(): bool
+    {
+        return $this->user() && $this->user()->hasRole('admin');
+    }
+
+    /**
+     * Get the validation rules that apply to the request.
+     */
+    public function rules(): array
+    {
+        return [
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
+            'password' => 'required|string|min:8',
+            'roles' => 'required|array',
+            'roles.*' => 'exists:roles,name',
+            'is_active' => 'nullable|boolean',
+            'preferred_language' => 'nullable|string|size:2',
+            'phone' => 'nullable|string|max:20',
+            'address' => 'nullable|string|max:255',
+            'zip_code' => 'nullable|string|max:20',
+            'latitude' => 'nullable|numeric',
+            'longitude' => 'nullable|numeric',
+            'biography' => 'nullable|string',
+            'profile_photo_url' => 'nullable|url',
+            'profile_video_url' => 'nullable|url',
+        ];
+    }
+}
+
+<?php
+
+namespace App\Http\Requests\Admin\User;
+
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+
+class AdminUpdateUserRequest extends FormRequest
+{
+    /**
+     * Determine if the user is authorized to make this request.
+     */
+    public function authorize(): bool
+    {
+        return $this->user() && $this->user()->hasRole('admin');
+    }
+
+    /**
+     * Get the validation rules that apply to the request.
+     */
+    public function rules(): array
+    {
+        return [
+            'name' => 'sometimes|string|max:255',
+            'email' => [
+                'sometimes',
+                'email',
+                Rule::unique('users')->ignore($this->route('user')),
+            ],
+            'password' => 'sometimes|string|min:8',
+            'roles' => 'sometimes|array',
+            'roles.*' => 'exists:roles,name',
+            'is_active' => 'sometimes|boolean',
+            'preferred_language' => 'sometimes|string|size:2',
+            'phone' => 'sometimes|string|max:20',
+            'address' => 'sometimes|string|max:255',
+            'zip_code' => 'sometimes|string|max:20',
+            'latitude' => 'sometimes|numeric',
+            'longitude' => 'sometimes|numeric',
+            'biography' => 'sometimes|string',
+            'profile_photo_url' => 'sometimes|url',
+            'profile_video_url' => 'sometimes|url',
+            'verification_status' => 'sometimes|string|in:pending,verified,rejected',
+            'verification_notes' => 'sometimes|string',
+        ];
+    }
+}
+
+<?php
+
+namespace App\Http\Resources\Admin;
+
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
+
+class AdminUserResource extends JsonResource
+{
+    /**
+     * Transform the resource into an array.
+     *
+     * @return array<string, mixed>
+     */
+    public function toArray(Request $request): array
+    {
+        return [
+            'id' => $this->id,
+            'name' => $this->name,
+            'email' => $this->email,
+            'roles' => $this->roles->pluck('name'),
+            'is_active' => $this->is_active,
+            'preferred_language' => $this->preferred_language,
+            'profile_photo_url' => $this->profile_photo_url,
+            'profile_video_url' => $this->profile_video_url,
+            'biography' => $this->biography,
+            'verification_status' => $this->verification_status,
+            'verification_notes' => $this->when($request->user()->hasRole('admin'), $this->verification_notes),
+            'verification_documents' => $this->when($request->user()->hasRole('admin'), $this->verification_documents),
+            'documents_verified_at' => $this->when($request->user()->hasRole('admin'), $this->documents_verified_at),
+            'phone' => $this->phone,
+            'phone_verified_at' => $this->when($request->user()->hasRole('admin'), $this->phone_verified_at),
+            'address' => $this->address,
+            'zip_code' => $this->zip_code,
+            'latitude' => $this->latitude,
+            'longitude' => $this->longitude,
+            'last_login_at' => $this->when($request->user()->hasRole('admin'), $this->last_login_at),
+            'last_activity_at' => $this->when($request->user()->hasRole('admin'), $this->last_activity_at),
+            'created_at' => $this->created_at,
+            'updated_at' => $this->updated_at,
+            'deleted_at' => $this->when($request->user()->hasRole('admin'), $this->deleted_at),
+        ];
+    }
+}
+
+<?php
+
+namespace App\Models;
+
+use App\Traits\HasRoles;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
+
+class User extends Authenticatable
+{
+    use HasApiTokens, HasFactory, Notifiable, SoftDeletes, HasRoles;
+
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array<int, string>
+     */
+    protected $fillable = [
+        'name',
+        'email',
+        'password',
+        'preferred_language',
+        'is_active',
+        'accepted_terms',
+        'profile_photo_url',
+        'profile_video_url',
+        'biography',
+        'verification_documents',
+        'verification_status',
+        'verification_notes',
+        'phone',
+        'address',
+        'zip_code',
+        'latitude',
+        'longitude',
+    ];
+
+    /**
+     * The attributes that should be hidden for serialization.
+     *
+     * @var array<int, string>
+     */
+    protected $hidden = [
+        'password',
+        'remember_token',
+    ];
+
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'password' => 'hashed',
+        'is_active' => 'boolean',
+        'accepted_terms' => 'boolean',
+        'verification_documents' => 'array',
+        'documents_verified_at' => 'datetime',
+        'phone_verified_at' => 'datetime',
+        'two_factor_authentication_code_sent_at' => 'datetime',
+        'last_login_at' => 'datetime',
+        'last_logout_at' => 'datetime',
+        'last_password_reset_at' => 'datetime',
+        'last_activity_at' => 'datetime',
+        'last_ip_address_change_at' => 'datetime',
+        'last_device_id_change_at' => 'datetime',
+        'last_browser_id_change_at' => 'datetime',
+        'last_two_factor_authentication_code_change_at' => 'datetime',
+        'latitude' => 'float',
+        'longitude' => 'float',
+    ];
+
+    /**
+     * Check if the user is active.
+     *
+     * @return bool
+     */
+    public function isActive(): bool
+    {
+        return (bool) $this->is_active;
+    }
+
+    /**
+     * Assign a role to the user.
+     *
+     * @param string $roleName
+     * @return void
+     */
+    public function assignRole(string $roleName): void
+    {
+        $role = Role::where('name', $roleName)->first();
+
+        if ($role && !$this->hasRole($roleName)) {
+            $this->roles()->attach($role);
+        }
+    }
+
+    /**
+     * Remove a role from the user.
+     *
+     * @param string $roleName
+     * @return void
+     */
+    public function removeRole(string $roleName): void
+    {
+        $role = Role::where('name', $roleName)->first();
+
+        if ($role) {
+            $this->roles()->detach($role);
+        }
+    }
+}
+
+<?php
+
+use App\Http\Controllers\Api\V1\Admin\Auth\AdminAuthController;
+use App\Http\Controllers\Api\V1\Admin\Categories\AdminCategoryController;
+use App\Http\Controllers\Api\V1\Admin\Categories\CategoryController;
+use App\Http\Controllers\Api\V1\Admin\ServiceRequests\ServiceRequestController;
+use App\Http\Controllers\Api\V1\Admin\Skills\SkillController;
+use App\Http\Controllers\Api\V1\Admin\Users\AdminUserController;
+use App\Http\Controllers\Api\V1\User\Auth\ClientAuthController;
+use App\Http\Controllers\Api\V1\User\Auth\ClientEmailVerificationController;
+use App\Http\Controllers\Api\V1\Client\Categories\ClientCategoryController;
+use App\Http\Controllers\Api\V1\User\Locations\ClientLocationController;
+use App\Http\Controllers\Api\V1\User\Payments\ClientPaymentController;
+use App\Http\Controllers\Api\V1\User\Profiles\ClientProfileController;
+use App\Http\Controllers\Api\V1\User\Referrals\ClientReferralController;
+use App\Http\Controllers\Api\V1\User\Reports\ClientReportController;
+use App\Http\Controllers\Api\V1\User\Reviews\ClientReviewController;
+use App\Http\Controllers\Api\V1\User\ServiceRequests\ClientServiceRequestController;
+use App\Http\Controllers\Api\V1\User\Skills\ClientSkillController;
+use App\Http\Controllers\Api\V1\User\Subscriptions\ClientSubscriptionController;
+use App\Http\Controllers\Api\V1\User\Tickets\ClientTicketController;
+use App\Http\Controllers\Api\V1\User\Transactions\ClientTransactionController;
+use Illuminate\Support\Facades\Route;
+
+/*
+|--------------------------------------------------------------------------
+| API Routes - V1
+|--------------------------------------------------------------------------
+|
+| Se definen las rutas para la versión 1 de la API, separadas por dominios.
+|
+*/
+
+Route::prefix('v1')->group(function () {
+
+
+    // Ruta de prueba
+    Route::get('test', fn() => response()->json(['message' => 'API is working']));
+
+    // Rutas públicas de autenticación para el administrador
+    Route::prefix('admin/auth')->group(function () {
+        Route::post('login', [AdminAuthController::class, 'login']);
+    });
+
+    // Rutas protegidas para el administrador
+    Route::prefix('admin')
+        ->middleware(['auth:sanctum', 'role:admin'])
+        ->group(function () {
+            // Autenticación del administrador
+            Route::post('auth/logout', [AdminAuthController::class, 'logout']);
+            Route::get('auth/me', [AdminAuthController::class, 'me']);
+
+            // Rutas de gestión de usuarios
+            // Admin User Management Routes
+            Route::middleware(['auth:sanctum', 'admin'])->prefix('v1/admin')->group(function () {
+                Route::get('/users', [AdminUserController::class, 'index']);
+                Route::post('/users', [AdminUserController::class, 'store']);
+                Route::get('/users/{user}', [AdminUserController::class, 'show']);
+                Route::put('/users/{user}', [AdminUserController::class, 'update']);
+                Route::delete('/users/{user}', [AdminUserController::class, 'destroy']);
+                Route::post('/users/{user}/restore', [AdminUserController::class, 'restore']);
+                Route::delete('/users/{user}/force', [AdminUserController::class, 'forceDelete']);
+                Route::patch('/users/{user}/toggle-active', [AdminUserController::class, 'toggleActive']);
+            });
+            Route::delete('users/{id}', [AdminUserController::class, 'destroy']);
+
+            // Rutas de categorías (definición manual)
+            Route::prefix('categories')->group(function () {
+                Route::get('/', [AdminCategoryController::class, 'index']);
+                Route::get('/{category}', [AdminCategoryController::class, 'show']);
+                Route::post('/', [AdminCategoryController::class, 'store']);
+                Route::put('/{category}', [AdminCategoryController::class, 'update']);
+                Route::delete('/{category}', [AdminCategoryController::class, 'destroy']);
+                Route::post('/{id}/restore', [AdminCategoryController::class, 'restore']);
+            });
+
+            // Alternativamente, recursos API para categorías y otros recursos:
+            Route::apiResource('categories', CategoryController::class);
+            Route::post('categories/{category}/restore', [CategoryController::class, 'restore']);
+
+            Route::apiResource('skills', SkillController::class);
+            Route::post('skills/{skill}/restore', [SkillController::class, 'restore']);
+
+            Route::apiResource('service-requests', ServiceRequestController::class)->except(['store']);
+            Route::post('service-requests/{serviceRequest}/restore', [ServiceRequestController::class, 'restore']);
+        });
+
+    // Rutas públicas para el cliente
+    Route::prefix('client')->group(function () {
+
+        // Rutas de autenticación del cliente
+        Route::prefix('auth')->group(function () {
+            Route::post('register', [ClientAuthController::class, 'register'])->name('client.auth.register');
+            Route::post('login', [ClientAuthController::class, 'login'])->name('client.auth.login');
+            Route::post('logout', [ClientAuthController::class, 'logout'])
+                ->name('client.auth.logout')
+                ->middleware('auth:sanctum');
+            Route::post('forgot-password', [ClientAuthController::class, 'forgotPassword'])
+                ->middleware('auth:sanctum');
+
+            Route::post('email/verification-notification', [ClientEmailVerificationController::class, 'sendVerificationEmail']);
+            Route::get('email/verify/{id}/{hash}', [ClientEmailVerificationController::class, 'verify'])
+                ->name('verification.verify');
+        });
+
+        // Rutas de categorías (solo lectura para usuarios)
+        Route::prefix('categories')->group(function () {
+            Route::get('/', [ClientCategoryController::class, 'index'])->name('client.categories.index');
+            Route::get('/{category}', [ClientCategoryController::class, 'show'])->name('client.categories.show');
+        });
+
+        // Rutas de pagos
+        Route::prefix('payments')->group(function () {
+            Route::post('payment/process', [ClientPaymentController::class, 'processPayment']);
+            Route::post('payment/confirm', [ClientPaymentController::class, 'confirmPayment']);
+        });
+
+        // Rutas de perfil (protegidas y con verificación)
+        Route::prefix('profile')->middleware(['auth:sanctum', 'verified'])->group(function () {
+            Route::get('me', [ClientProfileController::class, 'showProfile']);
+            Route::put('update', [ClientProfileController::class, 'updateProfile']);
+            Route::post('photo', [ClientProfileController::class, 'uploadProfilePhoto']);
+            Route::delete('photo', [ClientProfileController::class, 'deleteProfilePhoto']);
+            Route::post('video', [ClientProfileController::class, 'uploadProfileVideo']);
+            Route::put('skills', [ClientProfileController::class, 'updateSkills']);
+            Route::get('dashboard', [ClientProfileController::class, 'dashboard']);
+            Route::post('location/update', [ClientLocationController::class, 'updateLocation']);
+        });
+
+        // Rutas de referrals
+        Route::prefix('referrals')->group(function () {
+            Route::get('/', [ClientReferralController::class, 'index']);
+            Route::post('/', [ClientReferralController::class, 'store']);
+            Route::put('{referral}', [ClientReferralController::class, 'update']);
+            Route::delete('{referral}', [ClientReferralController::class, 'destroy']);
+            Route::get('{referral}', [ClientReferralController::class, 'show']);
+        });
+
+        // Rutas de reportes
+        Route::prefix('reports')->group(function () {
+            Route::post('reports', [ClientReportController::class, 'store']);
+            Route::get('reports', [ClientReportController::class, 'index']);
+        });
+
+        // Rutas de reseñas
+        Route::prefix('reviews')->group(function () {
+            Route::post('reviews', [ClientReviewController::class, 'store']);
+            Route::get('reviews/{userId}', [ClientReviewController::class, 'index']);
+        });
+
+        // Rutas de servicios (protegidas)
+        Route::prefix('services')->middleware('auth:sanctum')->group(function () {
+            Route::get('/', [ClientServiceRequestController::class, 'index']);
+            Route::get('{id}', [ClientServiceRequestController::class, 'show']);
+            Route::post('/', [ClientServiceRequestController::class, 'store']);
+            Route::put('{id}', [ClientServiceRequestController::class, 'update']);
+            Route::delete('{id}', [ClientServiceRequestController::class, 'destroy']);
+            Route::post('{serviceId}/reviews', [ClientServiceRequestController::class, 'storeReview']);
+            Route::post('{serviceId}/transactions', [ClientServiceRequestController::class, 'storeTransaction']);
+        });
+
+        // Rutas de habilidades
+        Route::prefix('skills')->group(function () {
+            Route::get('/', [ClientSkillController::class, 'index']);
+            Route::get('{id}', [ClientSkillController::class, 'show']);
+            Route::middleware('auth:sanctum')->group(function () {
+                Route::post('/', [ClientSkillController::class, 'store']);
+                Route::put('{id}', [ClientSkillController::class, 'update']);
+                Route::delete('{id}', [ClientSkillController::class, 'destroy']);
+            });
+        });
+
+        // Rutas de suscripciones
+        Route::prefix('subscriptions')->group(function () {
+            Route::get('/', [ClientSubscriptionController::class, 'index']);
+            Route::post('/', [ClientSubscriptionController::class, 'store']);
+            Route::put('{subscription}', [ClientSubscriptionController::class, 'update']);
+            Route::delete('{subscription}', [ClientSubscriptionController::class, 'destroy']);
+            Route::get('{subscription}', [ClientSubscriptionController::class, 'show']);
+        });
+
+        // Rutas de tickets
+        Route::prefix('tickets')->group(function () {
+            Route::post('tickets', [ClientTicketController::class, 'store']);
+            Route::get('tickets', [ClientTicketController::class, 'index']);
+            Route::get('tickets/{ticket}', [ClientTicketController::class, 'show']);
+            Route::post('tickets/{ticket}/reply', [ClientTicketController::class, 'reply']);
+        });
+
+        // Rutas de transacciones
+        Route::prefix('transactions')->group(function () {
+            Route::get('/', [ClientTransactionController::class, 'index']);
+            Route::get('{transaction}', [ClientTransactionController::class, 'show']);
+            Route::post('{transaction}/refund', [ClientTransactionController::class, 'refund']);
+        });
+    });
+
+    // Ejemplo de rutas para otros roles (clientes, helpers, etc.)
+    Route::middleware(['auth:sanctum', 'role:client,helper'])->group(function () {
+        // Rutas adicionales accesibles por clientes y helpers
+    });
+});

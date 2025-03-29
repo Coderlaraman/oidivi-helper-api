@@ -2,24 +2,22 @@
 
 use App\Http\Controllers\Api\V1\Admin\Auth\AdminAuthController;
 use App\Http\Controllers\Api\V1\Admin\Categories\AdminCategoryController;
-use App\Http\Controllers\Api\V1\Admin\Categories\CategoryController;
 use App\Http\Controllers\Api\V1\Admin\ServiceRequests\ServiceRequestController;
 use App\Http\Controllers\Api\V1\Admin\Skills\SkillController;
 use App\Http\Controllers\Api\V1\Admin\Users\AdminUserController;
-use App\Http\Controllers\Api\V1\Client\Auth\ClientAuthController;
-use App\Http\Controllers\Api\V1\Client\Auth\ClientEmailVerificationController;
-use App\Http\Controllers\Api\V1\Client\Categories\ClientCategoryController;
-use App\Http\Controllers\Api\V1\Client\Locations\ClientLocationController;
-use App\Http\Controllers\Api\V1\Client\Payments\ClientPaymentController;
-use App\Http\Controllers\Api\V1\Client\Profiles\ClientProfileController;
-use App\Http\Controllers\Api\V1\Client\Referrals\ClientReferralController;
-use App\Http\Controllers\Api\V1\Client\Reports\ClientReportController;
-use App\Http\Controllers\Api\V1\Client\Reviews\ClientReviewController;
-use App\Http\Controllers\Api\V1\Client\ServiceRequests\ClientServiceRequestController;
-use App\Http\Controllers\Api\V1\Client\Skills\ClientSkillController;
-use App\Http\Controllers\Api\V1\Client\Subscriptions\ClientSubscriptionController;
-use App\Http\Controllers\Api\V1\Client\Tickets\ClientTicketController;
-use App\Http\Controllers\Api\V1\Client\Transactions\ClientTransactionController;
+use App\Http\Controllers\Api\V1\User\Auth\UserAuthController;
+use App\Http\Controllers\Api\V1\User\Auth\UserEmailVerificationController;
+use App\Http\Controllers\Api\V1\User\Locations\UserLocationController;
+use App\Http\Controllers\Api\V1\User\Payments\ClientPaymentController;
+use App\Http\Controllers\Api\V1\User\Profiles\UserProfileController;
+use App\Http\Controllers\Api\V1\User\Referrals\ClientReferralController;
+use App\Http\Controllers\Api\V1\User\Reports\ClientReportController;
+use App\Http\Controllers\Api\V1\User\Reviews\ClientReviewController;
+use App\Http\Controllers\Api\V1\User\ServiceRequests\UserServiceRequestController;
+use App\Http\Controllers\Api\V1\User\Skills\UserSkillController;
+use App\Http\Controllers\Api\V1\User\Subscriptions\ClientSubscriptionController;
+use App\Http\Controllers\Api\V1\User\Tickets\ClientTicketController;
+use App\Http\Controllers\Api\V1\User\Transactions\ClientTransactionController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -33,7 +31,6 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
 
-    
     // Ruta de prueba
     Route::get('test', fn() => response()->json(['message' => 'API is working']));
 
@@ -51,29 +48,32 @@ Route::prefix('v1')->group(function () {
             Route::get('auth/me', [AdminAuthController::class, 'me']);
 
             // Rutas de gestión de usuarios
-            Route::get('users', [AdminUserController::class, 'index']);
-            Route::post('users', [AdminUserController::class, 'store']);
-            Route::delete('users/{id}', [AdminUserController::class, 'destroy']);
+            Route::prefix('users')->group(function () {
+                Route::get('/', [AdminUserController::class, 'index'])->name('admin.users.index');
+                Route::post('/', [AdminUserController::class, 'store'])->name('admin.users.store');
+                Route::get('/{user}', [AdminUserController::class, 'show'])->name('admin.users.show');
+                Route::put('/{user}', [AdminUserController::class, 'update'])->name('admin.users.update');
+                Route::delete('/{user}', [AdminUserController::class, 'destroy'])->name('admin.users.destroy');
+                Route::post('/{user}/restore', [AdminUserController::class, 'restore'])->name('admin.users.restore');
+                Route::delete('/{user}/force', [AdminUserController::class, 'forceDelete'])->name('admin.users.forceDelete');
+                Route::patch('/{user}/toggle-active', [AdminUserController::class, 'toggleActive'])->name('admin.users.toggleActive');
+            });
 
             // Rutas de categorías (definición manual)
             Route::prefix('categories')->group(function () {
-                Route::get('/', [AdminCategoryController::class, 'index']);
-                Route::get('/{category}', [AdminCategoryController::class, 'show']);
-                Route::post('/', [AdminCategoryController::class, 'store']);
-                Route::put('/{category}', [AdminCategoryController::class, 'update']);
-                Route::delete('/{category}', [AdminCategoryController::class, 'destroy']);
-                Route::post('/{id}/restore', [AdminCategoryController::class, 'restore']);
+                Route::get('/', [AdminCategoryController::class, 'index'])->name('admin.categories.index');
+                Route::get('/{category}', [AdminCategoryController::class, 'show'])->name('admin.categories.show');
+                Route::post('/', [AdminCategoryController::class, 'store'])->name('admin.categories.store');
+                Route::put('/{category}', [AdminCategoryController::class, 'update'])->name('admin.categories.update');
+                Route::delete('/{category}', [AdminCategoryController::class, 'destroy'])->name('admin.categories.destroy');
+                Route::post('/{id}/restore', [AdminCategoryController::class, 'restore'])->name('admin.categories.restore');
             });
 
-            // Alternativamente, recursos API para categorías y otros recursos:
-            Route::apiResource('categories', CategoryController::class);
-            Route::post('categories/{category}/restore', [CategoryController::class, 'restore']);
-
             Route::apiResource('skills', SkillController::class);
-            Route::post('skills/{skill}/restore', [SkillController::class, 'restore']);
+            Route::post('skills/{skill}/restore', [SkillController::class, 'restore'])->name('admin.skills.restore');
 
             Route::apiResource('service-requests', ServiceRequestController::class)->except(['store']);
-            Route::post('service-requests/{serviceRequest}/restore', [ServiceRequestController::class, 'restore']);
+            Route::post('service-requests/{serviceRequest}/restore', [ServiceRequestController::class, 'restore'])->name('admin.serviceRequests.restore');
         });
 
     // Rutas públicas para el cliente
@@ -81,23 +81,17 @@ Route::prefix('v1')->group(function () {
 
         // Rutas de autenticación del cliente
         Route::prefix('auth')->group(function () {
-            Route::post('register', [ClientAuthController::class, 'register'])->name('client.auth.register');
-            Route::post('login', [ClientAuthController::class, 'login'])->name('client.auth.login');
-            Route::post('logout', [ClientAuthController::class, 'logout'])
+            Route::post('register', [UserAuthController::class, 'register'])->name('client.auth.register');
+            Route::post('login', [UserAuthController::class, 'login'])->name('client.auth.login');
+            Route::post('logout', [UserAuthController::class, 'logout'])
                 ->name('client.auth.logout')
                 ->middleware('auth:sanctum');
-            Route::post('forgot-password', [ClientAuthController::class, 'forgotPassword'])
+            Route::post('forgot-password', [UserAuthController::class, 'forgotPassword'])
                 ->middleware('auth:sanctum');
 
-            Route::post('email/verification-notification', [ClientEmailVerificationController::class, 'sendVerificationEmail']);
-            Route::get('email/verify/{id}/{hash}', [ClientEmailVerificationController::class, 'verify'])
+            Route::post('email/verification-notification', [UserEmailVerificationController::class, 'sendVerificationEmail']);
+            Route::get('email/verify/{id}/{hash}', [UserEmailVerificationController::class, 'verify'])
                 ->name('verification.verify');
-        });
-
-        // Rutas de categorías (solo lectura para usuarios)
-        Route::prefix('categories')->group(function () {
-            Route::get('/', [ClientCategoryController::class, 'index'])->name('client.categories.index');
-            Route::get('/{category}', [ClientCategoryController::class, 'show'])->name('client.categories.show');
         });
 
         // Rutas de pagos
@@ -108,14 +102,14 @@ Route::prefix('v1')->group(function () {
 
         // Rutas de perfil (protegidas y con verificación)
         Route::prefix('profile')->middleware(['auth:sanctum', 'verified'])->group(function () {
-            Route::get('me', [ClientProfileController::class, 'showProfile']);
-            Route::put('update', [ClientProfileController::class, 'updateProfile']);
-            Route::post('photo', [ClientProfileController::class, 'uploadProfilePhoto']);
-            Route::delete('photo', [ClientProfileController::class, 'deleteProfilePhoto']);
-            Route::post('video', [ClientProfileController::class, 'uploadProfileVideo']);
-            Route::put('skills', [ClientProfileController::class, 'updateSkills']);
-            Route::get('dashboard', [ClientProfileController::class, 'dashboard']);
-            Route::post('location/update', [ClientLocationController::class, 'updateLocation']);
+            Route::get('me', [UserProfileController::class, 'showProfile']);
+            Route::put('update', [UserProfileController::class, 'updateProfile']);
+            Route::post('photo', [UserProfileController::class, 'uploadProfilePhoto']);
+            Route::delete('photo', [UserProfileController::class, 'deleteProfilePhoto']);
+            Route::post('video', [UserProfileController::class, 'uploadProfileVideo']);
+            Route::put('skills', [UserProfileController::class, 'updateSkills']);
+            Route::get('dashboard', [UserProfileController::class, 'dashboard']);
+            Route::post('location/update', [UserLocationController::class, 'updateLocation']);
         });
 
         // Rutas de referrals
@@ -141,23 +135,23 @@ Route::prefix('v1')->group(function () {
 
         // Rutas de servicios (protegidas)
         Route::prefix('services')->middleware('auth:sanctum')->group(function () {
-            Route::get('/', [ClientServiceRequestController::class, 'index']);
-            Route::get('{id}', [ClientServiceRequestController::class, 'show']);
-            Route::post('/', [ClientServiceRequestController::class, 'store']);
-            Route::put('{id}', [ClientServiceRequestController::class, 'update']);
-            Route::delete('{id}', [ClientServiceRequestController::class, 'destroy']);
-            Route::post('{serviceId}/reviews', [ClientServiceRequestController::class, 'storeReview']);
-            Route::post('{serviceId}/transactions', [ClientServiceRequestController::class, 'storeTransaction']);
+            Route::get('/', [UserServiceRequestController::class, 'index']);
+            Route::get('{id}', [UserServiceRequestController::class, 'show']);
+            Route::post('/', [UserServiceRequestController::class, 'store']);
+            Route::put('{id}', [UserServiceRequestController::class, 'update']);
+            Route::delete('{id}', [UserServiceRequestController::class, 'destroy']);
+            Route::post('{serviceId}/reviews', [UserServiceRequestController::class, 'storeReview']);
+            Route::post('{serviceId}/transactions', [UserServiceRequestController::class, 'storeTransaction']);
         });
 
         // Rutas de habilidades
         Route::prefix('skills')->group(function () {
-            Route::get('/', [ClientSkillController::class, 'index']);
-            Route::get('{id}', [ClientSkillController::class, 'show']);
+            Route::get('/', [UserSkillController::class, 'index']);
+            Route::get('{id}', [UserSkillController::class, 'show']);
             Route::middleware('auth:sanctum')->group(function () {
-                Route::post('/', [ClientSkillController::class, 'store']);
-                Route::put('{id}', [ClientSkillController::class, 'update']);
-                Route::delete('{id}', [ClientSkillController::class, 'destroy']);
+                Route::post('/', [UserSkillController::class, 'store']);
+                Route::put('{id}', [UserSkillController::class, 'update']);
+                Route::delete('{id}', [UserSkillController::class, 'destroy']);
             });
         });
 
