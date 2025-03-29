@@ -10,7 +10,6 @@ class StoreCategoryRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        // Aquí se puede ajustar la lógica de autorización según se requiera.
         return Auth::check();
     }
 
@@ -28,18 +27,32 @@ class StoreCategoryRequest extends FormRequest
                 'nullable',
                 'exists:categories,id'
             ],
-            // Se pueden agregar otras reglas según las necesidades, por ejemplo, sort_order o is_active.
+            'is_active' => 'nullable|boolean',
+            'sort_order' => 'nullable|integer|min:0|max:99999'
         ];
     }
 
     public function messages(): array
     {
         return [
-            'name.required' => 'Category name is required.',
-            'name.unique' => 'This category name already exists.',
-            'name.max' => 'Category name cannot exceed 255 characters.',
-            'description.max' => 'Description cannot exceed 1000 characters.',
-            'parent_id.exists' => 'Selected parent category does not exist.'
+            'name.required' => 'El nombre de la categoría es obligatorio.',
+            'name.unique' => 'Este nombre de categoría ya existe.',
+            'name.max' => 'El nombre de la categoría no puede exceder los 255 caracteres.',
+            'description.max' => 'La descripción no puede exceder los 1000 caracteres.',
+            'parent_id.exists' => 'La categoría padre seleccionada no existe.',
+            'sort_order.integer' => 'El orden debe ser un número entero.',
+            'sort_order.min' => 'El orden mínimo es 0.',
+            'sort_order.max' => 'El orden máximo es 99999.'
         ];
+    }
+    
+    // Normalizar parámetros
+    protected function prepareForValidation()
+    {
+        if ($this->has('is_active')) {
+            $this->merge([
+                'is_active' => $this->is_active === '1' || $this->is_active === 'true' || $this->is_active === true
+            ]);
+        }
     }
 }

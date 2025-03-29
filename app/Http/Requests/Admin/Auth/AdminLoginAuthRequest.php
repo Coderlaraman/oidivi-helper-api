@@ -1,13 +1,14 @@
 <?php
 
-namespace App\Http\Requests\Client;
+namespace App\Http\Requests\Admin\Auth;
 
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
-class LoginClientAuthRequest extends FormRequest
+class AdminLoginAuthRequest extends FormRequest
 {
     /**
-     * Permite a cualquier usuario realizar esta solicitud de login.
+     * Determine if the user is authorized to make this request.
      */
     public function authorize(): bool
     {
@@ -15,7 +16,9 @@ class LoginClientAuthRequest extends FormRequest
     }
 
     /**
-     * Define las reglas de validación para el inicio de sesión.
+     * Get the validation rules that apply to the request.
+     *
+     * @return array<string, ValidationRule|array|string>
      */
     public function rules(): array
     {

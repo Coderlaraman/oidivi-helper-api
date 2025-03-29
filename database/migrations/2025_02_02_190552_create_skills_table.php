@@ -12,11 +12,14 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('skills', function (Blueprint $table) {
-                $table->id();
-                $table->string('name');
-                $table->string('description')->nullable();
-                $table->timestamps();
-            });
+            $table->id();
+            $table->string('name');
+            $table->text('description')->nullable();
+            $table->integer('experience_level')->default(1);
+            $table->boolean('is_active')->default(true);
+            $table->timestamps();
+            $table->softDeletes();
+        });
     }
 
     /**

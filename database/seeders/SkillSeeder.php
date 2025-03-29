@@ -161,15 +161,27 @@ class SkillSeeder extends Seeder
         ];
 
         foreach ($skillsByCategory as $categoryName => $skills) {
-            $category = Category::where('name', $categoryName)->first();
+            $category = Category::query()
+                ->where('name', $categoryName)
+                ->first();
 
             if (!$category) {
                 continue;
             }
 
             foreach ($skills as $skillName) {
-                $skill = Skill::updateOrCreate(['name' => $skillName], ['description' => '']);
-                $category->skills()->syncWithoutDetaching([$skill->id]);
+                $skill = Skill::updateOrCreate(
+                    ['name' => $skillName],
+                    [
+                        'description' => "Descripción de {$skillName}",
+                        'experience_level' => rand(1, 5),
+                        'is_active' => true
+                    ]
+                );
+                
+                if (!$skill->categories()->where('categories.id', $category->id)->exists()) {
+                    $skill->categories()->attach($category->id);
+                }
             }
         }
     }

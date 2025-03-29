@@ -21,14 +21,14 @@ return new class extends Migration {
             $table->boolean('accepted_terms')->default(false);  // Aceptó términos y condiciones
             $table->string('profile_photo_url')->nullable();  // URL de la foto de perfil
             $table->string('profile_video_url')->nullable();  // URL del video del perfil
-            
+
             // Nuevos campos para biografía y documentos
             $table->text('biography')->nullable();
-            $table->json('verification_documents')->nullable(); // Almacena URLs de documentos verificables
+            $table->json('verification_documents')->nullable(); // Almacena las URL de documentos verificables
             $table->timestamp('documents_verified_at')->nullable();
             $table->string('verification_status')->default('pending'); // pending, verified, rejected
             $table->text('verification_notes')->nullable(); // Notas del administrador sobre la verificación
-            
+
             // phone
             $table->string('phone')->nullable();
             $table->timestamp('phone_verified_at')->nullable();
@@ -51,6 +51,7 @@ return new class extends Migration {
 
             $table->rememberToken();
             $table->timestamps();
+            $table->softDeletes();
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {

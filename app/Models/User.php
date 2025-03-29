@@ -11,23 +11,27 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
-
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Traits\HasRoles;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable, SoftDeletes, HasRoles;
 
     /**
      * The attributes that are mass assignable.
      *
-     * @var list<string>
+     * @var array<string>
      */
     protected $fillable = [
         'name',
         'email',
         'password',
+        'role',
         'is_active',
+        'metadata',
         'accepted_terms',
         'profile_photo_url',
         'profile_video_url',
@@ -45,7 +49,7 @@ class User extends Authenticatable
     /**
      * The attributes that should be hidden for serialization.
      *
-     * @var list<string>
+     * @var array<int, string>
      */
     protected $hidden = [
         'password',
@@ -53,29 +57,38 @@ class User extends Authenticatable
     ];
 
     /**
-     * Get the attributes that should be cast.
+     * The attributes that should be cast.
      *
-     * @return array<string, string>
+     * @var array<string, string>
      */
-    protected function casts(): array
-    {
-        return [
-            'email_verified_at' => 'datetime',
-            'phone_verified_at' => 'datetime',
-            'documents_verified_at' => 'datetime',
-            'verification_documents' => 'array',
-            'password' => 'hashed',
-            'is_active' => 'boolean',
-            'accepted_terms' => 'boolean',
-            'latitude' => 'float',
-            'longitude' => 'float',
-        ];
-    }
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'password' => 'hashed',
+        'is_active' => 'boolean',
+        'metadata' => 'array',
+        'deleted_at' => 'datetime',
+        'phone_verified_at' => 'datetime',
+        'documents_verified_at' => 'datetime',
+        'verification_documents' => 'array',
+        'accepted_terms' => 'boolean',
+        'latitude' => 'float',
+        'longitude' => 'float',
+    ];
 
     // Constantes para estados de verificación
     const VERIFICATION_PENDING = 'pending';
     const VERIFICATION_VERIFIED = 'verified';
     const VERIFICATION_REJECTED = 'rejected';
+
+    /**
+     * The possible role values for a user.
+     *
+     * @var array<string>
+     */
+    public const ROLES = [
+        'user' => 'Usuario',
+        'admin' => 'Administrador',
+    ];
 
     // Método helper para verificar si el usuario está verificado
     public function isVerified(): bool
@@ -105,14 +118,6 @@ class User extends Authenticatable
     }
 
     /**
-     * The roles that belong to the user.
-     */
-    public function roles(): BelongsToMany
-    {
-        return $this->belongsToMany(Role::class)->withTimestamps();
-    }
-
-    /**
      * The skills that belong to the user.
      */
     public function skills(): BelongsToMany
@@ -129,23 +134,94 @@ class User extends Authenticatable
     }
 
     public function reviewsGiven()
-{
-    return $this->hasMany(Review::class, 'reviewer_id');
-}
+    {
+        return $this->hasMany(Review::class, 'reviewer_id');
+    }
 
-public function reviewsReceived()
-{
-    return $this->hasMany(Review::class, 'reviewed_id');
-}
+    public function reviewsReceived()
+    {
+        return $this->hasMany(Review::class, 'reviewed_id');
+    }
 
-public function reportsMade()
-{
-    return $this->hasMany(Report::class, 'reported_by');
-}
+    public function reportsMade()
+    {
+        return $this->hasMany(Report::class, 'reported_by');
+    }
 
-public function reportsReceived()
-{
-    return $this->hasMany(Report::class, 'reported_user');
-}
+    public function reportsReceived()
+    {
+        return $this->hasMany(Report::class, 'reported_user');
+    }
 
+    /**
+     * Get the service requests for the user.
+     */
+    public function serviceRequests(): HasMany
+    {
+        return $this->hasMany(ServiceRequest::class);
+    }
+
+    /**
+     * Get the role text.
+     */
+    public function getRoleTextAttribute(): string
+    {
+        return self::ROLES[$this->role] ?? $this->role;
+    }
+
+    /**
+     * Check if the user is an admin.
+     */
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
+
+    /**
+     * Check if the user is active.
+     */
+    public function isActive(): bool
+    {
+        return $this->is_active;
+    }
+
+    /**
+     * Get the number of service requests for the user.
+     */
+    public function getServiceRequestsCountAttribute(): int
+    {
+        return $this->serviceRequests()->count();
+    }
+
+    /**
+     * Get the number of pending service requests for the user.
+     */
+    public function getPendingServiceRequestsCountAttribute(): int
+    {
+        return $this->serviceRequests()->where('status', 'pending')->count();
+    }
+
+    /**
+     * Get the number of in progress service requests for the user.
+     */
+    public function getInProgressServiceRequestsCountAttribute(): int
+    {
+        return $this->serviceRequests()->where('status', 'in_progress')->count();
+    }
+
+    /**
+     * Get the number of completed service requests for the user.
+     */
+    public function getCompletedServiceRequestsCountAttribute(): int
+    {
+        return $this->serviceRequests()->where('status', 'completed')->count();
+    }
+
+    /**
+     * Get the number of cancelled service requests for the user.
+     */
+    public function getCancelledServiceRequestsCountAttribute(): int
+    {
+        return $this->serviceRequests()->where('status', 'cancelled')->count();
+    }
 }

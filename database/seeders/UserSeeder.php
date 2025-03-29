@@ -14,48 +14,57 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
-        // Obtener roles
-        $adminRole = Role::where('name', 'admin')->first();
-        $clientRole = Role::where('name', 'client')->first();
-        $helperRole = Role::where('name', 'helper')->first();
-        $moderatorRole = Role::where('name', 'moderator')->first();
-        $supportRole = Role::where('name', 'support')->first();
+        // Crear rol de admin si no existe
+        $adminRole = Role::firstOrCreate(['name' => 'admin']);
 
-        // Crear un usuario admin
+        // Crear usuario admin
         $admin = User::factory()->create([
-            'name' => 'Jaime Sierra',
-            'email' => 'coderman1980@gmail.com',
+            'name' => 'Admin User',
+            'email' => 'admin@example.com',
+            'password' => bcrypt('password'),
+            'email_verified_at' => now(),
+            'is_active' => true,
+            'verification_status' => 'verified'
         ]);
-        $admin->roles()->attach($adminRole);
 
-        // Crear 10 usuarios con roles client y helper
-        $clientHelperUsers = User::factory(10)->create();
-        foreach ($clientHelperUsers as $user) {
+        // Asignar rol de admin
+        $admin->roles()->sync([$adminRole->id]);
+
+        // Verificar la asignación
+        \Log::info('Admin user roles: ', $admin->roles->pluck('name')->toArray());
+
+        // Obtener roles
+        $clientRole = Role::where('name', 'client')->firstOrFail();
+        $helperRole = Role::where('name', 'helper')->firstOrFail();
+        $moderatorRole = Role::where('name', 'moderator')->firstOrFail();
+        $supportRole = Role::where('name', 'support')->firstOrFail();
+
+        // Crear usuarios con roles client y helper
+        User::factory(10)->create()->each(function ($user) use ($clientRole, $helperRole) {
             $user->roles()->attach([$clientRole->id, $helperRole->id]);
-
-            // Asignar de 1 a 3 habilidades aleatorias
-            $skills = Skill::inRandomOrder()->take(rand(1, 3))->pluck('id');
+            
+            // Asignar habilidades aleatorias
+            $skillCount = rand(1, 3);
+            $skills = Skill::inRandomOrder()->limit($skillCount)->get();
             $user->skills()->attach($skills);
-        }
+        });
 
-        // Crear 2 usuarios con rol moderator
-        $moderatorUsers = User::factory(2)->create();
-        foreach ($moderatorUsers as $user) {
+        // Crear usuarios moderadores
+        User::factory(2)->create()->each(function ($user) use ($moderatorRole) {
             $user->roles()->attach($moderatorRole);
-
-            // Asignar de 1 a 3 habilidades aleatorias
-            $skills = Skill::inRandomOrder()->take(rand(1, 3))->pluck('id');
+            
+            $skillCount = rand(1, 3);
+            $skills = Skill::inRandomOrder()->limit($skillCount)->get();
             $user->skills()->attach($skills);
-        }
+        });
 
-        // Crear 2 usuarios con rol support
-        $supportUsers = User::factory(2)->create();
-        foreach ($supportUsers as $user) {
+        // Crear usuarios de soporte
+        User::factory(2)->create()->each(function ($user) use ($supportRole) {
             $user->roles()->attach($supportRole);
-
-            // Asignar de 1 a 3 habilidades aleatorias
-            $skills = Skill::inRandomOrder()->take(rand(1, 3))->pluck('id');
+            
+            $skillCount = rand(1, 3);
+            $skills = Skill::inRandomOrder()->limit($skillCount)->get();
             $user->skills()->attach($skills);
-        }
+        });
     }
 }

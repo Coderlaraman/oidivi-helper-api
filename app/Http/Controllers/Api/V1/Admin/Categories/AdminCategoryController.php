@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Http\Controllers\Api\V1\Client\Categories;
+namespace App\Http\Controllers\Api\V1\Admin\Categories;
 
 use App\Http\Controllers\Controller;
-use App\Http\Resources\Client\ClientCategoryResource;
-use App\Http\Requests\Client\Category\ListCategoryRequest;
-use App\Http\Requests\Client\Category\StoreCategoryRequest;
-use App\Http\Requests\Client\Category\UpdateCategoryRequest;
+use App\Http\Resources\Admin\AdminCategoryResource;
+use App\Http\Requests\Admin\Category\AdminListCategoryRequest;
+use App\Http\Requests\Admin\Category\AdminStoreCategoryRequest;
+use App\Http\Requests\Admin\Category\AdminUpdateCategoryRequest;
 use App\Models\Category;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Database\Eloquent\Builder;
@@ -15,37 +15,37 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Exception;
 
-class ClientCategoryController extends Controller
+class AdminCategoryController extends Controller
 {
     use ApiResponseTrait;
 
     private const CACHE_TTL = 3600; // 1 hora
-    private const CACHE_TAG = 'categories';
-    
+    private const CACHE_TAG = 'admin:categories';
+
     // Lista de parámetros relevantes para la caché
     private const CACHE_PARAMS = [
         'search', 'parent_only', 'active_only', 'with_children',
         'with_skills', 'with_service_requests', 'sort_by',
-        'sort_direction', 'per_page', 'page', 'show_deleted'
+        'sort_direction', 'per_page', 'page', 'show_deleted',
+        'show_inactive'
     ];
 
     /**
      * List all categories with comprehensive filtering, sorting and pagination.
+     * Administrators can see all categories including inactive and deleted ones.
      */
-    public function index(ListCategoryRequest $request): JsonResponse
+    public function index(AdminListCategoryRequest $request): JsonResponse
     {
         try {
-            // Generar clave de caché normalizada
-            $cacheKey = $this->generateCacheKey('list', null, $request);
-            
+            $cacheKey = $this->generateCacheKey('admin:list', null, $request);
+
             try {
                 $categories = $this->getDataWithCache(
-                    $request->_no_cache, 
+                    $request->_no_cache,
                     $cacheKey,
                     fn() => $this->fetchCategories($request)
                 );
-                
-                // Verificación de seguridad adicional
+
                 if (!$categories) {
                     return $this->errorResponse(
                         'Error al obtener listado de categorías',
@@ -53,9 +53,9 @@ class ClientCategoryController extends Controller
                         ['error' => 'La consulta no devolvió resultados válidos']
                     );
                 }
-                
+
                 return $this->successResponse(
-                    ClientCategoryResource::collection($categories)
+                    AdminCategoryResource::collection($categories)
                         ->additional([
                             'meta' => [
                                 'total' => $categories->total(),
@@ -68,33 +68,32 @@ class ClientCategoryController extends Controller
                                 'sort' => [
                                     'by' => $request->sort_by ?? 'sort_order',
                                     'direction' => $request->sort_direction ?? 'asc'
-                                ]
+                                ],
+                                'admin_view' => true
                             ]
                         ]),
-                    'Listado de categorías obtenido correctamente'
+                    'Listado administrativo de categorías obtenido correctamente'
                 );
             } catch (\Exception $e) {
-                // Error específico de obtención de datos
-                Log::error("Error específico en index de categorías: " . $e->getMessage());
+                Log::error("Error específico en index administrativo de categorías: " . $e->getMessage());
                 return $this->errorResponse(
-                    'Error al procesar listado de categorías',
+                    'Error al procesar listado administrativo de categorías',
                     500,
                     ['error' => $e->getMessage()]
                 );
             }
         } catch (\Exception $e) {
-            // Error general
-            return $this->handleException($e, 'Error al obtener categorías');
+            return $this->handleException($e, 'Error al obtener categorías en panel administrativo');
         }
     }
 
     /**
      * Get a specific category with its relationships.
+     * Administrators can see all details including sensitive data.
      */
-    public function show(Category $category, ListCategoryRequest $request): JsonResponse
+    public function show(Category $category, AdminListCategoryRequest $request): JsonResponse
     {
         try {
-            // Verificación adicional de seguridad
             if (!$category || !$category->id) {
                 return $this->errorResponse(
                     'Categoría no encontrada',
@@ -102,100 +101,111 @@ class ClientCategoryController extends Controller
                     ['error' => 'La categoría solicitada no existe o ha sido eliminada.']
                 );
             }
-            
-            // Generar clave de caché normalizada
-            $cacheKey = $this->generateCacheKey('single', $category->id, $request);
-            
+
+            $cacheKey = $this->generateCacheKey('admin:single', $category->id, $request);
+
             try {
-                // Garantizar que la categoría siempre tenga las relaciones necesarias
                 $categoryWithRelations = $this->getDataWithCache(
                     $request->_no_cache,
                     $cacheKey,
                     fn() => $this->fetchCategory($category, $request)
                 );
-                
+
                 return $this->successResponse(
-                    new ClientCategoryResource($categoryWithRelations),
-                    'Categoría obtenida correctamente'
+                    new AdminCategoryResource($categoryWithRelations),
+                    'Detalles administrativos de categoría obtenidos correctamente'
                 );
             } catch (\Exception $e) {
-                // Error específico de caché o relaciones
-                Log::error("Error al obtener categoría específica: " . $e->getMessage());
+                Log::error("Error al obtener detalles administrativos de categoría {$category->id}: " . $e->getMessage());
                 return $this->errorResponse(
-                    'Error al procesar la categoría',
+                    'Error al procesar detalles administrativos de la categoría',
                     500,
                     ['error' => $e->getMessage()]
                 );
             }
         } catch (\Exception $e) {
-            return $this->handleException($e, 'Error al obtener categoría');
+            return $this->handleException($e, 'Error al obtener detalles administrativos de categoría');
         }
     }
 
     /**
      * Store a new category.
+     * Only administrators can create categories.
      */
-    public function store(StoreCategoryRequest $request): JsonResponse
+    public function store(AdminStoreCategoryRequest $request): JsonResponse
     {
         try {
-            $category = Category::create($request->validated());
+            $categoryData = $request->validated();
             
-            // Limpiar caché específica
+            // Asegurar que el sort_order sea único para el mismo nivel
+            if (isset($categoryData['parent_id'])) {
+                $maxSortOrder = Category::where('parent_id', $categoryData['parent_id'])->max('sort_order');
+                $categoryData['sort_order'] = ($maxSortOrder ?? 0) + 1;
+            } else {
+                $maxSortOrder = Category::whereNull('parent_id')->max('sort_order');
+                $categoryData['sort_order'] = ($maxSortOrder ?? 0) + 1;
+            }
+
+            $category = Category::create($categoryData);
+
             $this->clearCategoryCache($category->id);
-            
-            // Registrar información de auditoría
-            Log::info("Categoría creada: ID {$category->id}, por usuario ID: " . auth()->id(), [
-                'category_id' => $category->id,
-                'category_name' => $category->name,
-                'user_id' => auth()->id()
+
+            Log::info("Categoría creada por administrador: ID {$category->id}", [
+                'admin_id' => auth()->id(),
+                'category_data' => $categoryData
             ]);
 
             return $this->successResponse(
-                new ClientCategoryResource($category),
-                'Categoría creada correctamente',
+                new AdminCategoryResource($category),
+                'Categoría creada correctamente por administrador',
                 201
             );
         } catch (Exception $e) {
-            return $this->handleException($e, 'Error al crear categoría');
+            return $this->handleException($e, 'Error al crear categoría desde panel administrativo');
         }
     }
 
     /**
      * Update an existing category.
+     * Only administrators can update categories.
      */
-    public function update(UpdateCategoryRequest $request, Category $category): JsonResponse
+    public function update(AdminUpdateCategoryRequest $request, Category $category): JsonResponse
     {
         try {
             $originalData = $category->toArray();
-            $category->update($request->validated());
-            
-            // Limpiar caché específica
+            $updateData = $request->validated();
+
+            // Verificar cambios en el orden si se proporciona
+            if (isset($updateData['sort_order']) && $updateData['sort_order'] !== $category->sort_order) {
+                $this->reorderCategories($category, $updateData['sort_order']);
+            }
+
+            $category->update($updateData);
+
             $this->clearCategoryCache($category->id);
-            
-            // Si es una categoría con padre, limpiar también la caché del padre
             if ($category->parent_id) {
                 $this->clearCategoryCache($category->parent_id);
             }
-            
-            // Registrar información de auditoría
-            Log::info("Categoría actualizada: ID {$category->id}, por usuario ID: " . auth()->id(), [
-                'category_id' => $category->id,
-                'category_name' => $category->name,
-                'changes' => array_diff_assoc($category->toArray(), $originalData),
-                'user_id' => auth()->id()
+
+            Log::info("Categoría actualizada por administrador: ID {$category->id}", [
+                'admin_id' => auth()->id(),
+                'original_data' => $originalData,
+                'updated_data' => $updateData,
+                'changes' => array_diff_assoc($category->toArray(), $originalData)
             ]);
 
             return $this->successResponse(
-                new ClientCategoryResource($category),
-                'Categoría actualizada correctamente'
+                new AdminCategoryResource($category),
+                'Categoría actualizada correctamente por administrador'
             );
         } catch (Exception $e) {
-            return $this->handleException($e, 'Error al actualizar categoría');
+            return $this->handleException($e, 'Error al actualizar categoría desde panel administrativo');
         }
     }
 
     /**
      * Delete a category (soft delete or force delete).
+     * Only administrators can delete categories.
      */
     public function destroy(Category $category): JsonResponse
     {
@@ -203,126 +213,125 @@ class ClientCategoryController extends Controller
             $isForceDelete = request()->input('force', false);
             $categoryId = $category->id;
             $parentId = $category->parent_id;
-            $categoryName = $category->name;
-            
+
             if ($isForceDelete) {
-                // Exigir confirmación explícita para eliminación permanente
                 if (!request()->has('confirm') || request()->input('confirm') !== true) {
                     return $this->errorResponse(
-                        'Confirmación requerida',
+                        'Confirmación requerida para eliminación permanente',
                         422,
-                        ['message' => 'Debes confirmar la eliminación permanente añadiendo el parámetro "confirm=true"']
+                        ['message' => 'Debe confirmar la eliminación permanente con confirm=true']
                     );
                 }
-                
+
                 if ($category->hasRelatedEntities()) {
                     return $this->errorResponse(
-                        'La categoría tiene elementos relacionados',
+                        'No se puede eliminar permanentemente',
                         422,
-                        ['message' => 'No se puede eliminar permanentemente una categoría con subcategorías, habilidades o solicitudes de servicio']
+                        ['message' => 'La categoría tiene elementos relacionados activos']
                     );
                 }
-                
+
                 $category->forceDelete();
                 $actionType = 'eliminada permanentemente';
             } else {
                 $category->delete();
-                $actionType = 'eliminada (soft delete)';
+                $actionType = 'eliminada temporalmente';
             }
-            
-            // Limpiar caché específica
+
             $this->clearCategoryCache($categoryId);
-            
-            // Si es una categoría con padre, limpiar también la caché del padre
             if ($parentId) {
                 $this->clearCategoryCache($parentId);
             }
-            
-            // Registrar información de auditoría
-            Log::info("Categoría {$actionType}: ID {$categoryId}, por usuario ID: " . auth()->id(), [
-                'category_id' => $categoryId,
-                'category_name' => $categoryName,
-                'force_delete' => $isForceDelete,
-                'user_id' => auth()->id()
+
+            Log::info("Categoría {$actionType} por administrador: ID {$categoryId}", [
+                'admin_id' => auth()->id(),
+                'category_data' => $category->toArray(),
+                'force_delete' => $isForceDelete
             ]);
 
             return $this->successResponse(
                 null,
-                'Categoría eliminada correctamente'
+                "Categoría {$actionType} correctamente por administrador"
             );
         } catch (Exception $e) {
-            return $this->handleException($e, 'Error al eliminar categoría');
+            return $this->handleException($e, 'Error al eliminar categoría desde panel administrativo');
         }
     }
-    
+
     /**
      * Restore a soft-deleted category.
+     * Only administrators can restore categories.
      */
     public function restore($id): JsonResponse
     {
         try {
             $category = Category::withTrashed()->findOrFail($id);
-            
-            // Verificar si el padre está eliminado
+
             if ($category->parent_id) {
                 $parent = Category::withTrashed()->find($category->parent_id);
                 if ($parent && $parent->trashed()) {
-                    // Opciones: restaurar padre también o advertir
                     if (request()->input('restore_parent', false)) {
-                        // Restaurar padre primero
                         $parent->restore();
-                        Log::info("Categoría padre restaurada automáticamente: ID {$parent->id}, por usuario ID: " . auth()->id());
+                        Log::info("Categoría padre restaurada por administrador: ID {$parent->id}");
                         $this->clearCategoryCache($parent->id);
                     } else {
-                        // Advertir sobre padre eliminado
                         return $this->errorResponse(
                             'Categoría padre eliminada',
                             422,
-                            ['message' => 'La categoría padre está eliminada. Restaura primero el padre o usa el parámetro "restore_parent=true".']
+                            ['message' => 'Debe restaurar primero el padre o usar restore_parent=true']
                         );
                     }
                 }
             }
-            
-            // Restaurar la categoría
+
             $category->restore();
-            
-            // Opcionalmente restaurar descendientes
+
             if (request()->input('restore_children', false)) {
-                // Obtener IDs de todas las subcategorías eliminadas
                 $childrenIds = $this->getAllDeletedChildrenIds($category->id);
                 if (!empty($childrenIds)) {
                     Category::withTrashed()->whereIn('id', $childrenIds)->restore();
-                    Log::info("Subcategorías restauradas automáticamente: " . count($childrenIds) . " categorías, por usuario ID: " . auth()->id(), [
-                        'children_ids' => $childrenIds
-                    ]);
+                    Log::info("Subcategorías restauradas por administrador: " . count($childrenIds) . " categorías");
                 }
             }
-            
-            // Limpiar caché específica
+
             $this->clearCategoryCache($category->id);
-            
-            // Si es una categoría con padre, limpiar también la caché del padre
             if ($category->parent_id) {
                 $this->clearCategoryCache($category->parent_id);
             }
-            
-            // Registrar información de auditoría
-            Log::info("Categoría restaurada: ID {$category->id}, por usuario ID: " . auth()->id(), [
-                'category_id' => $category->id,
-                'category_name' => $category->name,
-                'user_id' => auth()->id()
+
+            Log::info("Categoría restaurada por administrador: ID {$category->id}", [
+                'admin_id' => auth()->id(),
+                'category_data' => $category->toArray()
             ]);
-            
+
             return $this->successResponse(
-                new ClientCategoryResource($category),
-                'Categoría restaurada correctamente'
+                new AdminCategoryResource($category),
+                'Categoría restaurada correctamente por administrador'
             );
         } catch (Exception $e) {
-            return $this->handleException($e, 'Error al restaurar categoría', 404);
+            return $this->handleException($e, 'Error al restaurar categoría desde panel administrativo');
         }
     }
-    
+
+    /**
+     * Reorder categories within the same level
+     */
+    private function reorderCategories(Category $category, int $newSortOrder): void
+    {
+        $query = Category::where('parent_id', $category->parent_id)
+            ->where('id', '!=', $category->id);
+
+        if ($newSortOrder > $category->sort_order) {
+            $query->where('sort_order', '<=', $newSortOrder)
+                  ->where('sort_order', '>', $category->sort_order)
+                  ->decrement('sort_order');
+        } else {
+            $query->where('sort_order', '>=', $newSortOrder)
+                  ->where('sort_order', '<', $category->sort_order)
+                  ->increment('sort_order');
+        }
+    }
+
     /**
      * Helper method to clear specific category cache.
      */
@@ -331,20 +340,20 @@ class ClientCategoryController extends Controller
         try {
             // Limpiar caché específica de la categoría (usando el prefijo)
             Cache::tags([self::CACHE_TAG])->forget("categories:single:{$categoryId}:*");
-            
+
             // Limpiar caché de listados que podrían contener la categoría
             Cache::tags([self::CACHE_TAG])->forget("categories:list:*");
-            
+
             return true;
         } catch (Exception $e) {
             Log::warning("Error al limpiar caché de categoría ID {$categoryId}: " . $e->getMessage());
             return false;
         }
     }
-    
+
     /**
      * Generate a normalized cache key based on relevant request parameters
-     * 
+     *
      * @param string $type Type of request (list, single, etc)
      * @param int|null $id ID of the category (for single requests)
      * @param \Illuminate\Http\Request $request The request object
@@ -354,27 +363,27 @@ class ClientCategoryController extends Controller
     {
         // Base de la clave
         $base = "categories:{$type}:";
-        
+
         // Añadir ID si existe
         if ($id !== null) {
             $base .= "{$id}:";
         }
-        
+
         // Extraer solo los parámetros relevantes
         $params = array_filter($request->only(self::CACHE_PARAMS));
-        
+
         // Ordenar por clave para asegurar consistencia
         ksort($params);
-        
+
         // Añadir ID de usuario autenticado para seguridad
         $params['user_id'] = auth()->id() ?? 'guest';
-        
+
         // Generar hash de los parámetros serializados
         $paramsHash = md5(json_encode($params));
-        
+
         return $base . $paramsHash;
     }
-    
+
     /**
      * Helper method to get data with or without cache
      */
@@ -382,24 +391,24 @@ class ClientCategoryController extends Controller
     {
         // Asegurar que skipCache es booleano
         $skipCache = $skipCache === null ? false : (bool)$skipCache;
-        
+
         // Omitir caché si se solicita explícitamente
         if ($skipCache) {
             Log::debug("Omitiendo caché para clave: {$cacheKey}");
             return $dataCallback();
         }
-        
+
         try {
-            return Cache::tags([self::CACHE_TAG])->remember($cacheKey, self::CACHE_TTL, function() use ($dataCallback, $cacheKey) {
+            return Cache::tags([self::CACHE_TAG])->remember($cacheKey, self::CACHE_TTL, function () use ($dataCallback, $cacheKey) {
                 try {
                     $result = $dataCallback();
-                    
+
                     // Verificación adicional para prevenir almacenar nulos
                     if ($result === null) {
                         Log::warning("Callback devolvió null para clave de caché: {$cacheKey}");
                         throw new \Exception("El origen de datos devolvió un valor nulo");
                     }
-                    
+
                     return $result;
                 } catch (\Exception $e) {
                     Log::error("Error en callback de caché: " . $e->getMessage());
@@ -409,7 +418,7 @@ class ClientCategoryController extends Controller
         } catch (\Exception $e) {
             // Si hay un error de caché, intentar obtener los datos sin caché
             Log::warning("Error de caché ({$cacheKey}): " . $e->getMessage());
-            
+
             // Si es un error específico de la función callback, propagarlo
             if ($e->getMessage() !== "CACHE_ERROR") {
                 try {
@@ -419,12 +428,12 @@ class ClientCategoryController extends Controller
                     throw $callbackError;
                 }
             }
-            
+
             // Otros errores relacionados con la caché
             throw $e;
         }
     }
-    
+
     /**
      * Helper method to handle exceptions consistently
      */
@@ -437,31 +446,31 @@ class ClientCategoryController extends Controller
             ['error' => $e->getMessage()]  // Convertir string a array asociativo
         );
     }
-    
+
     /**
      * Helper method to fetch categories with filters and pagination
      */
-    private function fetchCategories(ListCategoryRequest $request)
+    private function fetchCategories(AdminListCategoryRequest $request)
     {
         try {
             // Consulta base con manejo de borrados
             $query = $this->initializeQuery($request->show_deleted);
-            
+
             // Aplicar todos los filtros
             $this->applyCommonFilters($query, $request);
-            
+
             // Búsqueda por texto - verificar que el scope existe
             if ($request->search && method_exists(Category::class, 'scopeSearch')) {
                 $query->search($request->search);
             } elseif ($request->search) {
                 // Fallback básico de búsqueda si no existe el scope
                 $search = '%' . $request->search . '%';
-                $query->where(function($q) use ($search) {
+                $query->where(function ($q) use ($search) {
                     $q->where('name', 'like', $search)
-                      ->orWhere('description', 'like', $search);
+                        ->orWhere('description', 'like', $search);
                 });
             }
-            
+
             // Cargar relaciones si se solicita con manejo de errores
             try {
                 $this->loadRequestedRelations($query, $request);
@@ -469,13 +478,13 @@ class ClientCategoryController extends Controller
                 Log::warning("Error al cargar relaciones: " . $e->getMessage());
                 // Continuar sin relaciones para evitar errores fatales
             }
-            
+
             // Ordenamiento
             $this->applySorting($query, $request);
-            
+
             // Paginación con límites razonables
             $perPage = max(min($request->per_page ?? 15, 100), 1);
-            
+
             // Capturar cualquier error durante la paginación
             try {
                 return $query->paginate($perPage)->withQueryString();
@@ -488,21 +497,21 @@ class ClientCategoryController extends Controller
             throw $e; // Re-lanzar para manejo superior
         }
     }
-    
+
     /**
      * Initialize query with or without trashed records
      */
     private function initializeQuery(bool $withTrashed = false)
     {
         $query = Category::query();
-        
+
         if ($withTrashed) {
             $query->withTrashed();
         }
-        
+
         return $query;
     }
-    
+
     /**
      * Helper method to apply common filters to the query
      */
@@ -512,14 +521,14 @@ class ClientCategoryController extends Controller
         if ($request->parent_only) {
             $query->whereNull('parent_id');
         }
-        
+
         if ($request->active_only) {
             $query->where('is_active', true);
         }
-        
+
         return $query;
     }
-    
+
     /**
      * Apply active and deleted filters to a relation query
      */
@@ -528,48 +537,48 @@ class ClientCategoryController extends Controller
         if ($request->active_only) {
             $query->where('is_active', true);
         }
-        
+
         if (!$request->show_deleted) {
             $query->whereNull('deleted_at');
         }
-        
+
         return $query;
     }
-    
+
     /**
      * Helper method to load requested relations
      */
     private function loadRequestedRelations($query, $request)
     {
         if ($request->with_children) {
-            $query->with(['children' => function($q) use ($request) {
+            $query->with(['children' => function ($q) use ($request) {
                 $this->applyActiveAndDeletedFilters($q, $request);
             }]);
         }
-        
+
         if ($request->with_skills) {
-            $query->with(['skills' => function($q) use ($request) {
+            $query->with(['skills' => function ($q) use ($request) {
                 $this->applyActiveAndDeletedFilters($q, $request);
             }]);
         }
-        
+
         if ($request->with_service_requests) {
-            $query->with(['serviceRequests' => function($q) use ($request) {
+            $query->with(['serviceRequests' => function ($q) use ($request) {
                 $this->applyActiveAndDeletedFilters($q, $request);
             }]);
         }
-        
+
         return $query;
     }
-    
+
     /**
      * Helper method to apply sorting to the query
      */
     private function applySorting($query, $request)
     {
-        $sortBy = in_array($request->sort_by, ['name', 'created_at', 'updated_at', 'sort_order']) 
-                ? $request->sort_by 
-                : 'name';
+        $sortBy = in_array($request->sort_by, ['name', 'created_at', 'updated_at', 'sort_order'])
+            ? $request->sort_by
+            : 'name';
         $direction = $request->sort_direction === 'desc' ? 'desc' : 'asc';
 
         // Si es sort_order, agregamos un orden secundario por nombre
@@ -578,40 +587,40 @@ class ClientCategoryController extends Controller
         } else {
             $query->orderBy($sortBy, $direction);
         }
-        
+
         return $query;
     }
-    
+
     /**
      * Helper method to fetch a single category with relationships
      */
-    private function fetchCategory(Category $category, ListCategoryRequest $request)
+    private function fetchCategory(Category $category, AdminListCategoryRequest $request)
     {
         // Verificar que la categoría existe
         if (!$category || !$category->id) {
             throw new \Exception("La categoría solicitada no existe o ya ha sido eliminada");
         }
-        
+
         // Siempre cargar la relación padre
         $relations = ['parent'];
-        
+
         // Determinar qué relaciones adicionales cargar
         if ($request->with_children) {
             $relations[] = 'children';
         }
-        
+
         if ($request->with_skills) {
             $relations[] = 'skills';
         }
-        
+
         if ($request->with_service_requests) {
             $relations[] = 'serviceRequests';
         }
-        
+
         try {
             // Asegurar que las relaciones estén cargadas
             $category->load($relations);
-            
+
             // Aplicar filtros a las relaciones cargadas si es necesario
             if ($request->active_only || !$request->show_deleted) {
                 foreach (['children', 'skills', 'serviceRequests'] as $relation) {
@@ -619,19 +628,19 @@ class ClientCategoryController extends Controller
                         // Filtrar colecciones cargadas
                         $filtered = $category->{$relation}->filter(function ($item) use ($request) {
                             if (!$item) return false;
-                            
+
                             $activeCondition = !$request->active_only || $item->is_active;
                             $deletedCondition = $request->show_deleted || $item->deleted_at === null;
-                            
+
                             return $activeCondition && $deletedCondition;
                         });
-                        
+
                         // Reemplazar la colección con la filtrada
                         $category->setRelation($relation, $filtered);
                     }
                 }
             }
-            
+
             return $category;
         } catch (\Exception $e) {
             // Capturar errores específicos y proporcionar un mensaje más descriptivo
@@ -639,11 +648,11 @@ class ClientCategoryController extends Controller
             throw new \Exception("Error al cargar relaciones para la categoría: " . $e->getMessage());
         }
     }
-    
+
     /**
      * Helper method to sanitize request filters for meta information
      */
-    private function sanitizeFilters(ListCategoryRequest $request): array
+    private function sanitizeFilters(AdminListCategoryRequest $request): array
     {
         return [
             'search' => $request->search,
@@ -652,7 +661,8 @@ class ClientCategoryController extends Controller
             'with_children' => (bool)$request->with_children,
             'with_skills' => (bool)$request->with_skills,
             'with_service_requests' => (bool)$request->with_service_requests,
-            'show_deleted' => (bool)$request->show_deleted
+            'show_deleted' => (bool)$request->show_deleted,
+            'show_inactive' => (bool)$request->show_inactive
         ];
     }
 
@@ -662,20 +672,20 @@ class ClientCategoryController extends Controller
     private function getAllDeletedChildrenIds(int $parentId): array
     {
         $childrenIds = [];
-        
+
         // Obtener hijos directos eliminados
         $directChildren = Category::withTrashed()
             ->where('parent_id', $parentId)
             ->whereNotNull('deleted_at')
             ->get(['id']);
-        
+
         foreach ($directChildren as $child) {
             $childrenIds[] = $child->id;
             // Obtener recursivamente los hijos de este hijo
             $nestedChildrenIds = $this->getAllDeletedChildrenIds($child->id);
             $childrenIds = array_merge($childrenIds, $nestedChildrenIds);
         }
-        
+
         return $childrenIds;
     }
 }

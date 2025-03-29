@@ -7,7 +7,7 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-class CheckRole
+class AdminMiddleware
 {
     use ApiResponseTrait;
 
@@ -16,7 +16,7 @@ class CheckRole
      *
      * @param Closure(Request): (Response) $next
      */
-    public function handle(Request $request, Closure $next, ...$roles): Response
+    public function handle(Request $request, Closure $next): Response
     {
         $user = $request->user();
 
@@ -24,16 +24,16 @@ class CheckRole
             return $this->unauthorizedResponse('You are not logged in.');
         }
 
-        if (!$user->hasAnyRole($roles)) {
+        if (!$user->hasRole('admin')) {
             return $this->errorResponse(
-                'You do not have the necessary permissions to access this resource.',
+                'You do not have administrative privileges.',
                 403
             );
         }
 
         if (!$user->isActive()) {
             return $this->errorResponse(
-                'Your account is disabled. Contact the administrator.',
+                'Your account is disabled.',
                 403
             );
         }

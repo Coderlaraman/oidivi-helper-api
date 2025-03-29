@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Middleware\AdminMiddleware;
 use App\Http\Middleware\CheckRole;
 use App\Http\Middleware\EnsureEmailIsVerified;
 use App\Http\Middleware\LocaleMiddleware;
@@ -20,8 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role' => CheckRole::class,
             'verified' => EnsureEmailIsVerified::class,
-            'locale' => LocaleMiddleware::class,
-            'admin' => AdminMiddleware::class,
+            'locale' => LocaleMiddleware::class, 
             ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

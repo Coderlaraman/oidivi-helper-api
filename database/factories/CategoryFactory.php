@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\Category;
+use Illuminate\Support\Str;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -19,9 +20,14 @@ class CategoryFactory extends Factory
      */
     public function definition(): array
     {
+        $name = $this->faker->unique()->word();
         return [
-            'name' => $this->faker->unique()->word(),
+            'name' => $name,
+            'slug' => Str::slug($name),
             'description' => $this->faker->sentence(),
+            'sort_order' => $this->faker->numberBetween(0, 100),
+            'is_active' => true,
+            'parent_id' => null,
         ];
     }
 }

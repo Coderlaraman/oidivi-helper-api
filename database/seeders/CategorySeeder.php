@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Category;
+use Illuminate\Support\Str;
 use Illuminate\Database\Seeder;
 
 class CategorySeeder extends Seeder
@@ -28,7 +29,15 @@ class CategorySeeder extends Seeder
         ];
 
         foreach ($categories as $category) {
-            Category::updateOrCreate(['name' => $category['name']], $category);
+            Category::updateOrCreate(
+                ['name' => $category['name']],
+                [
+                    'name' => $category['name'],
+                    'slug' => Str::slug($category['name']),
+                    'is_active' => true,
+                    'sort_order' => 0
+                ]
+            );
         }
     }
 }

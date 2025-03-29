@@ -45,6 +45,7 @@ class UserFactory extends Factory
             'longitude' => fake()->longitude(),
             'email_verified_at' => now(),
             'remember_token' => Str::random(10),
+            'deleted_at' => null,
         ];
     }
 
@@ -76,6 +77,16 @@ class UserFactory extends Factory
             'phone_verified_at' => null,
             'documents_verified_at' => null,
             'verification_status' => 'pending',
+        ]);
+    }
+
+    /**
+     * Indicate that the user is deleted.
+     */
+    public function deleted(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'deleted_at' => now(),
         ]);
     }
 }

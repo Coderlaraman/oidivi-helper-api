@@ -21,24 +21,55 @@ class ClientCategoryResource extends JsonResource
             'slug' => $this->slug,
             'description' => $this->description,
             'sort_order' => $this->sort_order,
-            'is_active' => $this->is_active,
+            'is_active' => (bool) $this->is_active,
             'parent_id' => $this->parent_id,
-            'parent' => $this->when($this->relationLoaded('parent'), 
-                fn() => new ClientCategoryResource($this->parent)),
-            'children' => $this->when($this->relationLoaded('children'), 
-                fn() => ClientCategoryResource::collection($this->children)),
-            'children_count' => $this->when($this->relationLoaded('children'), 
-                fn() => $this->children->count()),
-            'skills' => $this->when($this->relationLoaded('skills'), 
-                fn() => ClientSkillResource::collection($this->skills)),
-            'skills_count' => $this->when($this->relationLoaded('skills'), 
-                fn() => $this->skills->count()),
-            'service_requests' => $this->when($this->relationLoaded('serviceRequests'), 
-                fn() => ClientServiceRequestResource::collection($this->serviceRequests)),
-            'service_requests_count' => $this->when($this->relationLoaded('serviceRequests'), 
-                fn() => $this->serviceRequests->count()),
+            'path' => $this->path,
+            'full_path' => $this->full_path,
+            'parent' => $this->loadRelation('parent', ClientCategoryResource::class),
+            'children' => $this->loadCollection('children', ClientCategoryResource::class),
+            'children_count' => $this->countRelation('children'),
+            'skills' => $this->loadCollection('skills', ClientSkillResource::class),
+            'skills_count' => $this->countRelation('skills'),
+            'service_requests' => $this->loadCollection('serviceRequests', ClientServiceRequestResource::class),
+            'service_requests_count' => $this->countRelation('serviceRequests'),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
+            'deleted_at' => $this->deleted_at,
         ];
+    }
+
+    /**
+     * Helper function to load a single relation if available.
+     *
+     * @param string $relation
+     * @param string $resourceClass
+     * @return mixed
+     */
+    private function loadRelation(string $relation, string $resourceClass)
+    {
+        return $this->whenLoaded($relation, fn() => new $resourceClass($this->$relation));
+    }
+
+    /**
+     * Helper function to load a collection relation if available.
+     *
+     * @param string $relation
+     * @param string $resourceClass
+     * @return mixed
+     */
+    private function loadCollection(string $relation, string $resourceClass)
+    {
+        return $this->whenLoaded($relation, fn() => $resourceClass::collection($this->$relation));
+    }
+
+    /**
+     * Helper function to count related items if available.
+     *
+     * @param string $relation
+     * @return int
+     */
+    private function countRelation(string $relation): int
+    {
+        return $this->whenLoaded($relation, fn() => $this->$relation->count(), 0);
     }
 }
