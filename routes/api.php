@@ -76,18 +76,20 @@ Route::prefix('v1')->group(function () {
             Route::post('service-requests/{serviceRequest}/restore', [ServiceRequestController::class, 'restore'])->name('admin.serviceRequests.restore');
         });
 
-    // Rutas públicas para el cliente
-    Route::prefix('client')->group(function () {
+    // Rutas públicas para los usuarios comunes
+    Route::prefix('user')->group(function () {
 
-        // Rutas de autenticación del cliente
-        Route::prefix('auth')->group(function () {
-            Route::post('register', [UserAuthController::class, 'register'])->name('client.auth.register');
-            Route::post('login', [UserAuthController::class, 'login'])->name('client.auth.login');
+        // Rutas de autenticación del usuario común
+        Route::prefix('auth')->group(function () {  // Changed from 'user/auth' to just 'auth'
+            Route::post('register', [UserAuthController::class, 'register'])->name('user.auth.register');
+            Route::post('login', [UserAuthController::class, 'login'])->name('user.auth.login');
             Route::post('logout', [UserAuthController::class, 'logout'])
-                ->name('client.auth.logout')
+                ->name('user.auth.logout')
                 ->middleware('auth:sanctum');
-            Route::post('forgot-password', [UserAuthController::class, 'forgotPassword'])
-                ->middleware('auth:sanctum');
+            
+            // Password reset routes
+            Route::post('forgot-password', [UserAuthController::class, 'forgotPassword'])->name('user.auth.forgot-password');
+            Route::post('reset-password', [UserAuthController::class, 'resetPassword'])->name('user.auth.reset-password');
 
             Route::post('email/verification-notification', [UserEmailVerificationController::class, 'sendVerificationEmail']);
             Route::get('email/verify/{id}/{hash}', [UserEmailVerificationController::class, 'verify'])
@@ -109,6 +111,7 @@ Route::prefix('v1')->group(function () {
             Route::post('video', [UserProfileController::class, 'uploadProfileVideo']);
             Route::put('skills', [UserProfileController::class, 'updateSkills']);
             Route::get('dashboard', [UserProfileController::class, 'dashboard']);
+            Route::get('search', [UserProfileController::class, 'search']); // Añadido el endpoint de búsqueda
             Route::post('location/update', [UserLocationController::class, 'updateLocation']);
         });
 
