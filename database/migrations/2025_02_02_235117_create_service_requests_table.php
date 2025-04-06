@@ -25,6 +25,7 @@ return new class extends Migration {
             $table->enum('status', ['published', 'in_progress', 'completed', 'canceled'])->default('published');
             $table->enum('payment_method', ['paypal', 'credit_card', 'bank_transfer'])->nullable();
             $table->enum('service_type', ['one_time', 'recurring'])->default('one_time');
+            $table->softDeletes(); // Added soft deletes
             $table->timestamps();
         });
     }

@@ -2,7 +2,7 @@
 
 namespace App\Http\Resources\User;
 
-use App\Http\Resources\Client\ClientCategoryResource;
+use App\Http\Resources\Admin\AdminCategoryResource;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class UserSkillResource extends JsonResource

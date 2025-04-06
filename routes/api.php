@@ -18,7 +18,10 @@ use App\Http\Controllers\Api\V1\User\Skills\UserSkillController;
 use App\Http\Controllers\Api\V1\User\Subscriptions\ClientSubscriptionController;
 use App\Http\Controllers\Api\V1\User\Tickets\ClientTicketController;
 use App\Http\Controllers\Api\V1\User\Transactions\ClientTransactionController;
+use App\Http\Controllers\Api\V1\Chat\ChatController;
+use App\Http\Controllers\Api\V1\Chat\MessageController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Http\Request;
 
 /*
 |--------------------------------------------------------------------------
@@ -91,8 +94,9 @@ Route::prefix('v1')->group(function () {
             Route::post('forgot-password', [UserAuthController::class, 'forgotPassword'])->name('user.auth.forgot-password');
             Route::post('reset-password', [UserAuthController::class, 'resetPassword'])->name('user.auth.reset-password');
 
-            Route::post('email/verification-notification', [UserEmailVerificationController::class, 'sendVerificationEmail']);
-            Route::get('email/verify/{id}/{hash}', [UserEmailVerificationController::class, 'verify'])
+            // Email verification routes
+            Route::post('email/verification-notification', [UserEmailVerificationController::class,'sendVerificationEmail']);
+            Route::get('email/verify/{id}/{hash}', [UserEmailVerificationController::class,'verify'])
                 ->name('verification.verify');
         });
 
@@ -183,8 +187,32 @@ Route::prefix('v1')->group(function () {
         });
     });
 
+    // Rutas de chat y mensajes
+    Route::prefix('chats')->middleware(['auth:sanctum'])->group(function () {
+        Route::get('/', [ChatController::class, 'index']);
+        Route::post('/', [ChatController::class, 'store']);
+        Route::get('/{chat}', [ChatController::class, 'show']);
+        Route::put('/{chat}', [ChatController::class, 'update']);
+        Route::delete('/{chat}', [ChatController::class, 'destroy']);
+        Route::post('/{chat}/read', [ChatController::class, 'markAsRead']);
+        Route::post('/{chat}/typing', [ChatController::class, 'typing']);
+        
+        // Rutas de mensajes
+        Route::get('/{chat}/messages', [MessageController::class, 'index']);
+        Route::post('/{chat}/messages', [MessageController::class, 'store']);
+        Route::get('/{chat}/messages/{message}', [MessageController::class, 'show']);
+        Route::put('/{chat}/messages/{message}', [MessageController::class, 'update']);
+        Route::delete('/{chat}/messages/{message}', [MessageController::class, 'destroy']);
+        Route::post('/{chat}/messages/{message}/seen', [MessageController::class, 'markAsSeen']);
+    });
+
     // Ejemplo de rutas para otros roles (clientes, helpers, etc.)
     Route::middleware(['auth:sanctum', 'role:client,helper'])->group(function () {
         // Rutas adicionales accesibles por clientes y helpers
+    });
+
+    Route::post('/emit-test-event', function (Request $request) {
+        event(new App\Events\TestEvent($request->message));
+        return response()->json(['success' => true, 'message' => 'Evento emitido correctamente']);
     });
 });

@@ -2,7 +2,7 @@
 
 namespace App\Http\Resources\User;
 
-use App\Http\Resources\Client\ClientCategoryResource;
+use App\Http\Resources\Admin\AdminCategoryResource;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -27,9 +27,10 @@ class UserServiceRequestResource extends JsonResource
             'visibility' => $this->visibility,
             'status' => $this->status,
             'user' => new UserProfileResource($this->whenLoaded('user')),
-            'categories' => ClientCategoryResource::collection($this->whenLoaded('categories')),
+            'categories' => AdminCategoryResource::collection($this->whenLoaded('categories')),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
+            'deleted_at' => $this->deleted_at,
         ];
     }
 }
