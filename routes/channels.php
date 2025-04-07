@@ -20,14 +20,26 @@ Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
 }, ['guards' => ['sanctum']]);
 
 
+// // Canal para chats privados
+// Broadcast::channel('chat.{chatId}', function ($user, $chatId) {
+//     $chat = Chat::find($chatId);
+    
+//     if (!$chat) {
+//         return false;
+//     }
+    
+//     // Verificar si el usuario es participante del chat
+//     return $chat->isParticipant($user);
+// }, ['guards' => ['sanctum']]);
+
+
 // Canal para chats privados
-Broadcast::channel('chat.{chatId}', function ($user, $chatId) {
-    $chat = Chat::find($chatId);
-    
-    if (!$chat) {
-        return false;
-    }
-    
-    // Verificar si el usuario es participante del chat
-    return $chat->isParticipant($user);
+Broadcast::channel('user.{id}', function ($user, $id) {
+    return (int) $user->id === (int) $id;
 }, ['guards' => ['sanctum']]);
+
+
+// Broadcast::channel('my-proof', function(){
+//     return true;
+// });
+

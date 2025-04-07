@@ -216,3 +216,7 @@ Route::prefix('v1')->group(function () {
         return response()->json(['success' => true, 'message' => 'Evento emitido correctamente']);
     });
 });
+
+
+
+Broadcast::routes(['middleware' => ['auth:sanctum']]);
