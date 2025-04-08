@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin\Category;
 
+use App\Models\Category;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -28,7 +29,6 @@ class AdminUpdateCategoryRequest extends FormRequest
         return [
             'name' => [
                 'sometimes',
-                'required',
                 'string',
                 'max:255',
                 Rule::unique('categories', 'name')
@@ -37,55 +37,16 @@ class AdminUpdateCategoryRequest extends FormRequest
             ],
             'slug' => [
                 'sometimes',
-                'required',
                 'string',
                 'max:255',
                 Rule::unique('categories', 'slug')
                     ->whereNull('deleted_at')
                     ->ignore($categoryId)
             ],
-            'description' => 'nullable|string|max:1000',
-            'parent_id' => [
-                'nullable',
-                'integer',
-                Rule::exists('categories', 'id')->whereNull('deleted_at'),
-                function ($attribute, $value, $fail) use ($categoryId) {
-                    if ($value !== null) {
-                        // Verificar que no se asigne a sí mismo como padre
-                        if ($value == $categoryId) {
-                            $fail('Una categoría no puede ser su propio padre.');
-                            return;
-                        }
-
-                        // Verificar que no se asigne un hijo como padre
-                        $category = \App\Models\Category::find($categoryId);
-                        if ($category && $category->isParentOf($value)) {
-                            $fail('No se puede asignar un hijo como padre (crearía un ciclo).');
-                            return;
-                        }
-
-                        // Verificar que el padre esté activo
-                        $parent = \App\Models\Category::find($value);
-                        if ($parent && !$parent->is_active) {
-                            $fail('No se puede asignar una categoría inactiva como padre.');
-                        }
-                    }
-                }
-            ],
-            'is_active' => [
-                'sometimes',
-                'boolean',
-                function ($attribute, $value, $fail) use ($categoryId) {
-                    if ($value === false) {
-                        $category = \App\Models\Category::find($categoryId);
-                        if ($category && $category->hasActiveChildren()) {
-                            $fail('No se puede desactivar una categoría con hijos activos.');
-                        }
-                    }
-                }
-            ],
-            'sort_order' => 'nullable|integer|min:0',
-            'metadata' => 'nullable|array',
+            'description' => 'sometimes|string',
+            'icon' => 'sometimes|string|max:50',
+            'is_active' => 'sometimes|boolean',
+            'sort_order' => 'sometimes|integer|min:0',
         ];
     }
 

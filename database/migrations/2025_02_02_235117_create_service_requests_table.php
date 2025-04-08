@@ -13,8 +13,8 @@ return new class extends Migration {
         Schema::create('service_requests', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->foreignId('category_id')->constrained('categories')->onDelete('cascade');
             $table->string('title');
+            $table->string('slug')->unique();
             $table->text('description');
             $table->string('address');
             $table->string('zip_code', 10)->nullable();
@@ -25,8 +25,18 @@ return new class extends Migration {
             $table->enum('status', ['published', 'in_progress', 'completed', 'canceled'])->default('published');
             $table->enum('payment_method', ['paypal', 'credit_card', 'bank_transfer'])->nullable();
             $table->enum('service_type', ['one_time', 'recurring'])->default('one_time');
-            $table->softDeletes(); // Added soft deletes
+            $table->enum('priority', ['low', 'medium', 'high', 'urgent'])->default('medium'); 
+            $table->dateTime('due_date')->nullable(); 
+            $table->json('metadata')->nullable(); 
+            $table->softDeletes(); 
             $table->timestamps();
+
+            // Índices compuestos para búsquedas eficientes
+            $table->index(['user_id', 'status']);
+            $table->index(['status', 'visibility']);
+            $table->index(['due_date', 'status']);
+            $table->index(['latitude', 'longitude']);
+            $table->index('slug');
         });
     }
 

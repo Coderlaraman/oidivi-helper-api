@@ -2,11 +2,12 @@
 
 use App\Http\Controllers\Api\V1\Admin\Auth\AdminAuthController;
 use App\Http\Controllers\Api\V1\Admin\Categories\AdminCategoryController;
-use App\Http\Controllers\Api\V1\Admin\ServiceRequests\ServiceRequestController;
-use App\Http\Controllers\Api\V1\Admin\Skills\SkillController;
+// use App\Http\Controllers\Api\V1\Admin\ServiceRequests\AdminServiceRequestController;
+use App\Http\Controllers\Api\V1\Admin\Skills\AdminSkillController;
 use App\Http\Controllers\Api\V1\Admin\Users\AdminUserController;
 use App\Http\Controllers\Api\V1\User\Auth\UserAuthController;
 use App\Http\Controllers\Api\V1\User\Auth\UserEmailVerificationController;
+use App\Http\Controllers\Api\V1\User\Categories\UserCategoryController;
 use App\Http\Controllers\Api\V1\User\Locations\UserLocationController;
 use App\Http\Controllers\Api\V1\User\Payments\ClientPaymentController;
 use App\Http\Controllers\Api\V1\User\Profiles\UserProfileController;
@@ -72,11 +73,11 @@ Route::prefix('v1')->group(function () {
                 Route::post('/{id}/restore', [AdminCategoryController::class, 'restore'])->name('admin.categories.restore');
             });
 
-            Route::apiResource('skills', SkillController::class);
-            Route::post('skills/{skill}/restore', [SkillController::class, 'restore'])->name('admin.skills.restore');
+            Route::apiResource('skills', AdminSkillController::class);
+            Route::post('skills/{skill}/restore', [AdminSkillController::class, 'restore'])->name('admin.skills.restore');
 
-            Route::apiResource('service-requests', ServiceRequestController::class)->except(['store']);
-            Route::post('service-requests/{serviceRequest}/restore', [ServiceRequestController::class, 'restore'])->name('admin.serviceRequests.restore');
+            Route::apiResource('service-requests', AdminServiceRequestController::class)->except(['store']);
+            Route::post('service-requests/{serviceRequest}/restore', [AdminServiceRequestController::class, 'restore'])->name('admin.serviceRequests.restore');
         });
 
     // Rutas públicas para los usuarios comunes
@@ -140,15 +141,16 @@ Route::prefix('v1')->group(function () {
             Route::get('reviews/{userId}', [ClientReviewController::class, 'index']);
         });
 
-        // Rutas de servicios (protegidas)
-        Route::prefix('services')->middleware('auth:sanctum')->group(function () {
+        // Rutas de solicitudes de servicios (protegidas)
+        Route::prefix('service-requests')->middleware('auth:sanctum')->group(function () {
             Route::get('/', [UserServiceRequestController::class, 'index']);
             Route::get('{id}', [UserServiceRequestController::class, 'show']);
             Route::post('/', [UserServiceRequestController::class, 'store']);
             Route::put('{id}', [UserServiceRequestController::class, 'update']);
+            Route::patch('{id}/status', [UserServiceRequestController::class, 'updateStatus']);
             Route::delete('{id}', [UserServiceRequestController::class, 'destroy']);
-            Route::post('{serviceId}/reviews', [UserServiceRequestController::class, 'storeReview']);
-            Route::post('{serviceId}/transactions', [UserServiceRequestController::class, 'storeTransaction']);
+            // Route::post('{serviceRequestId}/reviews', [UserServiceRequestController::class, 'storeReview']);
+            // Route::post('{serviceRequestId}/transactions', [UserServiceRequestController::class, 'storeTransaction']);
         });
 
         // Rutas de habilidades
@@ -206,17 +208,11 @@ Route::prefix('v1')->group(function () {
         Route::post('/{chat}/messages/{message}/seen', [MessageController::class, 'markAsSeen']);
     });
 
-    // Ejemplo de rutas para otros roles (clientes, helpers, etc.)
-    Route::middleware(['auth:sanctum', 'role:client,helper'])->group(function () {
-        // Rutas adicionales accesibles por clientes y helpers
-    });
-
-    Route::post('/emit-test-event', function (Request $request) {
-        event(new App\Events\TestEvent($request->message));
-        return response()->json(['success' => true, 'message' => 'Evento emitido correctamente']);
-    });
+    Route::prefix('categories')->group(function () {
+        Route::get('/', [UserCategoryController::class, 'index'])->name('user.categories.index');
+});
 });
 
 
 
-Broadcast::routes(['middleware' => ['auth:sanctum']]);
+// Broadcast::routes(['middleware' => ['auth:sanctum']]);

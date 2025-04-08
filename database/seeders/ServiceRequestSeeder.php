@@ -2,94 +2,145 @@
 
 namespace Database\Seeders;
 
-use App\Models\Category;
 use App\Models\ServiceRequest;
 use App\Models\User;
+use App\Models\Category;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
 
 class ServiceRequestSeeder extends Seeder
 {
+    /**
+     * Run the database seeds.
+     */
     public function run(): void
     {
-        $user = User::first() ?? User::factory()->create();
+        $users = User::all();
+        $categories = Category::all();
 
-        $sampleRequests = [
+        if ($users->isEmpty()) {
+            $this->command->error('Please run UserSeeder first');
+            return;
+        }
+
+        if ($categories->isEmpty()) {
+            $this->command->error('Please run CategorySeeder first');
+            return;
+        }
+
+        $serviceRequests = [
             [
-                'title' => 'Need Professional House Cleaning Service',
-                'description' => 'Looking for a thorough house cleaning service for a 3-bedroom home. Deep cleaning required for kitchen and bathrooms. Must have experience with eco-friendly cleaning products.',
-                'category' => 'Home Services',
-                'budget' => 150.00,
+                'title' => 'Urgent Plumbing Repair Needed',
+                'description' => 'Water leak under kitchen sink needs immediate attention. The leak appears to be coming from the pipe connection and is causing water damage to the cabinet.',
+                'priority' => 'urgent',
+                'visibility' => 'public',
+                'service_type' => 'one_time',
+                'payment_method' => 'credit_card',
+                'categories' => ['Plumbing', 'Emergency Services'],
             ],
             [
-                'title' => 'Website Development for Small Business',
-                'description' => 'Need a professional web developer to create a modern, responsive website for my local bakery. Should include an online ordering system and gallery section.',
-                'category' => 'Technology & Digital',
-                'budget' => 2500.00,
+                'title' => 'Weekly House Cleaning Service',
+                'description' => 'Looking for a professional cleaner for weekly house cleaning. 3 bedroom, 2 bathroom house. Tasks include dusting, vacuuming, mopping, and bathroom cleaning.',
+                'priority' => 'medium',
+                'visibility' => 'public',
+                'service_type' => 'recurring',
+                'payment_method' => 'bank_transfer',
+                'categories' => ['Cleaning', 'Home Services'],
             ],
             [
-                'title' => 'Personal Trainer for Weight Loss Journey',
-                'description' => 'Seeking a certified personal trainer to help with weight loss goals. Prefer someone with experience in nutrition planning and working with beginners.',
-                'category' => 'Health & Wellness',
-                'budget' => 400.00,
+                'title' => 'Garden Landscaping Project',
+                'description' => 'Need help redesigning and landscaping backyard garden. Area is approximately 500 sq ft. Looking for someone to create a modern, low-maintenance design.',
+                'priority' => 'low',
+                'visibility' => 'public',
+                'service_type' => 'one_time',
+                'payment_method' => 'paypal',
+                'categories' => ['Gardening', 'Landscaping'],
             ],
             [
-                'title' => 'Car AC Repair Needed',
-                'description' => 'My car\'s AC isn\'t cooling properly. Need a qualified mechanic to diagnose and fix the issue. 2018 Toyota Camry.',
-                'category' => 'Automotive',
-                'budget' => 300.00,
+                'title' => 'Private Math Tutoring for High School Student',
+                'description' => 'Seeking an experienced math tutor for advanced calculus. Two sessions per week, 1.5 hours each. Must have teaching experience.',
+                'priority' => 'medium',
+                'visibility' => 'private',
+                'service_type' => 'recurring',
+                'payment_method' => 'credit_card',
+                'categories' => ['Education', 'Tutoring'],
             ],
             [
-                'title' => 'Wedding Photography Services',
-                'description' => 'Looking for an experienced photographer for a wedding in June. Need both ceremony and reception coverage, plus engagement photos.',
-                'category' => 'Events & Entertainment',
-                'budget' => 1800.00,
+                'title' => 'Emergency Electrical Repair',
+                'description' => 'Power outage in half of the house. Circuit breaker issues. Need licensed electrician for immediate inspection and repair.',
+                'priority' => 'urgent',
+                'visibility' => 'public',
+                'service_type' => 'one_time',
+                'payment_method' => 'credit_card',
+                'categories' => ['Electrical', 'Emergency Services'],
             ],
             [
-                'title' => 'Math Tutor for High School Student',
-                'description' => 'Seeking a math tutor for advanced algebra and pre-calculus. Twice weekly sessions needed for a high school junior.',
-                'category' => 'Education & Tutoring',
-                'budget' => 45.00,
+                'title' => 'Monthly Pool Maintenance Service',
+                'description' => 'Looking for regular pool maintenance including chemical balance, cleaning, and equipment check. Pool size is 15x30 feet.',
+                'priority' => 'low',
+                'visibility' => 'public',
+                'service_type' => 'recurring',
+                'payment_method' => 'bank_transfer',
+                'categories' => ['Pool Service', 'Home Services'],
             ],
             [
-                'title' => 'Logo Design for Tech Startup',
-                'description' => 'Need a professional logo designer to create a modern, minimalist logo for our AI startup. Should include brand guidelines and multiple formats.',
-                'category' => 'Creative & Design',
-                'budget' => 750.00,
+                'title' => 'Professional Moving Assistance',
+                'description' => 'Need help moving from a 2-bedroom apartment to a new house. Includes furniture disassembly/assembly. Distance is approximately 15 miles.',
+                'priority' => 'medium',
+                'visibility' => 'public',
+                'service_type' => 'one_time',
+                'payment_method' => 'paypal',
+                'categories' => ['Moving', 'Heavy Lifting'],
             ],
             [
-                'title' => 'Dog Training Sessions Needed',
-                'description' => 'Looking for a professional dog trainer for our 6-month-old German Shepherd. Focus on basic obedience and leash training.',
-                'category' => 'Pet Services',
-                'budget' => 85.00,
+                'title' => 'Private Chef for Special Dinner',
+                'description' => 'Looking for a private chef to prepare a gourmet dinner for 8 people. Mediterranean cuisine preferred. Event is next month.',
+                'priority' => 'high',
+                'visibility' => 'private',
+                'service_type' => 'one_time',
+                'payment_method' => 'credit_card',
+                'categories' => ['Cooking', 'Events'],
             ],
             [
-                'title' => 'Tax Preparation Services',
-                'description' => 'Need a certified accountant for personal and small business tax preparation. Must be familiar with freelance income and deductions.',
-                'category' => 'Professional Services',
-                'budget' => 350.00,
-            ],
-            [
-                'title' => 'Plumbing Repair for Bathroom',
-                'description' => 'Need a licensed plumber to fix a leaking shower and replace bathroom faucet. Urgent request.',
-                'category' => 'Maintenance & Repair',
-                'budget' => 200.00,
+                'title' => 'Computer Network Setup for Small Office',
+                'description' => 'Need IT professional to set up network for small office. Includes router configuration, printer setup, and basic security measures.',
+                'priority' => 'high',
+                'visibility' => 'public',
+                'service_type' => 'one_time',
+                'payment_method' => 'bank_transfer',
+                'categories' => ['IT Services', 'Business Services'],
             ],
         ];
 
-        foreach ($sampleRequests as $request) {
+        foreach ($serviceRequests as $requestData) {
+            $user = $users->random();
+            $categoryNames = $requestData['categories'];
+            unset($requestData['categories']);
+
             $serviceRequest = ServiceRequest::create([
                 'user_id' => $user->id,
-                'title' => $request['title'],
-                'description' => $request['description'],
-                'budget' => $request['budget'],
+                'title' => $requestData['title'],
+                'slug' => Str::slug($requestData['title']),
+                'description' => $requestData['description'],
+                'address' => '123 Main St, Anytown, ST 12345',
                 'zip_code' => '12345',
-                'address' => '123 Main St, Los Angeles, CA 90038',
-                'latitude' => rand(3300, 4800) / 100,
-                'longitude' => rand(-11800, -11700) / 100,
-                'visibility' => 'public',
+                'latitude' => rand(-90, 90),
+                'longitude' => rand(-180, 180),
+                'budget' => rand(50, 1000),
+                'priority' => $requestData['priority'],
+                'visibility' => $requestData['visibility'],
+                'service_type' => $requestData['service_type'],
+                'payment_method' => $requestData['payment_method'],
+                'due_date' => now()->addDays(rand(1, 30)),
                 'status' => 'published',
-                'category_id' => Category::where('name', $request['category'])->first()->id,
             ]);
+
+            // Attach categories
+            $requestCategories = $categories->filter(function ($category) use ($categoryNames) {
+                return in_array($category->name, $categoryNames);
+            });
+
+            $serviceRequest->categories()->attach($requestCategories->pluck('id')->toArray());
         }
     }
 }

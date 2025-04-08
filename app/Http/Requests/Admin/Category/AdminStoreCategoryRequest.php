@@ -27,23 +27,10 @@ class AdminStoreCategoryRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255', Rule::unique('categories', 'name')->whereNull('deleted_at')],
             'slug' => ['required', 'string', 'max:255', Rule::unique('categories', 'slug')->whereNull('deleted_at')],
-            'description' => 'nullable|string|max:1000',
-            'parent_id' => [
-                'nullable',
-                'integer',
-                Rule::exists('categories', 'id')->whereNull('deleted_at'),
-                function ($attribute, $value, $fail) {
-                    if ($value !== null) {
-                        $parent = Category::find($value);
-                        if ($parent && !$parent->is_active) {
-                            $fail('No se puede asignar una categoría inactiva como padre.');
-                        }
-                    }
-                }
-            ],
+            'description' => 'required|string',
+            'icon' => 'required|string|max:50',
             'is_active' => 'boolean',
             'sort_order' => 'nullable|integer|min:0',
-            'metadata' => 'nullable|array',
         ];
     }
 
@@ -59,7 +46,6 @@ class AdminStoreCategoryRequest extends FormRequest
             'name.unique' => 'Ya existe una categoría con este nombre.',
             'slug.required' => 'El slug de la categoría es obligatorio.',
             'slug.unique' => 'Ya existe una categoría con este slug.',
-            'parent_id.exists' => 'La categoría padre seleccionada no existe.',
         ];
     }
 }

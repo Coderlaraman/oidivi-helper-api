@@ -24,12 +24,12 @@ return new class extends Migration {
             $table->morphs('service_request'); // Relación polimórfica con solicitudes de servicio
             $table->timestamps();
             $table->softDeletes(); // Permite borrado suave
-        });
 
         // Índices para mejorar el rendimiento de las consultas
         $table->index(['chat_id', 'created_at']);
         $table->index(['sender_id', 'created_at']);
         $table->index(['receiver_id', 'created_at']);
+        });
     }
 
     /**

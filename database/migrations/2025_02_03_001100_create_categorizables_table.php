@@ -10,8 +10,7 @@ return new class extends Migration {
         Schema::create('categorizables', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('category_id');
-            $table->unsignedBigInteger('categorizable_id');
-            $table->string('categorizable_type');
+            $table->morphs('categorizable');
             $table->timestamps();
 
             // Clave foránea hacia categories
@@ -23,9 +22,6 @@ return new class extends Migration {
 
             // Índice único para evitar duplicados
             $table->unique(['category_id', 'categorizable_id', 'categorizable_type'], 'categorizables_unique');
-            
-            // Índices para búsqueda
-            $table->index(['categorizable_type', 'categorizable_id']);
         });
     }
 

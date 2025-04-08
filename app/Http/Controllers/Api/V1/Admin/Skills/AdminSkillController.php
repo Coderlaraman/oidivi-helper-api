@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api\Admin;
+namespace App\Http\Controllers\Api\V1\Admin\Skills;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Skill\AdminListSkillRequest;
@@ -11,7 +11,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 
-class SkillController extends Controller
+class AdminSkillController extends Controller
 {
     /**
      * Display a listing of the skills.
@@ -133,4 +133,4 @@ class SkillController extends Controller
 
         return response()->json($skill);
     }
-} 
+}

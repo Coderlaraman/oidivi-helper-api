@@ -9,7 +9,7 @@ use App\Models\ServiceRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Cache;
 
-class ServiceRequestController extends Controller
+class AdminServiceRequestController extends Controller
 {
     /**
      * Display a listing of the service requests.

@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\User\Payments;
 
-use App\Http\Controllers\Api\V1\Client\Payments\ValidationException;
+use App\Http\Controllers\Api\V1\User\Payments\ValidationException;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\User\UserTransactionResource;
 use App\Models\Transaction;
@@ -13,7 +13,7 @@ use Illuminate\Http\Request;
 use Stripe\PaymentIntent;
 use Stripe\Stripe;
 
-class ClientPaymentController extends Controller
+class UserPaymentController extends Controller
 {
     use ApiResponseTrait;
 

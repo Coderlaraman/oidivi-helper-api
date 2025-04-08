@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 
 class ServiceRequest extends Model
 {
@@ -19,11 +20,19 @@ class ServiceRequest extends Model
      * @var array<string>
      */
     protected $fillable = [
-        'title',
-        'description',
-        'category_id',
         'user_id',
+        'title',
+        'slug',
+        'description',
+        'address',
+        'zip_code',
+        'latitude',
+        'longitude',
+        'budget',
+        'visibility',
         'status',
+        'payment_method',
+        'service_type',
         'priority',
         'due_date',
         'metadata',
@@ -46,10 +55,10 @@ class ServiceRequest extends Model
      * @var array<string>
      */
     public const STATUSES = [
-        'pending' => 'Pendiente',
-        'in_progress' => 'En Progreso',
-        'completed' => 'Completado',
-        'cancelled' => 'Cancelado',
+        'published' => 'Published',
+        'in_progress' => 'In Progress',
+        'completed' => 'Completed',
+        'canceled' => 'Canceled',
     ];
 
     /**
@@ -58,18 +67,86 @@ class ServiceRequest extends Model
      * @var array<string>
      */
     public const PRIORITIES = [
-        'low' => 'Baja',
-        'medium' => 'Media',
-        'high' => 'Alta',
-        'urgent' => 'Urgente',
+        'low' => 'Low',
+        'medium' => 'Medium',
+        'high' => 'High',
+        'urgent' => 'Urgent',
+    ];
+
+    public const VISIBILITY = [
+        'public' => 'Public',
+        'private' => 'Private',
+    ];
+
+    public const PAYMENT_METHODS = [
+        'paypal' => 'PayPal',
+        'credit_card' => 'Credit Card',
+        'bank_transfer' => 'Bank Transfer',
+    ];
+
+    public const SERVICE_TYPES = [
+        'one_time' => 'One Time',
+        'recurring' => 'Recurring',
     ];
 
     /**
-     * Get the category that owns the service request.
+     * Boot the model.
      */
-    public function category(): BelongsTo
+    protected static function boot()
     {
-        return $this->belongsTo(Category::class);
+        parent::boot();
+
+        static::creating(function ($serviceRequest) {
+            if (empty($serviceRequest->slug)) {
+                $serviceRequest->generateUniqueSlug();
+            }
+        });
+
+        static::updating(function ($serviceRequest) {
+            if ($serviceRequest->isDirty('title')) {
+                $serviceRequest->generateUniqueSlug();
+            }
+        });
+    }
+
+    /**
+     * Genera un slug único basado en el título.
+     */
+    public function generateUniqueSlug(): void
+    {
+        $slug = Str::slug($this->title);
+        $originalSlug = $slug;
+        $count = 1;
+
+        while (static::where('slug', $slug)
+            ->where('id', '!=', $this->id ?? 0)
+            ->exists()) {
+            $slug = $originalSlug . '-' . $count++;
+        }
+
+        $this->slug = $slug;
+    }
+
+    /**
+     * Obtener la URL amigable de la solicitud de servicio.
+     */
+    public function getRouteKeyName(): string
+    {
+        return 'slug';
+    }
+
+    /**
+     * Verificar si el título ya existe para otro usuario.
+     */
+    public static function titleExistsForOtherUser(string $title, ?int $excludeId = null): bool
+    {
+        $query = static::where('title', $title);
+        
+        if ($excludeId) {
+            $query->where('id', '!=', $excludeId);
+        }
+
+        return $query->exists();
     }
 
     /**
@@ -85,7 +162,7 @@ class ServiceRequest extends Model
      */
     public function getStatusTextAttribute(): string
     {
-        return self::STATUSES[$this->status] ?? $this->status;
+        return self::STATUSES[$this->status] ?? 'Unknown';
     }
 
     /**
@@ -93,7 +170,7 @@ class ServiceRequest extends Model
      */
     public function getPriorityTextAttribute(): string
     {
-        return self::PRIORITIES[$this->priority] ?? $this->priority;
+        return self::PRIORITIES[$this->priority] ?? 'Unknown';
     }
 
     /**
@@ -101,15 +178,55 @@ class ServiceRequest extends Model
      */
     public function isOverdue(): bool
     {
-        return $this->due_date && $this->due_date->isPast() && $this->status !== 'completed';
+        return $this->due_date && $this->due_date->isPast() && 
+               !in_array($this->status, ['completed', 'canceled']);
     }
 
     /**
-     * Check if the service request is pending.
+     * Check if the service request can transition to a new status.
      */
-    public function isPending(): bool
+    public function canTransitionTo(string $newStatus): bool
     {
-        return $this->status === 'pending';
+        $validTransitions = [
+            'published' => ['in_progress', 'completed', 'canceled'],
+            'in_progress' => ['completed', 'canceled'],
+            'completed' => [],
+            'canceled' => [],
+        ];
+
+        return in_array($newStatus, $validTransitions[$this->status] ?? []);
+    }
+
+    /**
+     * Attach categories to the service request.
+     */
+    public function attachCategories(array $categoryIds): void
+    {
+        $this->categories()->attach($categoryIds);
+    }
+
+    /**
+     * Detach categories from the service request.
+     */
+    public function detachCategories(array $categoryIds): void
+    {
+        $this->categories()->detach($categoryIds);
+    }
+
+    /**
+     * Sync categories for the service request.
+     */
+    public function syncCategories(array $categoryIds): void
+    {
+        $this->categories()->sync($categoryIds);
+    }
+
+    /**
+     * Check if the service request is published.
+     */
+    public function isPublished(): bool
+    {
+        return $this->status === 'published';
     }
 
     /**
@@ -129,11 +246,11 @@ class ServiceRequest extends Model
     }
 
     /**
-     * Check if the service request is cancelled.
+     * Check if the service request is canceled.
      */
-    public function isCancelled(): bool
+    public function isCanceled(): bool
     {
-        return $this->status === 'cancelled';
+        return $this->status === 'canceled';
     }
 
     /**
@@ -146,7 +263,9 @@ class ServiceRequest extends Model
 
     public function categories(): MorphToMany
     {
-        return $this->morphToMany(Category::class, 'categorizable');
+        return $this->morphToMany(Category::class, 'categorizable')
+            ->withTimestamps()
+            ->whereNull('categories.deleted_at');
     }
 
     public function offers(): HasMany
@@ -167,5 +286,20 @@ class ServiceRequest extends Model
     public function transactions(): HasMany
     {
         return $this->hasMany(Transaction::class);
+    }
+
+    public function getVisibilityTextAttribute(): string
+    {
+        return self::VISIBILITY[$this->visibility] ?? 'Unknown';
+    }
+
+    public function getPaymentMethodTextAttribute(): string
+    {
+        return self::PAYMENT_METHODS[$this->payment_method] ?? 'Not specified';
+    }
+
+    public function getServiceTypeTextAttribute(): string
+    {
+        return self::SERVICE_TYPES[$this->service_type] ?? 'Unknown';
     }
 }

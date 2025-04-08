@@ -24,9 +24,7 @@ class AdminListCategoryRequest extends FormRequest
     {
         return [
             'search' => 'nullable|string|max:100',
-            'parent_only' => 'nullable|boolean',
             'active_only' => 'nullable|boolean',
-            'with_children' => 'nullable|boolean',
             'with_skills' => 'nullable|boolean',
             'with_service_requests' => 'nullable|boolean',
             'sort_by' => 'nullable|string|in:name,created_at,updated_at,sort_order',
