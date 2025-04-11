@@ -24,10 +24,7 @@ class CategoryFactory extends Factory
         return [
             'name' => $name,
             'slug' => Str::slug($name),
-            'description' => $this->faker->sentence(),
-            'sort_order' => $this->faker->numberBetween(0, 100),
-            'is_active' => true,
-            'parent_id' => null,
+            'description' => $this->faker->sentence()
         ];
     }
 }

@@ -107,6 +107,25 @@ class ServiceRequest extends Model
                 $serviceRequest->generateUniqueSlug();
             }
         });
+
+        static::created(function ($serviceRequest) {
+            // Obtener usuarios con habilidades en las mismas categorías
+            $categoryIds = $serviceRequest->categories()->pluck('categories.id');
+            
+            $users = User::whereHas('skills.categories', function($query) use ($categoryIds) {
+                $query->whereIn('categories.id', $categoryIds);
+            })->get();
+
+            // Crear notificaciones para cada usuario
+            foreach ($users as $user) {
+                PushNotification::create([
+                    'user_id' => $user->id,
+                    'service_request_id' => $serviceRequest->id,
+                    'title' => 'Nueva solicitud de servicio disponible',
+                    'message' => "Se ha publicado una nueva solicitud de servicio que coincide con tus habilidades: {$serviceRequest->title}"
+                ]);
+            }
+        });
     }
 
     /**
@@ -264,8 +283,7 @@ class ServiceRequest extends Model
     public function categories(): MorphToMany
     {
         return $this->morphToMany(Category::class, 'categorizable')
-            ->withTimestamps()
-            ->whereNull('categories.deleted_at');
+            ->withTimestamps();
     }
 
     public function offers(): HasMany

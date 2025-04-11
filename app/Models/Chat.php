@@ -7,25 +7,36 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Chat extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'user_one',
         'user_two',
         'service_request_id',
+        'type',
+        'status',
         'last_message_at',
-        'is_group',
-        'name',
-        'description'
+        'metadata'
     ];
 
     protected $casts = [
         'is_group' => 'boolean',
         'last_message_at' => 'datetime',
+        'metadata' => 'array'
     ];
+
+    // Tipos de chat
+    const TYPE_NEGOTIATION = 'negotiation';
+    const TYPE_SUPPORT = 'support';
+
+    // Estados del chat
+    const STATUS_ACTIVE = 'active';
+    const STATUS_ARCHIVED = 'archived';
+    const STATUS_CLOSED = 'closed';
 
     /**
      * Get all messages in this chat
@@ -85,11 +96,13 @@ class Chat extends Model
      */
     public function getOtherParticipant(User $user): ?User
     {
-        if ($this->is_group) {
-            return null;
+        if ($this->user_one === $user->id) {
+            return $this->userTwo;
         }
-        
-        return $this->user_one == $user->id ? $this->userTwo : $this->userOne;
+        if ($this->user_two === $user->id) {
+            return $this->userOne;
+        }
+        return null;
     }
 
     /**
@@ -98,7 +111,7 @@ class Chat extends Model
     public function getUnreadCount(User $user): int
     {
         return $this->messages()
-            ->where('sender_id', '!=', $user->id)
+            ->where('receiver_id', $user->id)
             ->where('seen', false)
             ->count();
     }
@@ -109,8 +122,18 @@ class Chat extends Model
     public function markAsRead(User $user): void
     {
         $this->messages()
-            ->where('sender_id', '!=', $user->id)
+            ->where('receiver_id', $user->id)
             ->where('seen', false)
             ->update(['seen' => true]);
+    }
+
+    public function isNegotiationChat(): bool
+    {
+        return $this->type === self::TYPE_NEGOTIATION;
+    }
+
+    public function isSupportChat(): bool
+    {
+        return $this->type === self::TYPE_SUPPORT;
     }
 }

@@ -219,4 +219,24 @@ class User extends Authenticatable
             $this->roles()->sync([$role->id]);
         }
     }
+
+    /**
+     * Verifica si el usuario necesita configurar sus habilidades.
+     */
+    public function needsSkillSetup(): bool
+    {
+        return $this->skills()->whereHas('categories')->count() === 0;
+    }
+
+    /**
+     * Verifica si el usuario tiene habilidades compatibles con una solicitud.
+     */
+    public function hasCompatibleSkills(ServiceRequest $serviceRequest): bool
+    {
+        return $this->skills()
+            ->whereHas('categories', function ($query) use ($serviceRequest) {
+                $query->whereIn('categories.id', $serviceRequest->categories()->pluck('categories.id'));
+            })
+            ->exists();
+    }
 }

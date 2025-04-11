@@ -200,8 +200,17 @@ class UserServiceRequestController extends Controller
     public function store(StoreUserServiceRequest $request): JsonResponse
     {
         try {
+            $user = auth()->user();
+
+            if ($user->needsSkillSetup()) {
+                return $this->errorResponse(
+                    message: 'You need to add at least one skill before publishing a service request.',
+                    statusCode: 403
+                );
+            }
+
             $validated = $request->validated();
-            $validated['user_id'] = auth()->id();
+            $validated['user_id'] = $user->id;
 
             $serviceRequest = ServiceRequest::create($validated);
 

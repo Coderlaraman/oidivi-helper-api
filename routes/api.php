@@ -9,18 +9,20 @@ use App\Http\Controllers\Api\V1\User\Auth\UserAuthController;
 use App\Http\Controllers\Api\V1\User\Auth\UserEmailVerificationController;
 use App\Http\Controllers\Api\V1\User\Categories\UserCategoryController;
 use App\Http\Controllers\Api\V1\User\Locations\UserLocationController;
-use App\Http\Controllers\Api\V1\User\Payments\ClientPaymentController;
+use App\Http\Controllers\Api\V1\User\Payments\UserPaymentController;
 use App\Http\Controllers\Api\V1\User\Profiles\UserProfileController;
-use App\Http\Controllers\Api\V1\User\Referrals\ClientReferralController;
-use App\Http\Controllers\Api\V1\User\Reports\ClientReportController;
-use App\Http\Controllers\Api\V1\User\Reviews\ClientReviewController;
+use App\Http\Controllers\Api\V1\User\Referrals\UserReferralController;
+use App\Http\Controllers\Api\V1\User\Reports\UserReportController;
+use App\Http\Controllers\Api\V1\User\Reviews\UserReviewController;
 use App\Http\Controllers\Api\V1\User\ServiceRequests\UserServiceRequestController;
 use App\Http\Controllers\Api\V1\User\Skills\UserSkillController;
-use App\Http\Controllers\Api\V1\User\Subscriptions\ClientSubscriptionController;
-use App\Http\Controllers\Api\V1\User\Tickets\ClientTicketController;
-use App\Http\Controllers\Api\V1\User\Transactions\ClientTransactionController;
+use App\Http\Controllers\Api\V1\User\Subscriptions\UserSubscriptionController;
+use App\Http\Controllers\Api\V1\User\Tickets\UserTicketController;
+use App\Http\Controllers\Api\V1\User\Transactions\UserTransactionController;
 use App\Http\Controllers\Api\V1\Chat\ChatController;
 use App\Http\Controllers\Api\V1\Chat\MessageController;
+use App\Http\Controllers\Api\V1\User\Notifications\UserNotificationController;
+use App\Http\Controllers\Api\V1\User\ServiceRequests\UserServiceOfferController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 
@@ -103,8 +105,8 @@ Route::prefix('v1')->group(function () {
 
         // Rutas de pagos
         Route::prefix('payments')->group(function () {
-            Route::post('payment/process', [ClientPaymentController::class, 'processPayment']);
-            Route::post('payment/confirm', [ClientPaymentController::class, 'confirmPayment']);
+            Route::post('payment/process', [UserPaymentController::class, 'processPayment']);
+            Route::post('payment/confirm', [UserPaymentController::class, 'confirmPayment']);
         });
 
         // Rutas de perfil (protegidas y con verificación)
@@ -122,23 +124,23 @@ Route::prefix('v1')->group(function () {
 
         // Rutas de referrals
         Route::prefix('referrals')->group(function () {
-            Route::get('/', [ClientReferralController::class, 'index']);
-            Route::post('/', [ClientReferralController::class, 'store']);
-            Route::put('{referral}', [ClientReferralController::class, 'update']);
-            Route::delete('{referral}', [ClientReferralController::class, 'destroy']);
-            Route::get('{referral}', [ClientReferralController::class, 'show']);
+            Route::get('/', [UserReferralController::class, 'index']);
+            Route::post('/', [UserReferralController::class, 'store']);
+            Route::put('{referral}', [UserReferralController::class, 'update']);
+            Route::delete('{referral}', [UserReferralController::class, 'destroy']);
+            Route::get('{referral}', [UserReferralController::class, 'show']);
         });
 
         // Rutas de reportes
         Route::prefix('reports')->group(function () {
-            Route::post('reports', [ClientReportController::class, 'store']);
-            Route::get('reports', [ClientReportController::class, 'index']);
+            Route::post('reports', [UserReportController::class, 'store']);
+            Route::get('reports', [UserReportController::class, 'index']);
         });
 
         // Rutas de reseñas
         Route::prefix('reviews')->group(function () {
-            Route::post('reviews', [ClientReviewController::class, 'store']);
-            Route::get('reviews/{userId}', [ClientReviewController::class, 'index']);
+            Route::post('reviews', [UserReviewController::class, 'store']);
+            Route::get('reviews/{userId}', [UserReviewController::class, 'index']);
         });
 
         // Rutas de solicitudes de servicios (protegidas)
@@ -153,39 +155,53 @@ Route::prefix('v1')->group(function () {
             // Route::post('{serviceRequestId}/transactions', [UserServiceRequestController::class, 'storeTransaction']);
         });
 
+        // Rutas de ofertas de servicio
+        Route::prefix('service-requests/{serviceRequest}/offers')->middleware('auth:sanctum')->group(function () {
+            Route::post('/', [UserServiceOfferController::class, 'store']);
+            Route::patch('{offer}', [UserServiceOfferController::class, 'update']);
+        });
+
         // Rutas de habilidades
-        Route::prefix('skills')->group(function () {
+        Route::prefix('skills')->middleware(['auth:sanctum'])->group(function () {
             Route::get('/', [UserSkillController::class, 'index']);
-            Route::get('{id}', [UserSkillController::class, 'show']);
-            Route::middleware('auth:sanctum')->group(function () {
-                Route::post('/', [UserSkillController::class, 'store']);
-                Route::put('{id}', [UserSkillController::class, 'update']);
-                Route::delete('{id}', [UserSkillController::class, 'destroy']);
-            });
+            Route::get('/available', [UserSkillController::class, 'available']);
+            Route::post('/', [UserSkillController::class, 'store']);
+            Route::delete('/{skill}', [UserSkillController::class, 'destroy']);
         });
 
         // Rutas de suscripciones
         Route::prefix('subscriptions')->group(function () {
-            Route::get('/', [ClientSubscriptionController::class, 'index']);
-            Route::post('/', [ClientSubscriptionController::class, 'store']);
-            Route::put('{subscription}', [ClientSubscriptionController::class, 'update']);
-            Route::delete('{subscription}', [ClientSubscriptionController::class, 'destroy']);
-            Route::get('{subscription}', [ClientSubscriptionController::class, 'show']);
+            Route::get('/', [UserSubscriptionController::class, 'index']);
+            Route::post('/', [UserSubscriptionController::class, 'store']);
+            Route::put('{subscription}', [UserSubscriptionController::class, 'update']);
+            Route::delete('{subscription}', [UserSubscriptionController::class, 'destroy']);
+            Route::get('{subscription}', [UserSubscriptionController::class, 'show']);
         });
 
         // Rutas de tickets
         Route::prefix('tickets')->group(function () {
-            Route::post('tickets', [ClientTicketController::class, 'store']);
-            Route::get('tickets', [ClientTicketController::class, 'index']);
-            Route::get('tickets/{ticket}', [ClientTicketController::class, 'show']);
-            Route::post('tickets/{ticket}/reply', [ClientTicketController::class, 'reply']);
+            Route::post('tickets', [UserTicketController::class, 'store']);
+            Route::get('tickets', [UserTicketController::class, 'index']);
+            Route::get('tickets/{ticket}', [UserTicketController::class, 'show']);
+            Route::post('tickets/{ticket}/reply', [UserTicketController::class, 'reply']);
         });
 
         // Rutas de transacciones
         Route::prefix('transactions')->group(function () {
-            Route::get('/', [ClientTransactionController::class, 'index']);
-            Route::get('{transaction}', [ClientTransactionController::class, 'show']);
-            Route::post('{transaction}/refund', [ClientTransactionController::class, 'refund']);
+            Route::get('/', [UserTransactionController::class, 'index']);
+            Route::get('{transaction}', [UserTransactionController::class, 'show']);
+            Route::post('{transaction}/refund', [UserTransactionController::class, 'refund']);
+        });
+
+        Route::prefix('categories')->group(function () {
+            Route::get('/', [UserCategoryController::class, 'index']);
+        });
+
+        // Rutas de notificaciones
+        Route::prefix('notifications')->middleware('auth:sanctum')->group(function () {
+            Route::get('/', [UserNotificationController::class, 'index']);
+            Route::patch('{notification}/read', [UserNotificationController::class, 'markAsRead']);
+            Route::patch('read-all', [UserNotificationController::class, 'markAllAsRead']);
         });
     });
 
@@ -208,9 +224,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/{chat}/messages/{message}/seen', [MessageController::class, 'markAsSeen']);
     });
 
-    Route::prefix('categories')->group(function () {
-        Route::get('/', [UserCategoryController::class, 'index'])->name('user.categories.index');
-});
+    
 });
 
 

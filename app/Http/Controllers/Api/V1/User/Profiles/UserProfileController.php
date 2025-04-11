@@ -28,7 +28,16 @@ class UserProfileController extends Controller
     public function showProfile(Request $request): JsonResponse
     {
         $user = $request->user();
-        return $this->successResponse(new UserAuthResource($user), __('messages.user_data_retrieved'));
+        $response = new UserAuthResource($user);
+        
+        $response->additional([
+            'needs_skill_setup' => $user->needsSkillSetup(),
+            'message' => $user->needsSkillSetup() 
+                ? 'Debes completar tus habilidades para recibir notificaciones relevantes y poder postularte a solicitudes.'
+                : null
+        ]);
+
+        return $this->successResponse($response, __('messages.user_data_retrieved'));
     }
 
     /**

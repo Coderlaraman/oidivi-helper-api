@@ -6,20 +6,21 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Message extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'chat_id',
         'sender_id',
         'receiver_id',
         'message',
-        'seen',
         'type',
         'media_url',
         'media_type',
+        'seen',
         'metadata'
     ];
 
@@ -39,6 +40,7 @@ class Message extends Model
     const TYPE_AUDIO = 'audio';
     const TYPE_FILE = 'file';
     const TYPE_LOCATION = 'location';
+    const TYPE_SYSTEM = 'system';
 
     /**
      * Get the chat this message belongs to
@@ -86,8 +88,8 @@ class Message extends Model
     public function markAsSeen(): void
     {
         if (!$this->seen) {
-            $this->seen = true;
-            $this->save();
+            $this->update(['seen' => true]);
+            event(new \App\Events\MessageSeen($this));
         }
     }
 
@@ -129,5 +131,10 @@ class Message extends Model
     public function scopeOfType($query, $type)
     {
         return $query->where('type', $type);
+    }
+
+    public function isSystemMessage(): bool
+    {
+        return $this->type === self::TYPE_SYSTEM;
     }
 }

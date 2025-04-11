@@ -22,7 +22,6 @@ class Skill extends Model
         'name',
         'slug',
         'description',
-        'category_id',
         'is_active',
         'sort_order',
         'metadata',
@@ -64,17 +63,22 @@ class Skill extends Model
         return $this->slug;
     }
 
-    // Relación polimórfica con Category
+    /**
+     * Relación polimórfica con Category
+     */
     public function categories(): MorphToMany
     {
-        return $this->morphToMany(Category::class, 'categorizable');
+        return $this->morphToMany(Category::class, 'categorizable')
+            ->withTimestamps()
+            ->select('categories.id', 'categories.name', 'categories.slug');
     }
 
     /**
-     * The users that possess this skill.
+     * Los usuarios que poseen esta habilidad
      */
     public function users(): BelongsToMany
     {
-        return $this->belongsToMany(User::class)->withTimestamps();
+        return $this->belongsToMany(User::class, 'skill_user')
+            ->withTimestamps();
     }
 }

@@ -15,111 +15,132 @@ class CategorySeeder extends Seeder
     {
         $categories = [
             [
+                'name' => 'Home Maintenance',
+                'description' => 'General home maintenance and repair services.'
+            ],
+            [
                 'name' => 'Plumbing',
-                'description' => 'All types of plumbing services including repairs, installations, and maintenance.',
-                'icon' => 'fa-wrench',
-                'sort_order' => 1,
+                'description' => 'Plumbing services including repairs, installations, and maintenance.'
             ],
             [
                 'name' => 'Electrical',
-                'description' => 'Electrical services including wiring, repairs, and installations.',
-                'icon' => 'fa-bolt',
-                'sort_order' => 2,
+                'description' => 'Electrical services including wiring, repairs, and installations.'
             ],
             [
                 'name' => 'Cleaning',
-                'description' => 'Professional cleaning services for homes and offices.',
-                'icon' => 'fa-broom',
-                'sort_order' => 3,
-            ],
-            [
-                'name' => 'Home Services',
-                'description' => 'General home maintenance and improvement services.',
-                'icon' => 'fa-home',
-                'sort_order' => 4,
+                'description' => 'Professional cleaning services for homes and offices.'
             ],
             [
                 'name' => 'Gardening',
-                'description' => 'Garden maintenance, landscaping, and plant care services.',
-                'icon' => 'fa-leaf',
-                'sort_order' => 5,
-            ],
-            [
-                'name' => 'Landscaping',
-                'description' => 'Professional landscape design and maintenance services.',
-                'icon' => 'fa-tree',
-                'sort_order' => 6,
+                'description' => 'Garden maintenance, landscaping, and plant care services.'
             ],
             [
                 'name' => 'Education',
-                'description' => 'Educational services including tutoring and training.',
-                'icon' => 'fa-graduation-cap',
-                'sort_order' => 7,
-            ],
-            [
-                'name' => 'Tutoring',
-                'description' => 'One-on-one and group tutoring services for all subjects.',
-                'icon' => 'fa-book',
-                'sort_order' => 8,
+                'description' => 'Educational services including tutoring and training.'
             ],
             [
                 'name' => 'Emergency Services',
-                'description' => 'Urgent repair and maintenance services available 24/7.',
-                'icon' => 'fa-exclamation-triangle',
-                'sort_order' => 9,
+                'description' => '24/7 emergency repair and maintenance services.'
             ],
             [
-                'name' => 'Pool Service',
-                'description' => 'Swimming pool maintenance and repair services.',
-                'icon' => 'fa-swimming-pool',
-                'sort_order' => 10,
+                'name' => 'Moving Services',
+                'description' => 'Professional moving and relocation services.'
             ],
             [
-                'name' => 'Moving',
-                'description' => 'Professional moving and relocation services.',
-                'icon' => 'fa-truck',
-                'sort_order' => 11,
-            ],
-            [
-                'name' => 'Heavy Lifting',
-                'description' => 'Services for moving heavy items and furniture.',
-                'icon' => 'fa-dumbbell',
-                'sort_order' => 12,
-            ],
-            [
-                'name' => 'Cooking',
-                'description' => 'Professional cooking and catering services.',
-                'icon' => 'fa-utensils',
-                'sort_order' => 13,
-            ],
-            [
-                'name' => 'Events',
-                'description' => 'Event planning and management services.',
-                'icon' => 'fa-calendar',
-                'sort_order' => 14,
+                'name' => 'Catering',
+                'description' => 'Professional cooking and catering services.'
             ],
             [
                 'name' => 'IT Services',
-                'description' => 'Computer and network support services.',
-                'icon' => 'fa-laptop',
-                'sort_order' => 15,
+                'description' => 'Computer and network support services.'
             ],
             [
-                'name' => 'Business Services',
-                'description' => 'Professional services for businesses.',
-                'icon' => 'fa-briefcase',
-                'sort_order' => 16,
+                'name' => 'Automotive',
+                'description' => 'Vehicle maintenance and repair services.'
             ],
+            [
+                'name' => 'Health & Wellness',
+                'description' => 'Health, fitness, and wellness services.'
+            ],
+            [
+                'name' => 'Pet Care',
+                'description' => 'Pet grooming, walking, and care services.'
+            ],
+            [
+                'name' => 'Event Planning',
+                'description' => 'Professional event planning and organization services.'
+            ],
+            [
+                'name' => 'Photography',
+                'description' => 'Professional photography and videography services.'
+            ],
+            [
+                'name' => 'Legal Services',
+                'description' => 'Legal consultation and assistance services.'
+            ],
+            [
+                'name' => 'Financial Services',
+                'description' => 'Financial planning and consultation services.'
+            ],
+            [
+                'name' => 'Interior Design',
+                'description' => 'Professional interior design and decoration services.'
+            ],
+            [
+                'name' => 'Construction',
+                'description' => 'Building and construction services.'
+            ],
+            [
+                'name' => 'Renovation',
+                'description' => 'Home and property renovation services.'
+            ],
+            [
+                'name' => 'Security',
+                'description' => 'Security and surveillance services.'
+            ],
+            [
+                'name' => 'Transportation',
+                'description' => 'Transportation and delivery services.'
+            ],
+            [
+                'name' => 'Child Care',
+                'description' => 'Child care and babysitting services.'
+            ],
+            [
+                'name' => 'Elderly Care',
+                'description' => 'Care services for elderly individuals.'
+            ],
+            [
+                'name' => 'Language Services',
+                'description' => 'Translation and interpretation services.'
+            ],
+            [
+                'name' => 'Marketing',
+                'description' => 'Digital and traditional marketing services.'
+            ],
+            [
+                'name' => 'Web Development',
+                'description' => 'Website development and maintenance services.'
+            ],
+            [
+                'name' => 'Graphic Design',
+                'description' => 'Graphic design and visual communication services.'
+            ],
+            [
+                'name' => 'Music Lessons',
+                'description' => 'Music instruction and tutoring services.'
+            ],
+            [
+                'name' => 'Personal Training',
+                'description' => 'Fitness training and coaching services.'
+            ]
         ];
 
         foreach ($categories as $category) {
             Category::create([
                 'name' => $category['name'],
                 'slug' => Str::slug($category['name']),
-                'description' => $category['description'],
-                'icon' => $category['icon'],
-                'sort_order' => $category['sort_order'],
-                'is_active' => true,
+                'description' => $category['description']
             ]);
         }
     }

@@ -15,11 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('slug')->unique();
-            $table->text('description');
-            $table->string('icon');
-            $table->boolean('is_active')->default(true);
-            $table->integer('sort_order')->default(0);
-            $table->softDeletes();
+            $table->text('description')->nullable();
             $table->timestamps();
         });
     }

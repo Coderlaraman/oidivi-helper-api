@@ -24,7 +24,7 @@ class AdminUpdateServiceRequest extends FormRequest
         return [
             'title' => ['sometimes', 'required', 'string', 'max:255'],
             'description' => ['sometimes', 'required', 'string', 'max:1000'],
-            'category_id' => ['sometimes', 'required', 'integer', 'exists:categories,id,deleted_at,NULL'],
+            'category_id' => ['nullable', 'integer', 'exists:categories,id'],
             'status' => ['sometimes', 'required', 'string', 'in:pending,in_progress,completed,cancelled'],
             'priority' => ['sometimes', 'required', 'string', 'in:low,medium,high,urgent'],
             'due_date' => ['nullable', 'date', 'after:now'],
