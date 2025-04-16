@@ -58,11 +58,11 @@ class AdminUpdateCategoryRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'name.required' => 'El nombre de la categoría es obligatorio.',
-            'name.unique' => 'Ya existe una categoría con este nombre.',
-            'slug.required' => 'El slug de la categoría es obligatorio.',
-            'slug.unique' => 'Ya existe una categoría con este slug.',
-            'parent_id.exists' => 'La categoría padre seleccionada no existe.',
+            'name.required' => 'The name is required.',
+            'name.unique' => 'A category with this name already exists.',
+            'slug.required' => 'The slug is required.',
+            'slug.unique' => 'A category with this slug already exists.',
+            'parent_id.exists' => 'The selected parent category does not exist.',
         ];
     }
 }

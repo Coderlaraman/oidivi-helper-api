@@ -34,19 +34,19 @@ class ClientReportController extends Controller
 
             return $this->successResponse(
                 new ClientReportResource($report->load(['reportedUser', 'serviceRequest', 'transaction'])),
-                'Report submitted successfully',
+                __('messages.reports.created'),
                 201
             );
 
         } catch (ValidationException $e) {
             return $this->errorResponse(
-                'Validation error',
+                __('messages.validation_error'),
                 422,
                 $e->errors()
             );
         } catch (Exception $e) {
             return $this->errorResponse(
-                'Error submitting report',
+                __('messages.reports.create_error'),
                 500,
                 ['error' => $e->getMessage()]
             );
@@ -63,12 +63,12 @@ class ClientReportController extends Controller
 
             return $this->successResponse(
                 ClientReportResource::collection($reports),
-                'Reports retrieved successfully'
+                __('messages.reports.list_success')
             );
 
         } catch (Exception $e) {
             return $this->errorResponse(
-                'Error retrieving reports',
+                __('messages.reports.list_error'),
                 500,
                 ['error' => $e->getMessage()]
             );
@@ -80,19 +80,19 @@ class ClientReportController extends Controller
         try {
             if ($report->reported_by !== auth()->id()) {
                 return $this->errorResponse(
-                    'Unauthorized access',
+                    __('messages.unauthorized'),
                     403
                 );
             }
 
             return $this->successResponse(
                 new ClientReportResource($report->load(['reportedUser', 'serviceRequest', 'transaction'])),
-                'Report details retrieved successfully'
+                __('messages.reports.show_success')
             );
 
         } catch (Exception $e) {
             return $this->errorResponse(
-                'Error retrieving report details',
+                __('messages.reports.show_error'),
                 500,
                 ['error' => $e->getMessage()]
             );

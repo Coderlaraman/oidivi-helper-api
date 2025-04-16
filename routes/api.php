@@ -35,7 +35,7 @@ use Illuminate\Http\Request;
 |
 */
 
-Route::prefix('v1')->group(function () {
+Route::prefix('v1')->middleware('locale')->group(function () {
 
     // Ruta de prueba
     Route::get('test', fn() => response()->json(['message' => 'API is working']));
@@ -116,6 +116,7 @@ Route::prefix('v1')->group(function () {
             Route::post('photo', [UserProfileController::class, 'uploadProfilePhoto']);
             Route::delete('photo', [UserProfileController::class, 'deleteProfilePhoto']);
             Route::post('video', [UserProfileController::class, 'uploadProfileVideo']);
+            Route::delete('video', [UserProfileController::class, 'deleteProfileVideo']);
             Route::put('skills', [UserProfileController::class, 'updateSkills']);
             Route::get('dashboard', [UserProfileController::class, 'dashboard']);
             Route::get('search', [UserProfileController::class, 'search']); // Añadido el endpoint de búsqueda

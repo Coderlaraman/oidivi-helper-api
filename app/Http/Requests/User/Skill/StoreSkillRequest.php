@@ -30,18 +30,18 @@ class StoreSkillRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'name.required' => 'El nombre de la habilidad es requerido.',
-            'name.unique' => 'Esta habilidad ya existe.',
-            'description.required' => 'La descripción es requerida.',
-            'category_ids.required' => 'Debes seleccionar al menos una categoría.',
-            'category_ids.*.exists' => 'Una de las categorías seleccionadas no existe.',
-            'experience_level.required' => 'El nivel de experiencia es requerido.',
-            'experience_level.between' => 'El nivel de experiencia debe estar entre 1 y 5.',
-            'certifications.*.name.required' => 'El nombre de la certificación es requerido.',
-            'certifications.*.issuer.required' => 'El emisor de la certificación es requerido.',
-            'certifications.*.date.required' => 'La fecha de la certificación es requerida.',
-            'certifications.*.file.mimes' => 'El archivo de certificación debe ser PDF o imagen.',
-            'certifications.*.file.max' => 'El archivo de certificación no puede exceder 2MB.'
+            'name.required' => 'The skill name is required.',
+            'name.unique' => 'This skill already exists.',
+            'description.required' => 'The description is required.',
+            'category_ids.required' => 'You must select at least one category.',
+            'category_ids.*.exists' => 'One of the selected categories does not exist.',
+            'experience_level.required' => 'The experience level is required.',
+            'experience_level.between' => 'The experience level must be between 1 and 5.',
+            'certifications.*.name.required' => 'The certification name is required.',
+            'certifications.*.issuer.required' => 'The certification issuer is required.',
+            'certifications.*.date.required' => 'The certification date is required.',
+            'certifications.*.file.mimes' => 'The certification file must be a PDF or image.',
+            'certifications.*.file.max' => 'The certification file cannot exceed 2MB.'
         ];
     }
 }

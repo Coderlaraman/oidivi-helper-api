@@ -31,19 +31,19 @@ class StoreSubscriptionRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'plan_name.required' => 'El nombre del plan es requerido.',
-            'plan_name.in' => 'El plan seleccionado no es válido.',
-            'payment_method_id.required' => 'El método de pago es requerido.',
-            'payment_method_id.exists' => 'El método de pago seleccionado no es válido.',
-            'auto_renew.required' => 'Debe especificar si desea renovación automática.',
-            'billing_cycle.required' => 'El ciclo de facturación es requerido.',
-            'billing_cycle.in' => 'El ciclo de facturación no es válido.',
-            'coupon_code.exists' => 'El código de cupón no es válido.',
-            'start_date.after_or_equal' => 'La fecha de inicio debe ser hoy o posterior.',
-            'billing_details.required' => 'Los detalles de facturación son requeridos.',
-            'billing_details.name.required' => 'El nombre de facturación es requerido.',
-            'billing_details.address.required' => 'La dirección de facturación es requerida.',
-            'billing_details.zip_code.required' => 'El código postal es requerido.'
+            'plan_name.required' => 'The plan name is required.',
+            'plan_name.in' => 'The selected plan is invalid.',
+            'payment_method_id.required' => 'The payment method is required.',
+            'payment_method_id.exists' => 'The selected payment method is invalid.',
+            'auto_renew.required' => 'You must specify if you want automatic renewal.',
+            'billing_cycle.required' => 'The billing cycle is required.',
+            'billing_cycle.in' => 'The billing cycle is invalid.',
+            'coupon_code.exists' => 'The coupon code is invalid.',
+            'start_date.after_or_equal' => 'The start date must be today or later.',
+            'billing_details.required' => 'The billing details are required.',
+            'billing_details.name.required' => 'The billing name is required.',
+            'billing_details.address.required' => 'The billing address is required.',
+            'billing_details.zip_code.required' => 'The zip code is required.'
         ];
     }
 }

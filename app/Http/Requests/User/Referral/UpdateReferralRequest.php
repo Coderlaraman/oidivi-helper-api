@@ -23,10 +23,10 @@ class UpdateReferralRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'status.required' => 'El estado es requerido.',
-            'status.in' => 'El estado debe ser aceptado o rechazado.',
-            'rejection_reason.required_if' => 'La razón de rechazo es requerida cuando se rechaza una referencia.',
-            'rejection_reason.max' => 'La razón de rechazo no puede exceder los 500 caracteres.'
+            'status.required' => 'The status is required.',
+            'status.in' => 'The status must be accepted or rejected.',
+            'rejection_reason.required_if' => 'The rejection reason is required when rejecting a referral.',
+            'rejection_reason.max' => 'The rejection reason cannot exceed 500 characters.'
         ];
     }
 }

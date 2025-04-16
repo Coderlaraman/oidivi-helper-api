@@ -27,10 +27,10 @@ class UpdateSubscriptionRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'plan_name.in' => 'El plan seleccionado no es válido.',
-            'payment_method_id.exists' => 'El método de pago seleccionado no es válido.',
-            'billing_cycle.in' => 'El ciclo de facturación no es válido.',
-            'cancellation_reason.required_if' => 'La razón de cancelación es requerida al cancelar la suscripción.'
+            'plan_name.in' => 'The selected plan is invalid.',
+            'payment_method_id.exists' => 'The selected payment method is invalid.',
+            'billing_cycle.in' => 'The billing cycle is invalid.',
+            'cancellation_reason.required_if' => 'The cancellation reason is required when canceling the subscription.'
         ];
     }
 }

@@ -39,11 +39,11 @@ class AdminStoreSkillRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'name.required' => 'El nombre es obligatorio.',
-            'name.unique' => 'Ya existe una habilidad con este nombre.',
-            'category_id.required' => 'La categoría es obligatoria.',
-            'category_id.exists' => 'La categoría seleccionada no existe.',
-            'sort_order.min' => 'El orden debe ser un número positivo.',
+            'name.required' => 'The name is required.',
+            'name.unique' => 'A skill with this name already exists.',
+            'category_id.required' => 'The category is required.',
+            'category_id.exists' => 'The selected category does not exist.',
+            'sort_order.min' => 'The order must be a positive number.',
         ];
     }
 } 

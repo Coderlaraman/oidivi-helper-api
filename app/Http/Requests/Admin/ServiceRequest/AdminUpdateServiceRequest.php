@@ -40,16 +40,16 @@ class AdminUpdateServiceRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'title.required' => 'El título es obligatorio.',
-            'description.required' => 'La descripción es obligatoria.',
-            'category_id.required' => 'La categoría es obligatoria.',
-            'category_id.exists' => 'La categoría seleccionada no existe.',
-            'status.required' => 'El estado es obligatorio.',
-            'status.in' => 'El estado seleccionado no es válido.',
-            'priority.required' => 'La prioridad es obligatoria.',
-            'priority.in' => 'La prioridad seleccionada no es válida.',
-            'due_date.date' => 'La fecha de vencimiento no es válida.',
-            'due_date.after' => 'La fecha de vencimiento debe ser posterior a la fecha actual.',
+            'title.required' => 'The title is required.',
+            'description.required' => 'The description is required.',
+            'category_id.required' => 'The category is required.',
+            'category_id.exists' => 'The selected category does not exist.',
+            'status.required' => 'The status is required.',
+            'status.in' => 'The selected status is invalid.',
+            'priority.required' => 'The priority is required.',
+            'priority.in' => 'The selected priority is invalid.',
+            'due_date.date' => 'The due date is invalid.',
+            'due_date.after' => 'The due date must be after the current date.',
         ];
     }
 } 

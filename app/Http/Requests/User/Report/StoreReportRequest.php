@@ -28,19 +28,19 @@ class StoreReportRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'reported_user.exists' => 'El usuario reportado no existe.',
-            'reported_user.different' => 'No puedes reportarte a ti mismo.',
-            'service_request_id.exists' => 'La solicitud de servicio no existe.',
-            'transaction_id.exists' => 'La transacción no existe.',
-            'type.required' => 'El tipo de reporte es requerido.',
-            'type.in' => 'El tipo de reporte no es válido.',
-            'description.required' => 'La descripción es requerida.',
-            'description.min' => 'La descripción debe tener al menos 20 caracteres.',
-            'description.max' => 'La descripción no puede exceder los 1000 caracteres.',
-            'evidence.*.file' => 'La evidencia debe ser un archivo válido.',
-            'evidence.*.mimes' => 'La evidencia debe ser una imagen, PDF o video.',
-            'evidence.*.max' => 'La evidencia no puede exceder 10MB.',
-            'urgency_level.in' => 'El nivel de urgencia no es válido.'
+            'reported_user.exists' => 'The reported user does not exist.',
+            'reported_user.different' => 'You cannot report yourself.',
+            'service_request_id.exists' => 'The service request does not exist.',
+            'transaction_id.exists' => 'The transaction does not exist.',
+            'type.required' => 'The report type is required.',
+            'type.in' => 'The report type is invalid.',
+            'description.required' => 'The description is required.',
+            'description.min' => 'The description must be at least 20 characters.',
+            'description.max' => 'The description cannot exceed 1000 characters.',
+            'evidence.*.file' => 'The evidence must be a valid file.',
+            'evidence.*.mimes' => 'The evidence must be an image, PDF or video.',
+            'evidence.*.max' => 'The evidence cannot exceed 10MB.',
+            'urgency_level.in' => 'The urgency level is invalid.'
         ];
     }
 }

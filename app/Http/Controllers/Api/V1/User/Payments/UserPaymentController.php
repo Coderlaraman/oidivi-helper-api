@@ -36,17 +36,17 @@ class UserPaymentController extends Controller
 
             return $this->successResponse([
                 'client_secret' => $paymentIntent->client_secret
-            ], 'Payment intent created successfully');
+            ], __('messages.payments.intent_created'));
 
         } catch (ValidationException $e) {
             return $this->errorResponse(
-                'Validation error',
+                __('messages.validation_error'),
                 422,
                 $e->errors()
             );
         } catch (Exception $e) {
             return $this->errorResponse(
-                'Error processing payment',
+                __('messages.payments.failed'),
                 500,
                 ['error' => $e->getMessage()]
             );
@@ -65,7 +65,7 @@ class UserPaymentController extends Controller
 
             if (!$transaction) {
                 return $this->errorResponse(
-                    'Transaction not found',
+                    __('messages.payments.transaction_not_found'),
                     404
                 );
             }
@@ -74,18 +74,18 @@ class UserPaymentController extends Controller
 
             return $this->successResponse(
                 new UserTransactionResource($transaction),
-                'Payment confirmed successfully'
+                __('messages.payments.confirmed')
             );
 
         } catch (ValidationException $e) {
             return $this->errorResponse(
-                'Validation error',
+                __('messages.validation_error'),
                 422,
                 $e->errors()
             );
         } catch (Exception $e) {
             return $this->errorResponse(
-                'Error confirming payment',
+                __('messages.payments.confirmation_failed'),
                 500,
                 ['error' => $e->getMessage()]
             );

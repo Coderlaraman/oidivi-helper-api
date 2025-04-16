@@ -9,6 +9,7 @@ use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Models\PushNotification;
 
 class UserServiceOfferController extends Controller
 {
@@ -21,14 +22,13 @@ class UserServiceOfferController extends Controller
 
             if (!$user->hasCompatibleSkills($serviceRequest)) {
                 return $this->errorResponse(
-                    message: 'No puedes realizar una oferta sin definir habilidades relacionadas a esta solicitud.',
+                    message: __('service_offers.errors.skills_required'),
                     statusCode: 403
                 );
             }
 
             DB::beginTransaction();
 
-            // Crear la oferta
             $offer = ServiceOffer::create([
                 'service_request_id' => $serviceRequest->id,
                 'user_id' => $user->id,
@@ -38,27 +38,28 @@ class UserServiceOfferController extends Controller
                 'status' => 'pending'
             ]);
 
-            // Crear notificación para el dueño de la solicitud
             PushNotification::create([
                 'user_id' => $serviceRequest->user_id,
                 'service_request_id' => $serviceRequest->id,
-                'title' => 'Nueva oferta recibida',
-                'message' => "Has recibido una nueva oferta para tu solicitud: {$serviceRequest->title}"
+                'title' => __('service_offers.notifications.new_offer_title'),
+                'message' => __('service_offers.notifications.new_offer_message', [
+                    'title' => $serviceRequest->title
+                ])
             ]);
 
             DB::commit();
 
-            return $this->successResponse($offer, 'Oferta enviada exitosamente');
+            return $this->successResponse($offer, __('service_offers.success.created'));
         } catch (\Exception $e) {
             DB::rollBack();
-            return $this->errorResponse('Error al enviar la oferta', 500);
+            return $this->errorResponse(__('service_offers.errors.creation_failed'), 500);
         }
     }
 
     public function update(Request $request, ServiceOffer $offer): JsonResponse
     {
         if ($offer->serviceRequest->user_id !== auth()->id()) {
-            return $this->errorResponse('No autorizado', 403);
+            return $this->errorResponse(__('service_offers.errors.unauthorized'), 403);
         }
 
         try {
@@ -68,20 +69,22 @@ class UserServiceOfferController extends Controller
                 'status' => $request->input('status')
             ]);
 
-            // Crear notificación para el usuario que hizo la oferta
             PushNotification::create([
                 'user_id' => $offer->user_id,
                 'service_request_id' => $offer->service_request_id,
-                'title' => 'Actualización de oferta',
-                'message' => "Tu oferta para la solicitud {$offer->serviceRequest->title} ha sido {$offer->status}"
+                'title' => __('service_offers.notifications.status_update_title'),
+                'message' => __('service_offers.notifications.status_update_message', [
+                    'title' => $offer->serviceRequest->title,
+                    'status' => $offer->status
+                ])
             ]);
 
             DB::commit();
 
-            return $this->successResponse($offer, 'Estado de la oferta actualizado exitosamente');
+            return $this->successResponse($offer, __('service_offers.success.updated'));
         } catch (\Exception $e) {
             DB::rollBack();
-            return $this->errorResponse('Error al actualizar la oferta', 500);
+            return $this->errorResponse(__('service_offers.errors.update_failed'), 500);
         }
     }
-} 
+}

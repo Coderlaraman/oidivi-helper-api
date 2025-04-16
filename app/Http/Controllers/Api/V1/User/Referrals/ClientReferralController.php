@@ -25,12 +25,12 @@ class ClientReferralController extends Controller
 
             return $this->successResponse(
                 UserReferralResource::collection($referrals),
-                'Referrals retrieved successfully'
+                __('messages.referrals.list_success')
             );
 
         } catch (Exception $e) {
             return $this->errorResponse(
-                'Error retrieving referrals',
+                __('messages.referrals.list_error'),
                 500,
                 ['error' => $e->getMessage()]
             );
@@ -51,19 +51,19 @@ class ClientReferralController extends Controller
 
             return $this->successResponse(
                 new UserReferralResource($referral),
-                'Referral created successfully',
+                __('messages.referrals.created'),
                 201
             );
 
         } catch (ValidationException $e) {
             return $this->errorResponse(
-                'Validation error',
+                __('messages.validation_error'),
                 422,
                 $e->errors()
             );
         } catch (Exception $e) {
             return $this->errorResponse(
-                'Error creating referral',
+                __('messages.referrals.create_error'),
                 500,
                 ['error' => $e->getMessage()]
             );
@@ -75,7 +75,7 @@ class ClientReferralController extends Controller
         try {
             if (auth()->id() !== $referral->referred_id) {
                 return $this->errorResponse(
-                    'Unauthorized',
+                    __('messages.unauthorized'),
                     403
                 );
             }
@@ -84,12 +84,12 @@ class ClientReferralController extends Controller
 
             return $this->successResponse(
                 new UserReferralResource($referral),
-                'Referral accepted successfully'
+                __('messages.referrals.accepted')
             );
 
         } catch (Exception $e) {
             return $this->errorResponse(
-                'Error accepting referral',
+                __('messages.referrals.accept_error'),
                 500,
                 ['error' => $e->getMessage()]
             );
@@ -101,12 +101,12 @@ class ClientReferralController extends Controller
         try {
             return $this->successResponse(
                 new UserReferralResource($referral->load(['referrer', 'referred'])),
-                'Referral retrieved successfully'
+                __('messages.referrals.show_success')
             );
 
         } catch (Exception $e) {
             return $this->errorResponse(
-                'Error retrieving referral',
+                __('messages.referrals.show_error'),
                 500,
                 ['error' => $e->getMessage()]
             );
@@ -120,12 +120,12 @@ class ClientReferralController extends Controller
 
             return $this->successResponse(
                 null,
-                'Referral deleted successfully'
+                __('messages.referrals.deleted')
             );
 
         } catch (Exception $e) {
             return $this->errorResponse(
-                'Error deleting referral',
+                __('messages.referrals.delete_error'),
                 500,
                 ['error' => $e->getMessage()]
             );

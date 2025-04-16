@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\Category;
 use App\Models\Skill;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
 
 class SkillSeeder extends Seeder
 {
@@ -14,158 +15,380 @@ class SkillSeeder extends Seeder
     public function run(): void
     {
         $skillsByCategory = [
-            'Home Services' => [
-                'House Cleaning',
-                'Plumbing',
-                'Electrical Work',
-                'Gardening & Landscaping',
-                'Painting',
-                'Carpentry',
-                'HVAC Service & Repair',
-                'Moving Services',
-                'Pest Control',
-                'Home Organization',
+            // Servicios para el hogar
+            'Plumbing' => [
+                'Pipe Installation',
+                'Leak Repair',
+                'Drain Cleaning',
+                'Fixture Installation',
+                'Water Heater Service'
             ],
-            'Professional Services' => [
+            'Electrical' => [
+                'Wiring Installation',
+                'Circuit Repair',
+                'Lighting Installation',
+                'Electrical Panel Upgrade',
+                'Safety Inspection'
+            ],
+            'Cleaning' => [
+                'Deep Cleaning',
+                'Regular Maintenance',
+                'Window Cleaning',
+                'Carpet Cleaning',
+                'Office Cleaning'
+            ],
+            'Gardening' => [
+                'Lawn Maintenance',
+                'Plant Care',
+                'Garden Design',
+                'Irrigation Installation',
+                'Tree Trimming'
+            ],
+            'Home Maintenance' => [
+                'General Repairs',
+                'Preventive Maintenance',
+                'Seasonal Preparation',
+                'Home Inspection',
+                'Handyman Services'
+            ],
+            'Painting' => [
+                'Interior Painting',
+                'Exterior Painting',
+                'Decorative Painting',
+                'Cabinet Refinishing',
+                'Wallpaper Installation'
+            ],
+            'Carpentry' => [
+                'Custom Furniture',
+                'Cabinet Making',
+                'Framing',
+                'Trim Work',
+                'Wood Repair'
+            ],
+            'Roofing' => [
+                'Roof Installation',
+                'Roof Repair',
+                'Gutter Installation',
+                'Roof Inspection',
+                'Waterproofing'
+            ],
+            'Flooring' => [
+                'Hardwood Installation',
+                'Tile Installation',
+                'Carpet Installation',
+                'Vinyl Flooring',
+                'Floor Refinishing'
+            ],
+            'HVAC' => [
+                'AC Installation',
+                'Heating Repair',
+                'Duct Cleaning',
+                'System Maintenance',
+                'Thermostat Installation'
+            ],
+            
+            // Servicios profesionales
+            'Legal Services' => [
+                'Contract Review',
                 'Legal Consultation',
-                'Accounting & Bookkeeping',
+                'Document Preparation',
+                'Legal Research',
+                'Notary Services'
+            ],
+            'Accounting' => [
+                'Bookkeeping',
+                'Financial Statements',
+                'Payroll Processing',
+                'Audit Preparation',
+                'Expense Management'
+            ],
+            'Tax Services' => [
                 'Tax Preparation',
-                'Financial Planning',
-                'Business Consulting',
-                'Translation Services',
-                'Notary Services',
-                'Insurance Consulting',
-                'Real Estate Services',
-                'Career Counseling',
+                'Tax Planning',
+                'IRS Representation',
+                'Tax Compliance',
+                'Business Tax Filing'
             ],
-            'Personal Care' => [
-                'Hair Styling',
-                'Makeup Application',
-                'Massage Therapy',
-                'Nail Care',
-                'Personal Training',
-                'Nutrition Consulting',
-                'Skincare Treatment',
-                'Physical Therapy',
-                'Life Coaching',
-                'Personal Shopping',
+            'Business Consulting' => [
+                'Strategic Planning',
+                'Process Improvement',
+                'Market Analysis',
+                'Business Development',
+                'Operational Efficiency'
             ],
-            'Education & Tutoring' => [
-                'Mathematics Tutoring',
-                'Language Teaching',
-                'Science Tutoring',
-                'Music Lessons',
-                'Art Classes',
-                'Test Preparation',
-                'Academic Writing',
-                'Computer Skills Training',
-                'Study Skills Coaching',
-                'Special Education Support',
-            ],
-            'Technology & Digital' => [
-                'Web Development',
-                'Mobile App Development',
-                'IT Support',
-                'Digital Marketing',
-                'Data Analysis',
-                'Cybersecurity Services',
-                'Cloud Computing',
-                'Social Media Management',
-                'SEO Optimization',
-                'Computer Repair',
-            ],
-            'Events & Entertainment' => [
-                'Photography',
-                'Videography',
-                'DJ Services',
-                'Event Planning',
-                'Catering',
-                'Live Music Performance',
-                'Party Decoration',
-                'Wedding Planning',
-                'MC Services',
-                'Sound & Lighting',
-            ],
-            'Health & Wellness' => [
-                'Yoga Instruction',
-                'Fitness Training',
-                'Nutritional Counseling',
-                'Mental Health Counseling',
-                'Meditation Guidance',
-                'Physical Therapy',
-                'Alternative Medicine',
-                'Health Coaching',
-                'Stress Management',
-                'Wellness Workshops',
-            ],
-            'Automotive' => [
-                'Car Repair',
-                'Auto Detailing',
-                'Oil Change Service',
-                'Tire Service',
-                'Body Work & Painting',
-                'Engine Diagnostics',
-                'Car Washing',
-                'Vehicle Inspection',
-                'Mobile Mechanic Service',
-                'Auto Electronics Repair',
-            ],
-            'Pet Services' => [
-                'Pet Grooming',
-                'Dog Walking',
-                'Pet Sitting',
-                'Veterinary Services',
-                'Pet Training',
-                'Pet Transportation',
-                'Pet Photography',
-                'Animal Behavior Consulting',
-                'Pet Boarding',
-                'Pet Dental Care',
-            ],
-            'Business Services' => [
-                'Marketing Strategy',
-                'Content Writing',
-                'Graphic Design',
-                'Business Plan Development',
-                'Market Research',
-                'Social Media Marketing',
+            'Marketing' => [
                 'Brand Development',
-                'Virtual Assistant Services',
-                'Project Management',
-                'Data Entry',
+                'Content Creation',
+                'Social Media Management',
+                'Email Marketing',
+                'Marketing Strategy'
             ],
-            'Creative & Design' => [
-                'Logo Design',
-                'Interior Design',
-                'Fashion Design',
-                'Product Design',
-                'Illustration',
-                'Animation',
-                'Web Design',
-                'Print Design',
-                'Brand Identity Design',
-                'UI/UX Design',
+            
+            // Educación y formación
+            'Education' => [
+                'Academic Coaching',
+                'Curriculum Development',
+                'Educational Assessment',
+                'Special Education Support',
+                'Educational Technology'
             ],
-            'Maintenance & Repair' => [
-                'Appliance Repair',
-                'Furniture Repair',
-                'Electronics Repair',
-                'Bicycle Repair',
-                'Watch & Jewelry Repair',
-                'Phone & Tablet Repair',
+            'Tutoring' => [
+                'Math Tutoring',
+                'Science Tutoring',
+                'English Tutoring',
+                'Test Preparation',
+                'Homework Help'
+            ],
+            'Language Learning' => [
+                'English Instruction',
+                'Spanish Instruction',
+                'Translation Services',
+                'Conversation Practice',
+                'Business Language Training'
+            ],
+            'Music Lessons' => [
+                'Piano Lessons',
+                'Guitar Lessons',
+                'Vocal Training',
+                'Drum Lessons',
+                'Music Theory'
+            ],
+            'Art Classes' => [
+                'Painting Instruction',
+                'Drawing Classes',
+                'Sculpture Workshops',
+                'Digital Art Training',
+                'Art History'
+            ],
+            
+            // Tecnología y digital
+            'IT Services' => [
                 'Computer Repair',
-                'Musical Instrument Repair',
-                'Home Equipment Repair',
-                'Tool Repair',
+                'Network Setup',
+                'Data Recovery',
+                'IT Consulting',
+                'Cybersecurity'
+            ],
+            'Web Development' => [
+                'Website Design',
+                'E-commerce Development',
+                'CMS Implementation',
+                'Web Maintenance',
+                'Responsive Design'
+            ],
+            'Mobile App Development' => [
+                'iOS Development',
+                'Android Development',
+                'App Design',
+                'App Testing',
+                'App Maintenance'
+            ],
+            'Graphic Design' => [
+                'Logo Design',
+                'Print Design',
+                'Branding',
+                'Illustration',
+                'UI/UX Design'
+            ],
+            'Digital Marketing' => [
+                'SEO Optimization',
+                'PPC Management',
+                'Social Media Marketing',
+                'Content Marketing',
+                'Analytics & Reporting'
+            ],
+            
+            // Salud y bienestar
+            'Health & Wellness' => [
+                'Wellness Coaching',
+                'Health Assessment',
+                'Stress Management',
+                'Holistic Health',
+                'Preventive Care'
+            ],
+            'Fitness' => [
+                'Personal Training',
+                'Group Fitness',
+                'Strength Training',
+                'Cardio Conditioning',
+                'Sports Specific Training'
+            ],
+            'Nutrition' => [
+                'Meal Planning',
+                'Nutritional Assessment',
+                'Diet Consultation',
+                'Weight Management',
+                'Sports Nutrition'
+            ],
+            'Mental Health' => [
+                'Counseling',
+                'Therapy',
+                'Stress Reduction',
+                'Mindfulness Training',
+                'Emotional Support'
+            ],
+            'Yoga' => [
+                'Hatha Yoga',
+                'Vinyasa Flow',
+                'Meditation',
+                'Prenatal Yoga',
+                'Yoga Therapy'
+            ],
+            
+            // Servicios para mascotas
+            'Pet Care' => [
+                'Pet Sitting',
+                'Dog Walking',
+                'Pet Feeding',
+                'Pet Transportation',
+                'Pet Medication Administration'
+            ],
+            'Veterinary Services' => [
+                'Wellness Exams',
+                'Vaccinations',
+                'Pet Surgery',
+                'Dental Care',
+                'Emergency Care'
+            ],
+            'Pet Training' => [
+                'Obedience Training',
+                'Behavior Modification',
+                'Puppy Training',
+                'Agility Training',
+                'Specialized Training'
+            ],
+            'Pet Sitting' => [
+                'Overnight Care',
+                'Daily Visits',
+                'House Sitting',
+                'Pet Exercise',
+                'Pet Companionship'
+            ],
+            'Pet Grooming' => [
+                'Bathing',
+                'Haircuts',
+                'Nail Trimming',
+                'Ear Cleaning',
+                'De-shedding Treatment'
+            ],
+            
+            // Eventos y entretenimiento
+            'Event Planning' => [
+                'Event Coordination',
+                'Venue Selection',
+                'Vendor Management',
+                'Budget Planning',
+                'Theme Development'
+            ],
+            'Photography' => [
+                'Portrait Photography',
+                'Event Photography',
+                'Commercial Photography',
+                'Product Photography',
+                'Photo Editing'
+            ],
+            'Catering' => [
+                'Menu Planning',
+                'Food Preparation',
+                'Service Staff',
+                'Beverage Service',
+                'Dietary Accommodation'
+            ],
+            'DJ Services' => [
+                'Event DJ',
+                'Wedding DJ',
+                'Sound Equipment',
+                'Music Curation',
+                'MC Services'
+            ],
+            'Wedding Planning' => [
+                'Full Wedding Planning',
+                'Day-of Coordination',
+                'Vendor Referrals',
+                'Budget Management',
+                'Wedding Design'
+            ],
+            
+            // Transporte y logística
+            'Transportation' => [
+                'Airport Transfer',
+                'Corporate Transportation',
+                'Event Transportation',
+                'Medical Transportation',
+                'Long Distance Transport'
+            ],
+            'Moving Services' => [
+                'Residential Moving',
+                'Commercial Moving',
+                'Packing Services',
+                'Furniture Assembly',
+                'Storage Solutions'
+            ],
+            'Delivery' => [
+                'Same-Day Delivery',
+                'Food Delivery',
+                'Package Delivery',
+                'Grocery Delivery',
+                'Furniture Delivery'
+            ],
+            'Courier Services' => [
+                'Express Delivery',
+                'Document Delivery',
+                'International Shipping',
+                'Scheduled Pickups',
+                'Tracking Services'
+            ],
+            'Logistics' => [
+                'Supply Chain Management',
+                'Inventory Management',
+                'Distribution Planning',
+                'Freight Forwarding',
+                'Warehouse Management'
+            ],
+            
+            // Servicios de emergencia
+            'Emergency Services' => [
+                'Emergency Response',
+                '24/7 Availability',
+                'Disaster Recovery',
+                'Crisis Management',
+                'Emergency Planning'
+            ],
+            'Security' => [
+                'Security Guards',
+                'Surveillance Systems',
+                'Security Consulting',
+                'Access Control',
+                'Event Security'
+            ],
+            'Locksmith' => [
+                'Lock Installation',
+                'Key Duplication',
+                'Lock Repair',
+                'Emergency Lockout',
+                'Security Upgrades'
+            ],
+            'Fire Protection' => [
+                'Fire Alarm Installation',
+                'Sprinkler Systems',
+                'Fire Extinguisher Service',
+                'Fire Safety Training',
+                'Fire Inspection'
+            ],
+            'Disaster Recovery' => [
+                'Water Damage Restoration',
+                'Fire Damage Cleanup',
+                'Mold Remediation',
+                'Storm Damage Repair',
+                'Emergency Board Up'
             ],
         ];
 
         foreach ($skillsByCategory as $categoryName => $skills) {
-            $category = Category::query()
-                ->where('name', $categoryName)
-                ->first();
+            $category = Category::where('name', $categoryName)->first();
 
             if (!$category) {
+                $this->command->warn("Category '{$categoryName}' not found, skipping related skills.");
                 continue;
             }
 
@@ -173,7 +396,7 @@ class SkillSeeder extends Seeder
                 $skill = Skill::updateOrCreate(
                     ['name' => $skillName],
                     [
-                        'description' => "Descripción de {$skillName}",
+                        'description' => "Professional expertise in {$skillName}",
                         'experience_level' => rand(1, 5),
                         'is_active' => true
                     ]

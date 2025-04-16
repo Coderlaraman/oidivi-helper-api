@@ -30,12 +30,12 @@ class StoreReferralRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'referred_id.required' => 'El usuario referido es requerido.',
-            'referred_id.exists' => 'El usuario referido no existe.',
-            'referred_id.not_in' => 'No puedes referirte a ti mismo.',
-            'referred_id.unique' => 'Ya has referido a este usuario.',
-            'message.max' => 'El mensaje no puede exceder los 500 caracteres.',
-            'referral_code.max' => 'El código de referido no puede exceder los 20 caracteres.'
+            'referred_id.required' => 'The referred user is required.',
+            'referred_id.exists' => 'The referred user does not exist.',
+            'referred_id.not_in' => 'You cannot refer to yourself.',
+            'referred_id.unique' => 'You have already referred this user.',
+            'message.max' => 'The message cannot exceed 500 characters.',
+            'referral_code.max' => 'The referral code cannot exceed 20 characters.'
         ];
     }
 }

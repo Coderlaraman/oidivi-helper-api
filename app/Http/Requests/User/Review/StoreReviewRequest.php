@@ -38,20 +38,20 @@ class StoreReviewRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'reviewed_id.required' => 'El usuario a calificar es requerido.',
-            'reviewed_id.exists' => 'El usuario a calificar no existe.',
-            'reviewed_id.not_in' => 'No puedes calificarte a ti mismo.',
-            'reviewed_id.unique' => 'Ya has calificado a este usuario para este servicio.',
-            'service_request_id.required' => 'La solicitud de servicio es requerida.',
-            'service_request_id.exists' => 'La solicitud de servicio no existe.',
-            'rating.required' => 'La calificación es requerida.',
-            'rating.between' => 'La calificación debe estar entre 1 y 5.',
-            'comment.required' => 'El comentario es requerido.',
-            'comment.min' => 'El comentario debe tener al menos 10 caracteres.',
-            'comment.max' => 'El comentario no puede exceder los 500 caracteres.',
-            'aspects.*.in' => 'El aspecto seleccionado no es válido.',
-            'aspects_ratings.*.between' => 'La calificación del aspecto debe estar entre 1 y 5.',
-            'would_recommend.required' => 'Debes indicar si recomendarías al usuario.'
+            'reviewed_id.required' => 'The user to rate is required.',
+            'reviewed_id.exists' => 'The user to rate does not exist.',
+            'reviewed_id.not_in' => 'You cannot rate yourself.',
+            'reviewed_id.unique' => 'You have already rated this user for this service.',
+            'service_request_id.required' => 'The service request is required.',
+            'service_request_id.exists' => 'The service request does not exist.',
+            'rating.required' => 'The rating is required.',
+            'rating.between' => 'The rating must be between 1 and 5.',
+            'comment.required' => 'The comment is required.',
+            'comment.min' => 'The comment must be at least 10 characters.',
+            'comment.max' => 'The comment cannot exceed 500 characters.',
+            'aspects.*.in' => 'The selected aspect is invalid.',
+            'aspects_ratings.*.between' => 'The aspect rating must be between 1 and 5.',
+            'would_recommend.required' => 'You must indicate if you would recommend the user.'
         ];
     }
 }

@@ -32,19 +32,19 @@ class ClientReviewController extends Controller
 
             return $this->successResponse(
                 new UserReviewResource($review),
-                'Reseña creada exitosamente',
+                __('messages.reviews.created'),
                 201
             );
 
         } catch (ValidationException $e) {
             return $this->errorResponse(
-                'Error de validación',
+                __('messages.validation_error'),
                 422,
                 $e->errors()
             );
         } catch (Exception $e) {
             return $this->errorResponse(
-                'Error al crear reseña',
+                __('messages.reviews.create_error'),
                 500,
                 ['error' => $e->getMessage()]
             );
@@ -61,12 +61,12 @@ class ClientReviewController extends Controller
 
             return $this->successResponse(
                 UserReviewResource::collection($reviews),
-                'Reseñas recuperadas exitosamente'
+                __('messages.reviews.list_success')
             );
 
         } catch (Exception $e) {
             return $this->errorResponse(
-                'Error al obtener reseñas',
+                __('messages.reviews.list_error'),
                 500,
                 ['error' => $e->getMessage()]
             );

@@ -19,13 +19,13 @@ class UserNotificationController extends Controller
             ->orderBy('created_at', 'desc')
             ->paginate(10);
 
-        return $this->successResponse($notifications, 'Notificaciones recuperadas exitosamente');
+        return $this->successResponse($notifications, __('messages.notifications.list_success'));
     }
 
     public function markAsRead(Request $request, PushNotification $notification): JsonResponse
     {
         if ($notification->user_id !== auth()->id()) {
-            return $this->errorResponse('No autorizado', 403);
+            return $this->errorResponse(__('messages.unauthorized'), 403);
         }
 
         $notification->update([
@@ -33,7 +33,7 @@ class UserNotificationController extends Controller
             'read_at' => now()
         ]);
 
-        return $this->successResponse($notification, 'Notificación marcada como leída');
+        return $this->successResponse($notification, __('messages.notifications.read'));
     }
 
     public function markAllAsRead(Request $request): JsonResponse
@@ -45,6 +45,6 @@ class UserNotificationController extends Controller
                 'read_at' => now()
             ]);
 
-        return $this->successResponse(null, 'Todas las notificaciones marcadas como leídas');
+        return $this->successResponse(null, __('messages.notifications.all_read'));
     }
 } 

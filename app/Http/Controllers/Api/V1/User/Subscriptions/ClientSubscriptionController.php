@@ -25,12 +25,12 @@ class ClientSubscriptionController extends Controller
 
             return $this->successResponse(
                 UserSubscriptionResource::collection($subscriptions),
-                'Subscriptions retrieved successfully'
+                __('messages.subscriptions.list_success')
             );
 
         } catch (Exception $e) {
             return $this->errorResponse(
-                'Error retrieving subscriptions',
+                __('messages.subscriptions.list_error'),
                 500,
                 ['error' => $e->getMessage()]
             );
@@ -56,19 +56,19 @@ class ClientSubscriptionController extends Controller
 
             return $this->successResponse(
                 new UserSubscriptionResource($subscription),
-                'Subscription created successfully',
+                __('messages.subscriptions.created'),
                 201
             );
 
         } catch (ValidationException $e) {
             return $this->errorResponse(
-                'Validation error',
+                __('messages.validation_error'),
                 422,
                 $e->errors()
             );
         } catch (Exception $e) {
             return $this->errorResponse(
-                'Error creating subscription',
+                __('messages.subscriptions.create_error'),
                 500,
                 ['error' => $e->getMessage()]
             );
@@ -80,7 +80,7 @@ class ClientSubscriptionController extends Controller
         try {
             if ($subscription->user_id !== auth()->id()) {
                 return $this->errorResponse(
-                    'Unauthorized',
+                    __('messages.unauthorized'),
                     403
                 );
             }
@@ -89,12 +89,12 @@ class ClientSubscriptionController extends Controller
 
             return $this->successResponse(
                 new UserSubscriptionResource($subscription),
-                'Subscription canceled successfully'
+                __('messages.subscriptions.canceled')
             );
 
         } catch (Exception $e) {
             return $this->errorResponse(
-                'Error canceling subscription',
+                __('messages.subscriptions.cancel_error'),
                 500,
                 ['error' => $e->getMessage()]
             );
@@ -106,19 +106,19 @@ class ClientSubscriptionController extends Controller
         try {
             if ($subscription->user_id !== auth()->id()) {
                 return $this->errorResponse(
-                    'Unauthorized',
+                    __('messages.unauthorized'),
                     403
                 );
             }
 
             return $this->successResponse(
                 new UserSubscriptionResource($subscription->load('user')),
-                'Subscription retrieved successfully'
+                __('messages.subscriptions.show_success')
             );
 
         } catch (Exception $e) {
             return $this->errorResponse(
-                'Error retrieving subscription',
+                __('messages.subscriptions.show_error'),
                 500,
                 ['error' => $e->getMessage()]
             );

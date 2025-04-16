@@ -45,7 +45,7 @@ class ServiceRequestSeeder extends Seeder
                 'visibility' => 'public',
                 'service_type' => 'recurring',
                 'payment_method' => 'bank_transfer',
-                'categories' => ['Cleaning', 'Home Services'],
+                'categories' => ['Cleaning', 'Home Maintenance'],
             ],
             [
                 'title' => 'Garden Landscaping Project',
@@ -54,7 +54,7 @@ class ServiceRequestSeeder extends Seeder
                 'visibility' => 'public',
                 'service_type' => 'one_time',
                 'payment_method' => 'paypal',
-                'categories' => ['Gardening', 'Landscaping'],
+                'categories' => ['Gardening', 'Home Maintenance'],
             ],
             [
                 'title' => 'Private Math Tutoring for High School Student',
@@ -607,6 +607,12 @@ class ServiceRequestSeeder extends Seeder
             ],
         ];
 
+        ## 5. Finalmente, actualicemos el ServiceRequestSeeder.php para usar las categorías correctamente:
+        $categoryMap = [];
+        foreach ($categories as $category) {
+            $categoryMap[$category->name] = $category;
+        }
+
         foreach ($serviceRequests as $requestData) {
             $user = $users->random();
             $categoryNames = $requestData['categories'];
@@ -631,11 +637,16 @@ class ServiceRequestSeeder extends Seeder
             ]);
 
             // Attach categories
-            $requestCategories = $categories->filter(function ($category) use ($categoryNames) {
-                return in_array($category->name, $categoryNames);
-            });
+            $requestCategoryIds = [];
+            foreach ($categoryNames as $categoryName) {
+                if (isset($categoryMap[$categoryName])) {
+                    $requestCategoryIds[] = $categoryMap[$categoryName]->id;
+                }
+            }
 
-            $serviceRequest->categories()->attach($requestCategories->pluck('id')->toArray());
+            if (!empty($requestCategoryIds)) {
+                $serviceRequest->categories()->attach($requestCategoryIds);
+            }
         }
     }
 }

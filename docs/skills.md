@@ -1,91 +1,286 @@
+# Guía de Implementación de Habilidades (Skills) - Frontend
 
-# 📘 Lógica de Habilidades y Notificaciones - Sistema de Información OiDiVi
+## Descripción General
+Esta guía detalla la implementación del sistema de gestión de habilidades para usuarios en el frontend de la aplicación OiDiVi Helper. El sistema permite a los usuarios seleccionar y gestionar sus habilidades profesionales, siendo un requisito obligatorio para acceder a las funcionalidades principales de la plataforma.
 
-## 1️⃣ Visión General
+## Tabla de Contenidos
+1. [Requisitos Previos](#requisitos-previos)
+2. [Estructura de Archivos](#estructura-de-archivos)
+3. [Tipos de Datos](#tipos-de-datos)
+4. [Servicios de API](#servicios-de-api)
+5. [Hook Personalizado](#hook-personalizado)
+6. [Componentes](#componentes)
+7. [Integración con el Sistema de Rutas](#integración-con-el-sistema-de-rutas)
+8. [Manejo de Estados](#manejo-de-estados)
 
-En el sistema OiDiVi, todos los usuarios poseen el mismo rol (`user`), permitiéndoles actuar tanto como solicitantes de servicio (clientes) como como prestadores de servicios (helpers). Esta decisión ofrece flexibilidad y dinamismo, ya que cualquier usuario puede alternar entre estas funciones según su contexto.
+## Requisitos Previos
 
-La funcionalidad clave de emparejamiento de solicitudes de servicio se basa en **habilidades del usuario**, **categorías**, y **notificaciones push/websocket**.
+- TypeScript
+- Tailwind CSS
+- shadcn/ui
+- Axios para peticiones HTTP
+- React Query (opcional para caché y manejo de estado)
 
----
+## Estructura de Archivos
 
-## 2️⃣ Habilidades y Categorías
+```plaintext
+src/
+├── lib/
+│   ├── api/
+│   │   └── user/
+│   │       └── skills.ts       # Servicios de API para habilidades
+│   └── types/
+│       └── user/
+│           └── skill.ts        # Tipos de datos
+├── hooks/
+│   └── user/
+│       └── useUserSkills.ts    # Hook personalizado
+├── components/
+│   └── user/
+│       └── skills/
+│           └── SkillSelector.tsx # Componente principal
+└── app/
+    └── (user)/
+        └── profile/
+            └── skills/
+                └── page.tsx     # Página de gestión de habilidades
+```
 
-### 🔹 Estructura Lógica
+## Tipos de Datos
 
-- Cada usuario puede definir **una o varias habilidades**.
-- Cada habilidad está asociada a **una o varias categorías**.
-- Cada solicitud de servicio está asociada **obligatoriamente a una categoría**.
-- Las categorías están conectadas de forma **polimórfica** a solicitudes y habilidades.
+```typescript
+// src/lib/types/user/skill.ts
 
-### 📐 Relación Polimórfica
+export interface Category {
+  id: number;
+  name: string;
+  slug: string;
+  description?: string;
+}
 
-- Tabla intermedia: `categoryables`
-  - `category_id`
-  - `categoryable_type` (`App\\Models\\Skill`, `App\\Models\\ServiceRequest`, etc.)
-  - `categoryable_id`
+export interface Skill {
+  id: number;
+  name: string;
+  description?: string;
+  is_active: boolean;
+  sort_order?: number;
+  categories: Category[];
+}
 
----
+export interface UserSkill extends Skill {
+  experience_level: number;
+  last_updated_at: string;
+}
+```
 
-## 3️⃣ Notificaciones por Coincidencia de Habilidades
+## Servicios de API
 
-### 🔔 Lógica de Matching
+```typescript
+// src/lib/api/user/skills.ts
 
-Cuando un usuario crea una nueva solicitud de servicio:
-1. Se identifica su categoría.
-2. Se busca a todos los usuarios que posean habilidades **asociadas a esa categoría**.
-3. A esos usuarios se les emite:
-   - Una notificación WebSocket (`Reverb` + `Laravel Echo`)
-   - Una notificación Push (via FCM si corresponde)
+import { Skill, UserSkill } from '@/lib/types/user/skill';
+import { apiClient } from '../index';
 
-### 🧱 Requisitos para recibir notificaciones
+export const skillsApi = {
+  getAvailable: async (): Promise<Skill[]> => {
+    const response = await apiClient.get('/v1/user/skills/available');
+    return response.data.data;
+  },
 
-- El usuario debe tener **al menos una habilidad definida**.
-- Esa habilidad debe estar **asociada a una categoría**.
-- Esa categoría debe **coincidir** con la de la solicitud creada.
+  getUserSkills: async (): Promise<UserSkill[]> => {
+    const response = await apiClient.get('/v1/user/skills');
+    return response.data.data;
+  },
 
-### 🔄 Comportamiento para usuarios sin habilidades
+  addUserSkills: async (skillIds: number[]): Promise<UserSkill[]> => {
+    const response = await apiClient.post('/v1/user/skills', {
+      skill_ids: skillIds
+    });
+    return response.data.data;
+  },
 
-- No reciben notificaciones push/websocket.
-- Se les muestra un mensaje en el dashboard indicando:
-  > “No estás recibiendo notificaciones de solicitudes porque aún no has definido tus habilidades.”
+  removeUserSkill: async (skillId: number): Promise<void> => {
+    await apiClient.delete(`/v1/user/skills/${skillId}`);
+  }
+};
+```
 
----
+## Hook Personalizado
 
-## 4️⃣ Interfaz de Usuario y Gestión de Habilidades
+```typescript
+// src/hooks/user/useUserSkills.ts
 
-### 🔧 Ubicación de la edición de habilidades
+import { useState, useEffect } from 'react';
+import { skillsApi } from '@/lib/api/user/skills';
+import { useToast } from '@/components/ui/use-toast';
 
-- Sección en el panel lateral: `Perfil → Habilidades`
-- Se recomienda mantener una interfaz **modular y clara**, separada de la información personal.
+export const useUserSkills = () => {
+  // ... Implementación del hook como se mostró anteriormente
+};
+```
 
-### 🧩 Componente de Gestión
+## Componentes
 
-- Autocompletado para seleccionar habilidades existentes.
-- Posibilidad de asociar múltiples habilidades.
-- Mostrar habilidades actuales + opción de eliminar.
-- Validación para asegurar que cada habilidad tenga al menos una categoría.
+### SkillSelector
 
----
+```typescript
+// src/components/user/skills/SkillSelector.tsx
 
-## 5️⃣ Consideraciones de UX y Seguridad
+import { useState } from 'react';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 
-- Alertas activas para perfiles incompletos.
-- No permitir ofertar sin tener habilidades.
-- Evitar enviar notificaciones sin pertinencia.
-- Posibilidad futura de auditar cambios de habilidades.
+interface SkillSelectorProps {
+  availableSkills: Skill[];
+  selectedSkills: number[];
+  onSkillsSelected: (skillIds: number[]) => Promise<void>;
+  loading?: boolean;
+}
 
----
+export const SkillSelector = ({ ... }) => {
+  // ... Implementación del componente como se mostró anteriormente
+};
+```
 
-## 6️⃣ Conclusión
+### Página de Habilidades
 
-Este enfoque basado en habilidades y categorías proporciona un sistema escalable, preciso y profesional para emparejar usuarios con solicitudes relevantes. La flexibilidad del rol único de usuario complementa la estructura lógica de forma efectiva.
+```typescript
+// src/app/(user)/profile/skills/page.tsx
 
-"""
+'use client';
 
-# Guardar el contenido en un archivo Markdown
-file_path = Path("/mnt/data/OiDiVi_Habilidades_Notificaciones.md")
-file_path.write_text(document_content, encoding="utf-8")
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useUserSkills } from '@/hooks/user/useUserSkills';
+import { SkillSelector } from '@/components/user/skills/SkillSelector';
 
-file_path.name  # Para mostrar nombre del archivo descargable al usuario
+export default function SkillsPage() {
+  // ... Implementación de la página como se mostró anteriormente
+};
+```
 
+## Integración con el Sistema de Rutas
+
+### Middleware de Verificación
+
+```typescript
+// src/middleware.ts
+
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+
+export function middleware(request: NextRequest) {
+  // ... Implementación del middleware como se mostró anteriormente
+}
+
+export const config = {
+  matcher: [
+    '/dashboard/:path*',
+    '/service-requests/:path*',
+    '/chat/:path*',
+    '/profile/:path*',
+  ],
+};
+```
+
+## Manejo de Estados
+
+### Estados de Usuario
+- `needsSkillSetup`: Boolean que indica si el usuario necesita configurar sus habilidades
+- `loading`: Estado de carga durante las operaciones
+- `error`: Estado de error para manejo de excepciones
+
+### Estados de Habilidades
+- `availableSkills`: Lista de habilidades disponibles
+- `userSkills`: Lista de habilidades del usuario
+- `selectedSkills`: Habilidades seleccionadas temporalmente
+
+## Implementación Paso a Paso
+
+1. **Configuración Inicial**
+   ```bash
+   # Crear estructura de directorios
+   mkdir -p src/lib/api/user
+   mkdir -p src/lib/types/user
+   mkdir -p src/hooks/user
+   mkdir -p src/components/user/skills
+   ```
+
+2. **Instalación de Dependencias**
+   ```bash
+   # Asegurarse de tener todas las dependencias necesarias
+   npm install @radix-ui/react-icons
+   ```
+
+3. **Copiar Archivos**
+   - Copiar los tipos de datos
+   - Implementar servicios de API
+   - Crear hook personalizado
+   - Implementar componentes
+
+4. **Configuración de Rutas**
+   - Implementar middleware
+   - Crear página de habilidades
+
+## Consideraciones de UX
+
+1. **Feedback Visual**
+   - Mostrar estado de carga
+   - Indicadores de selección claros
+   - Mensajes de error descriptivos
+   - Confirmaciones de acciones exitosas
+
+2. **Accesibilidad**
+   - Usar roles ARIA apropiados
+   - Asegurar navegación por teclado
+   - Proporcionar textos alternativos
+
+3. **Responsive Design**
+   - Diseño adaptable a diferentes dispositivos
+   - Grid responsivo para habilidades
+   - Interacciones táctiles optimizadas
+
+## Pruebas
+
+1. **Pruebas Unitarias**
+   - Componentes individuales
+   - Hook personalizado
+   - Servicios de API
+
+2. **Pruebas de Integración**
+   - Flujo completo de selección
+   - Manejo de errores
+   - Redirecciones
+
+## Solución de Problemas
+
+### Problemas Comunes y Soluciones
+
+1. **Las habilidades no se cargan**
+   - Verificar conexión con API
+   - Comprobar token de autenticación
+   - Revisar console.log para errores
+
+2. **Selección no se guarda**
+   - Validar payload de la petición
+   - Verificar manejo de estado
+   - Comprobar callbacks
+
+3. **Redirección no funciona**
+   - Revisar middleware
+   - Verificar rutas protegidas
+   - Comprobar estado de usuario
+
+## Recursos Adicionales
+
+- [Documentación de shadcn/ui](https://ui.shadcn.com/)
+- [Next.js App Router](https://nextjs.org/docs/app)
+- [TypeScript Documentation](https://www.typescriptlang.org/docs/)
+
+## Soporte
+
+Para preguntas o problemas específicos, contactar al equipo de desarrollo a través de:
+- GitHub Issues
+- Canal de Slack del proyecto
+- Email de soporte técnico

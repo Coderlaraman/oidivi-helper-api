@@ -33,19 +33,19 @@ class ClientTicketController extends Controller
 
             return $this->successResponse(
                 new UserTicketResource($ticket),
-                'Ticket creado exitosamente',
+                __('messages.tickets.created'),
                 201
             );
 
         } catch (ValidationException $e) {
             return $this->errorResponse(
-                'Error de validación',
+                __('messages.validation_error'),
                 422,
                 $e->errors()
             );
         } catch (Exception $e) {
             return $this->errorResponse(
-                'Error al crear ticket',
+                __('messages.tickets.create_error'),
                 500,
                 ['error' => $e->getMessage()]
             );
@@ -62,12 +62,12 @@ class ClientTicketController extends Controller
 
             return $this->successResponse(
                 UserTicketResource::collection($tickets),
-                'Tickets recuperados exitosamente'
+                __('messages.tickets.list_success')
             );
 
         } catch (Exception $e) {
             return $this->errorResponse(
-                'Error al obtener tickets',
+                __('messages.tickets.list_error'),
                 500,
                 ['error' => $e->getMessage()]
             );
@@ -79,19 +79,19 @@ class ClientTicketController extends Controller
         try {
             if ($ticket->user_id !== auth()->id()) {
                 return $this->errorResponse(
-                    'No autorizado',
+                    __('messages.unauthorized'),
                     403
                 );
             }
 
             return $this->successResponse(
                 new UserTicketResource($ticket->load(['replies', 'user'])),
-                'Ticket recuperado exitosamente'
+                __('messages.tickets.show_success')
             );
 
         } catch (Exception $e) {
             return $this->errorResponse(
-                'Error al obtener ticket',
+                __('messages.tickets.show_error'),
                 500,
                 ['error' => $e->getMessage()]
             );
@@ -103,7 +103,7 @@ class ClientTicketController extends Controller
         try {
             if ($ticket->user_id !== auth()->id()) {
                 return $this->errorResponse(
-                    'No autorizado',
+                    __('messages.unauthorized'),
                     403
                 );
             }
@@ -120,19 +120,19 @@ class ClientTicketController extends Controller
 
             return $this->successResponse(
                 new ClientTicketReplyResource($reply),
-                'Respuesta enviada exitosamente',
+                __('messages.tickets.reply_sent'),
                 201
             );
 
         } catch (ValidationException $e) {
             return $this->errorResponse(
-                'Error de validación',
+                __('messages.validation_error'),
                 422,
                 $e->errors()
             );
         } catch (Exception $e) {
             return $this->errorResponse(
-                'Error al enviar respuesta',
+                __('messages.tickets.reply_error'),
                 500,
                 ['error' => $e->getMessage()]
             );

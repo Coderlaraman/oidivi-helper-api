@@ -1,134 +1,209 @@
 <?php
 
 return [
-    'must_accept_terms' => 'Debes aceptar los términos y condiciones.',
-    'user_registered_successfully' => 'Usuario registrado exitosamente.',
+    // General
+    'bad_request' => 'Solicitud inválida.',
+    'dashboard_data_retrieved' => 'Datos del panel de control recuperados exitosamente.',
+    'error' => 'Ha ocurrido un error.',
+    'file_too_large' => 'El archivo es demasiado grande.',
+    'forbidden' => 'No tienes permiso para acceder a este recurso.',
+    'general_error' => 'Ha ocurrido un error.',
+    'internal_error' => 'Error interno del servidor.',
     'invalid_credentials' => 'Las credenciales proporcionadas son incorrectas.',
-    'user_inactive' => 'El usuario está inactivo.',
+    'invalid_current_password' => 'La contraseña actual es incorrecta.',
+    'invalid_file_provided' => 'Archivo proporcionado inválido.',
+    'invalid_file_type' => 'El archivo no es válido o su contenido no coincide con el tipo esperado.',
     'login_successful' => 'Inicio de sesión exitoso.',
     'logout_successful' => 'Cierre de sesión exitoso.',
-    'profile_updated_successfully' => 'Perfil actualizado exitosamente.',
-    'invalid_current_password' => 'La contraseña actual es incorrecta.',
+    'must_accept_terms' => 'Debes aceptar los términos y condiciones.',
+    'not_found' => 'Recurso no encontrado.',
     'password_changed_successfully' => 'Contraseña cambiada exitosamente.',
-    'reset_link_sent' => 'Enlace para restablecer la contraseña enviado exitosamente.',
-    'reset_link_failed' => 'Error al enviar el enlace para restablecer la contraseña.',
-    'password_reset_successful' => 'Contraseña restablecida exitosamente.',
     'password_reset_failed' => 'Error al restablecer la contraseña.',
+    'password_reset_successful' => 'Contraseña restablecida exitosamente.',
+    'profile_photo_deleted' => 'Foto de perfil eliminada exitosamente.',
+    'profile_photo_updated' => 'Foto de perfil actualizada exitosamente.',
+    'profile_updated' => 'Perfil actualizado exitosamente.',
+    'profile_video_updated' => 'Video de perfil actualizado exitosamente.',
+    'profile_video_deleted' => 'Video de perfil eliminado exitosamente.',
+    'reset_link_failed' => 'Error al enviar el enlace de restablecimiento de contraseña.',
+    'reset_link_sent' => 'Enlace de restablecimiento de contraseña enviado exitosamente.',
+    'success' => 'Operación completada exitosamente.',
+    'unauthorized' => 'No autorizado para realizar esta acción.',
+    'user_data_retrieved' => 'Datos del usuario recuperados exitosamente.',
+    'user_inactive' => 'El usuario está inactivo.',
+    'user_registered_successfully' => 'Usuario registrado exitosamente.',
+    'validation_error' => 'Error de validación.',
 
     // Auth
     'auth' => [
-        'login_success' => 'Inicio de sesión exitoso.',
-        'login_failed' => 'Credenciales inválidas.',
-        'logout_success' => 'Sesión cerrada exitosamente.',
-        'register_success' => 'Registro exitoso. Por favor verifica tu correo electrónico.',
+        'account_locked' => 'Cuenta bloqueada debido a múltiples intentos fallidos. Intenta nuevamente más tarde.',
         'email_verified' => 'Correo electrónico verificado exitosamente.',
-        'verification_sent' => 'Correo de verificación enviado.',
+        'login_failed' => 'Credenciales inválidas.',
+        'login_success' => 'Inicio de sesión exitoso.',
+        'logout_success' => 'Cierre de sesión exitoso.',
+        'register_success' => 'Registro exitoso. Por favor verifica tu correo electrónico.',
+        'session_expired' => 'Sesión expirada. Por favor inicia sesión nuevamente.',
         'verification_failed' => 'Error al enviar el correo de verificación.',
-        'account_locked' => 'Cuenta bloqueada por múltiples intentos fallidos. Intenta más tarde.',
-        'session_expired' => 'La sesión ha expirado, por favor inicia sesión nuevamente.',
+        'verification_sent' => 'Correo de verificación enviado.',
     ],
 
-    // Profile
-    'profile' => [
-        'updated' => 'Perfil actualizado exitosamente.',
-        'photo_updated' => 'Foto de perfil actualizada.',
-        'photo_deleted' => 'Foto de perfil eliminada.',
-        'bio_updated' => 'Biografía actualizada.',
-        'settings_updated' => 'Configuración actualizada exitosamente.',
-    ],
-
-    // Profile Photo
-    'profile_photo' => [
-        'required' => 'Se requiere una foto de perfil.',
-        'image' => 'El archivo debe ser una imagen válida.',
-        'mimes' => 'La imagen debe estar en formato JPEG, PNG, JPG o GIF.',
-        'max' => 'El tamaño máximo permitido para la imagen es de 2 MB.',
-    ],
-
-    // Service Requests
-    'service_requests' => [
-        'created' => 'Solicitud de servicio creada exitosamente.',
-        'updated' => 'Solicitud de servicio actualizada.',
-        'deleted' => 'Solicitud de servicio eliminada.',
-        'status_updated' => 'Estado de la solicitud actualizado.',
-        'not_found' => 'Solicitud de servicio no encontrada.',
-        'already_assigned' => 'La solicitud ya ha sido asignada a un proveedor.',
-    ],
-
-    // Offers
-    'offers' => [
-        'created' => 'Oferta enviada exitosamente.',
-        'updated' => 'Oferta actualizada.',
-        'deleted' => 'Oferta eliminada.',
-        'accepted' => 'Oferta aceptada.',
-        'rejected' => 'Oferta rechazada.',
+    // Categories
+    'categories' => [
+        'create_success' => 'Categoría creada exitosamente.',
+        'delete_success' => 'Categoría eliminada exitosamente.',
+        'list_success' => 'Categorías recuperadas exitosamente.',
+        'not_found' => 'Categoría no encontrada.',
+        'show_success' => 'Categoría recuperada exitosamente.',
+        'update_success' => 'Categoría actualizada exitosamente.',
     ],
 
     // Contracts
     'contracts' => [
-        'created' => 'Contrato generado exitosamente.',
-        'updated' => 'Contrato actualizado.',
         'canceled' => 'Contrato cancelado.',
         'completed' => 'Contrato marcado como completado.',
+        'created' => 'Contrato generado exitosamente.',
+        'updated' => 'Contrato actualizado.',
+    ],
+
+    // Dashboard
+    'dashboard' => [
+        'data_retrieved' => 'Datos del panel de control recuperados exitosamente.',
+    ],
+
+    // Notifications
+    'notifications' => [
+        'deleted' => 'Notificación eliminada.',
+        'read' => 'Notificación marcada como leída.',
+        'sent' => 'Notificación enviada exitosamente.',
+    ],
+
+    // Offers
+    'offers' => [
+        'accepted' => 'Oferta aceptada.',
+        'created' => 'Oferta enviada exitosamente.',
+        'deleted' => 'Oferta eliminada.',
+        'rejected' => 'Oferta rechazada.',
+        'updated' => 'Oferta actualizada.',
+    ],
+
+    // Payments
+    'payments' => [
+        'confirmed' => 'Pago confirmado exitosamente.',
+        'confirmation_failed' => 'Error al confirmar el pago.',
+        'failed' => 'Error al procesar el pago.',
+        'insufficient_funds' => 'Fondos insuficientes para completar el pago.',
+        'intent_created' => 'Intención de pago creada exitosamente.',
+        'processed' => 'Pago procesado exitosamente.',
+        'refunded' => 'Reembolso procesado exitosamente.',
+        'transaction_not_found' => 'Transacción no encontrada.',
+    ],
+
+    // Profile
+    'profile' => [
+        'bio_updated' => 'Biografía actualizada.',
+        'data_retrieved' => 'Datos del perfil recuperados exitosamente.',
+        'photo_deleted' => 'Foto de perfil eliminada.',
+        'photo_updated' => 'Foto de perfil actualizada.',
+        'settings_updated' => 'Configuración actualizada exitosamente.',
+        'skill_setup_required' => 'Debes completar tus habilidades para recibir notificaciones relevantes y aplicar a solicitudes.',
+        'skills_updated' => 'Habilidades actualizadas exitosamente.',
+        'updated' => 'Perfil actualizado exitosamente.',
+        'users_retrieved' => 'Usuarios recuperados exitosamente.',
+        'video_updated' => 'Video de perfil actualizado.',
+    ],
+
+    // Profile Photo
+    'profile_photo' => [
+        'image' => 'El archivo debe ser una imagen válida.',
+        'invalid' => 'Archivo proporcionado inválido.',
+        'max' => 'El tamaño máximo permitido para la imagen es 2 MB.',
+        'mimes' => 'La imagen debe estar en formato JPEG, PNG, JPG o GIF.',
+        'required' => 'Se requiere una foto de perfil.',
     ],
 
     // Reviews
     'reviews' => [
         'created' => 'Reseña enviada exitosamente.',
-        'updated' => 'Reseña actualizada.',
         'deleted' => 'Reseña eliminada.',
         'not_allowed' => 'No puedes calificar este servicio.',
+        'updated' => 'Reseña actualizada.',
     ],
 
-    // Payments
-    'payments' => [
-        'processed' => 'Pago procesado exitosamente.',
-        'failed' => 'Error al procesar el pago.',
-        'refunded' => 'Reembolso procesado exitosamente.',
-        'insufficient_funds' => 'Fondos insuficientes para realizar el pago.',
+    // Service Requests
+    'service_requests' => [
+        'already_assigned' => 'La solicitud ya ha sido asignada a un proveedor.',
+        'created' => 'Solicitud de servicio creada exitosamente.',
+        'deleted' => 'Solicitud de servicio eliminada.',
+        'not_found' => 'Solicitud de servicio no encontrada.',
+        'status_updated' => 'Estado de la solicitud de servicio actualizado.',
+        'updated' => 'Solicitud de servicio actualizada.',
     ],
 
     // Subscriptions
     'subscriptions' => [
         'activated' => 'Suscripción activada exitosamente.',
-        'canceled' => 'Suscripción cancelada.',
-        'renewed' => 'Suscripción renovada automáticamente.',
+        'canceled' => 'Suscripción cancelada exitosamente.',
         'expired' => 'Suscripción expirada.',
-    ],
-
-    // Notifications
-    'notifications' => [
-        'sent' => 'Notificación enviada exitosamente.',
-        'read' => 'Notificación marcada como leída.',
-        'deleted' => 'Notificación eliminada.',
+        'renewed' => 'Suscripción renovada automáticamente.',
+        'created' => 'Suscripción creada exitosamente.',
+        'create_error' => 'Error al crear la suscripción.',
+        'list_success' => 'Suscripciones recuperadas exitosamente.',
+        'list_error' => 'Error al recuperar las suscripciones.',
+        'show_success' => 'Suscripción recuperada exitosamente.',
+        'show_error' => 'Error al recuperar la suscripción.',
+        'cancel_error' => 'Error al cancelar la suscripción.',
     ],
 
     // Tickets (Support)
     'tickets' => [
-        'created' => 'Ticket de soporte creado exitosamente.',
-        'updated' => 'Ticket actualizado.',
         'closed' => 'Ticket cerrado.',
+        'created' => 'Ticket de soporte creado exitosamente.',
         'reply_sent' => 'Respuesta enviada exitosamente.',
+        'updated' => 'Ticket actualizado.',
     ],
 
-    // General
-    'success' => 'Operación realizada exitosamente.',
-    'error' => 'Ha ocurrido un error.',
-    'unauthorized' => 'No autorizado para realizar esta acción.',
-    'forbidden' => 'No tienes permisos para acceder a este recurso.',
-    'not_found' => 'Recurso no encontrado.',
-    'bad_request' => 'Solicitud inválida.',
-    'internal_error' => 'Error interno del servidor.',
+    // Referrals
+    'referrals' => [
+        'accepted' => 'Referido aceptado exitosamente.',
+        'accept_error' => 'Error al aceptar referido.',
+        'created' => 'Referido creado exitosamente.',
+        'create_error' => 'Error al crear referido.',
+        'deleted' => 'Referido eliminado exitosamente.',
+        'delete_error' => 'Error al eliminar referido.',
+        'list_error' => 'Error al recuperar referidos.',
+        'list_success' => 'Referidos recuperados exitosamente.',
+        'show_error' => 'Error al recuperar referido.',
+        'show_success' => 'Referido recuperado exitosamente.',
+    ],
 
-    // Categories
-    'categories' => [
-        'list_success' => 'Categorías recuperadas exitosamente.',
-        'show_success' => 'Categoría recuperada exitosamente.',
-        'create_success' => 'Categoría creada exitosamente.',
-        'update_success' => 'Categoría actualizada exitosamente.',
-        'delete_success' => 'Categoría eliminada exitosamente.',
-        'not_found' => 'Categoría no encontrada.',
+    // Reports
+    'reports' => [
+        'created' => 'Reporte enviado exitosamente.',
+        'create_error' => 'Error al enviar reporte.',
+        'list_error' => 'Error al recuperar reportes.',
+        'list_success' => 'Reportes recuperados exitosamente.',
+        'show_error' => 'Error al recuperar detalles del reporte.',
+        'show_success' => 'Detalles del reporte recuperados exitosamente.',
+        'unauthorized' => 'No estás autorizado para ver este reporte.',
+    ],
+
+    // Service Offers
+    'service_offers' => [
+        'errors' => [
+            'skills_required' => 'Se requieren habilidades compatibles.',
+            'creation_failed' => 'Error al crear la oferta de servicio.',
+            'unauthorized' => 'No autorizado para realizar esta acción.',
+            'update_failed' => 'Error al actualizar la oferta de servicio.',
+        ],
+        'notifications' => [
+            'new_offer_title' => 'Nueva oferta de servicio.',
+            'new_offer_message' => 'Has recibido una nueva oferta para: :title.',
+            'status_update_title' => 'Actualización de estado de la oferta.',
+            'status_update_message' => 'El estado de tu oferta para :title ha sido actualizado a :status.',
+        ],
+        'success' => [
+            'created' => 'Oferta de servicio creada exitosamente.',
+            'updated' => 'Oferta de servicio actualizada exitosamente.',
+        ],
     ],
 ];
-
-

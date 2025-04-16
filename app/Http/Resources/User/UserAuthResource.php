@@ -26,6 +26,7 @@ class UserAuthResource extends JsonResource
             'zip_code' => $this->zip_code,
             'latitude' => $this->latitude,
             'longitude' => $this->longitude,
+            'biography' => $this->biography,
             'profile_photo_url' => $this->profile_photo_url
                 ? Storage::url($this->profile_photo_url)
                 : null,

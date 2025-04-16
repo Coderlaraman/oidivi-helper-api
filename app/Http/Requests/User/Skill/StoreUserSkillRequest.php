@@ -35,12 +35,12 @@ class StoreUserSkillRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'skill_ids.required' => 'Debes proporcionar al menos una habilidad.',
-            'skill_ids.array' => 'El formato de las habilidades no es válido.',
-            'skill_ids.min' => 'Debes seleccionar al menos una habilidad.',
-            'skill_ids.*.required' => 'Cada habilidad debe ser válida.',
-            'skill_ids.*.integer' => 'El ID de la habilidad debe ser un número.',
-            'skill_ids.*.exists' => 'Una o más habilidades seleccionadas no existen.',
+            'skill_ids.required' => 'You must provide at least one skill.',
+            'skill_ids.array' => 'The skills format is invalid.',
+            'skill_ids.min' => 'You must select at least one skill.',
+            'skill_ids.*.required' => 'Each skill must be valid.',
+            'skill_ids.*.integer' => 'The skill ID must be a number.',
+            'skill_ids.*.exists' => 'One or more selected skills do not exist.',
         ];
     }
 } 

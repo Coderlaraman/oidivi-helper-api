@@ -45,19 +45,19 @@ class AdminListServiceRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'search.max' => 'La búsqueda no puede exceder los 100 caracteres.',
-            'status.in' => 'El estado seleccionado no es válido.',
-            'priority.in' => 'La prioridad seleccionada no es válida.',
-            'category_id.exists' => 'La categoría seleccionada no existe.',
-            'user_id.exists' => 'El usuario seleccionado no existe.',
-            'show_deleted.boolean' => 'El campo mostrar eliminados debe ser verdadero o falso.',
-            'with_category.boolean' => 'El campo incluir categoría debe ser verdadero o falso.',
-            'with_user.boolean' => 'El campo incluir usuario debe ser verdadero o falso.',
-            'sort_by.in' => 'El campo de ordenamiento no es válido.',
-            'sort_direction.in' => 'La dirección de ordenamiento debe ser ascendente o descendente.',
-            'per_page.min' => 'El número de elementos por página debe ser al menos 1.',
-            'per_page.max' => 'El número de elementos por página no puede exceder 100.',
-            'page.min' => 'El número de página debe ser al menos 1.',
+            'search.max' => 'The search cannot exceed 100 characters.',
+            'status.in' => 'The selected status is invalid.',
+            'priority.in' => 'The selected priority is invalid.',
+            'category_id.exists' => 'The selected category does not exist.',
+            'user_id.exists' => 'The selected user does not exist.',
+            'show_deleted.boolean' => 'The show deleted field must be true or false.',
+            'with_category.boolean' => 'The include category field must be true or false.',
+            'with_user.boolean' => 'The include user field must be true or false.',
+            'sort_by.in' => 'The sorting field is invalid.',
+            'sort_direction.in' => 'The sorting direction must be ascending or descending.',
+            'per_page.min' => 'The number of elements per page must be at least 1.',
+            'per_page.max' => 'The number of elements per page cannot exceed 100.',
+            'page.min' => 'The page number must be at least 1.',
         ];
     }
 }
