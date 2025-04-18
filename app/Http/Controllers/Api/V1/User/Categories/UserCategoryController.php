@@ -20,8 +20,8 @@ class UserCategoryController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $categories = Category::where('status', true)
-            ->orderBy('name')
+        // Remove the where clause filtering by 'status'
+        $categories = Category::orderBy('name')
             ->get();
 
         return $this->successResponse(

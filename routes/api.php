@@ -147,13 +147,12 @@ Route::prefix('v1')->middleware('locale')->group(function () {
         // Rutas de solicitudes de servicios (protegidas)
         Route::prefix('service-requests')->middleware('auth:sanctum')->group(function () {
             Route::get('/', [UserServiceRequestController::class, 'index']);
+            Route::get('/my-requests', [UserServiceRequestController::class, 'myRequests']);
             Route::get('{id}', [UserServiceRequestController::class, 'show']);
             Route::post('/', [UserServiceRequestController::class, 'store']);
             Route::put('{id}', [UserServiceRequestController::class, 'update']);
             Route::patch('{id}/status', [UserServiceRequestController::class, 'updateStatus']);
             Route::delete('{id}', [UserServiceRequestController::class, 'destroy']);
-            // Route::post('{serviceRequestId}/reviews', [UserServiceRequestController::class, 'storeReview']);
-            // Route::post('{serviceRequestId}/transactions', [UserServiceRequestController::class, 'storeTransaction']);
         });
 
         // Rutas de ofertas de servicio

@@ -19,7 +19,7 @@ class UserServiceRequestController extends Controller
     use ApiResponseTrait;
 
     /**
-     * Lista las solicitudes de servicio con filtros avanzados.
+     * Lista las solicitudes de servicio públicas que no pertenecen al usuario autenticado.
      *
      * @param Request $request
      * @return JsonResponse
@@ -32,15 +32,9 @@ class UserServiceRequestController extends Controller
             // Relaciones base que siempre se cargarán
             $query->with(['categories', 'user', 'offers']);
 
-            // Filtro de visibilidad y propiedad
-            if ($request->boolean('my_requests')) {
-                $query->where('user_id', auth()->id());
-            } else {
-                $query->where(function($q) {
-                    $q->where('visibility', 'public')
-                      ->orWhere('user_id', auth()->id());
-                });
-            }
+            // Filtrar solicitudes que NO pertenecen al usuario autenticado
+            $query->where('user_id', '!=', auth()->id())
+                  ->where('visibility', 'public');
 
             // Filtros básicos
             if ($request->filled('status')) {
@@ -188,6 +182,153 @@ class UserServiceRequestController extends Controller
         } catch (\Exception $e) {
             return $this->errorResponse(
                 message: 'Error retrieving service requests',
+                statusCode: 500,
+                errors: ['error' => $e->getMessage()]
+            );
+        }
+    }
+
+    /**
+     * Lista las solicitudes de servicio con filtros avanzados.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function myRequests(Request $request): JsonResponse
+    {
+        try {
+            $query = ServiceRequest::query();
+
+            // Relaciones base que siempre se cargarán
+            $query->with(['categories', 'user', 'offers']);
+
+            // Filtrar solicitudes que pertenecen al usuario autenticado
+            $query->where('user_id', auth()->id());
+
+            // Filtros básicos
+            if ($request->filled('status')) {
+                $query->whereIn('status', explode(',', $request->status));
+            }
+
+            if ($request->filled('priority')) {
+                $query->whereIn('priority', explode(',', $request->priority));
+            }
+
+            if ($request->filled('service_type')) {
+                $query->whereIn('service_type', explode(',', $request->service_type));
+            }
+
+            // Filtro por categorías
+            if ($request->filled('category_ids')) {
+                $categoryIds = explode(',', $request->category_ids);
+                $query->whereHas('categories', function($q) use ($categoryIds) {
+                    $q->whereIn('categories.id', $categoryIds);
+                });
+            }
+
+            // Filtro por rango de presupuesto
+            if ($request->filled('min_budget')) {
+                $query->where('budget', '>=', $request->min_budget);
+            }
+            if ($request->filled('max_budget')) {
+                $query->where('budget', '<=', $request->max_budget);
+            }
+
+            // Filtro por fecha de vencimiento
+            if ($request->filled('due_date_start')) {
+                $query->where('due_date', '>=', $request->due_date_start);
+            }
+            if ($request->filled('due_date_end')) {
+                $query->where('due_date', '<=', $request->due_date_end);
+            }
+
+            // Búsqueda por texto en título y descripción
+            if ($request->filled('search')) {
+                $searchTerm = $request->search;
+                $query->where(function($q) use ($searchTerm) {
+                    $q->where('title', 'LIKE', "%{$searchTerm}%")
+                      ->orWhere('description', 'LIKE', "%{$searchTerm}%")
+                      ->orWhere('address', 'LIKE', "%{$searchTerm}%");
+                });
+            }
+
+            // Filtro por código postal
+            if ($request->filled('zip_code')) {
+                $query->where('zip_code', $request->zip_code);
+            }
+
+            // Filtro por método de pago
+            if ($request->filled('payment_method')) {
+                $query->whereIn('payment_method', explode(',', $request->payment_method));
+            }
+
+            // Filtro de solicitudes vencidas/no vencidas
+            if ($request->boolean('overdue')) {
+                $query->where('due_date', '<', now())
+                      ->whereNotIn('status', ['completed', 'canceled']);
+            }
+
+            // Ordenación
+            $sortField = $request->input('sort_by', 'created_at');
+            $sortDirection = $request->input('sort_direction', 'desc');
+            $allowedSortFields = [
+                'created_at', 'due_date', 'budget', 'priority', 'status'
+            ];
+
+            if (in_array($sortField, $allowedSortFields)) {
+                $query->orderBy($sortField, $sortDirection);
+            }
+
+            // Paginación
+            $perPage = $request->input('per_page', 10);
+            $serviceRequests = $query->paginate($perPage);
+
+            // Metadatos para la respuesta
+            $metadata = [
+                'filters' => [
+                    'available_statuses' => ServiceRequest::STATUSES,
+                    'available_priorities' => ServiceRequest::PRIORITIES,
+                    'available_payment_methods' => ServiceRequest::PAYMENT_METHODS,
+                    'available_service_types' => ServiceRequest::SERVICE_TYPES,
+                    'available_visibility' => ServiceRequest::VISIBILITY,
+                ],
+                'pagination' => [
+                    'current_page' => $serviceRequests->currentPage(),
+                    'last_page' => $serviceRequests->lastPage(),
+                    'per_page' => $serviceRequests->perPage(),
+                    'total' => $serviceRequests->total(),
+                    'has_more_pages' => $serviceRequests->hasMorePages(),
+                ],
+                'applied_filters' => array_filter([
+                    'status' => $request->status,
+                    'priority' => $request->priority,
+                    'service_type' => $request->service_type,
+                    'category_ids' => $request->category_ids,
+                    'min_budget' => $request->min_budget,
+                    'max_budget' => $request->max_budget,
+                    'due_date_start' => $request->due_date_start,
+                    'due_date_end' => $request->due_date_end,
+                    'search' => $request->search,
+                    'zip_code' => $request->zip_code,
+                    'payment_method' => $request->payment_method,
+                    'sort_by' => $request->input('sort_by', 'created_at'),
+                    'sort_direction' => $request->input('sort_direction', 'desc'),
+                ]),
+            ];
+
+            $data = [
+                'items' => UserServiceRequestResource::collection($serviceRequests),
+                'meta' => $metadata,
+            ];
+
+            return $this->successResponse(
+                data: $data,
+                message: 'My service requests retrieved successfully'
+            );
+
+        } catch (\Exception $e) {
+            return $this->errorResponse(
+                message: 'Error retrieving my service requests',
                 statusCode: 500,
                 errors: ['error' => $e->getMessage()]
             );
