@@ -1,7 +1,6 @@
 <?php
 
 use Illuminate\Support\Facades\Broadcast;
-use App\Models\Chat;
 use App\Models\User;
 
 /*
@@ -15,6 +14,17 @@ use App\Models\User;
 |
 */
 
+// Canal privado para notificaciones de usuario
+Broadcast::channel('user.notifications.{id}', function (User $user, $id) {
+    return (int) $user->id === (int) $id;
+}, ['guards' => ['sanctum']]);
+
+// Canal privado para usuarios
+Broadcast::channel('user.{id}', function (User $user, $id) {
+    return (int) $user->id === (int) $id;
+}, ['guards' => ['sanctum']]);
+
+// Canal para chats privados
 Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
     return (int) $user->id === (int) $id;
 }, ['guards' => ['sanctum']]);
@@ -31,12 +41,6 @@ Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
 //     // Verificar si el usuario es participante del chat
 //     return $chat->isParticipant($user);
 // }, ['guards' => ['sanctum']]);
-
-
-// Canal para chats privados
-Broadcast::channel('user.{id}', function ($user, $id) {
-    return (int) $user->id === (int) $id;
-}, ['guards' => ['sanctum']]);
 
 
 // Broadcast::channel('my-proof', function(){

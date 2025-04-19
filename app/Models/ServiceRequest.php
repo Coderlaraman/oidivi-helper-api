@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Events\NewServiceRequestNotification;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -116,14 +117,19 @@ class ServiceRequest extends Model
                 $query->whereIn('categories.id', $categoryIds);
             })->get();
 
-            // Crear notificaciones para cada usuario
-            foreach ($users as $user) {
-                PushNotification::create([
-                    'user_id' => $user->id,
-                    'service_request_id' => $serviceRequest->id,
-                    'title' => 'Nueva solicitud de servicio disponible',
-                    'message' => "Se ha publicado una nueva solicitud de servicio que coincide con tus habilidades: {$serviceRequest->title}"
-                ]);
+            if ($users->isNotEmpty()) {
+                // Crear notificaciones en la base de datos
+                foreach ($users as $user) {
+                    PushNotification::create([
+                        'user_id' => $user->id,
+                        'service_request_id' => $serviceRequest->id,
+                        'title' => 'New Service Request',
+                        'message' => "A new service request has been published that matches your skills: {$serviceRequest->title}"
+                    ]);
+                }
+
+                // Disparar evento de notificación en tiempo real
+                event(new NewServiceRequestNotification($serviceRequest, $users->pluck('id')->toArray()));
             }
         });
     }

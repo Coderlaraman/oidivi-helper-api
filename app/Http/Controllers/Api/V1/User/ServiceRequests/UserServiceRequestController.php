@@ -2,17 +2,20 @@
 
 namespace App\Http\Controllers\Api\V1\User\ServiceRequests;
 
+use App\Events\NewServiceRequestNotification;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\User\ServiceRequest\StoreUserServiceRequest;
 use App\Http\Requests\User\ServiceRequest\UpdateUserServiceRequest;
 use App\Http\Requests\User\ServiceRequest\UpdateUserServiceStatusRequest;
 use App\Http\Resources\User\UserServiceRequestResource;
 use App\Models\ServiceRequest;
+use App\Models\User;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class UserServiceRequestController extends Controller
 {
@@ -350,30 +353,88 @@ class UserServiceRequestController extends Controller
                 );
             }
 
-            $validated = $request->validated();
-            $validated['user_id'] = $user->id;
+            DB::beginTransaction();
+            try {
+                $validated = $request->validated();
+                $validated['user_id'] = $user->id;
 
-            $serviceRequest = ServiceRequest::create($validated);
+                $serviceRequest = ServiceRequest::create($validated);
 
-            if (isset($validated['category_ids'])) {
-                $serviceRequest->attachCategories($validated['category_ids']);
+                if (isset($validated['category_ids'])) {
+                    $serviceRequest->attachCategories($validated['category_ids']);
+                }
+
+                // Cargar relaciones necesarias
+                $serviceRequest->load(['categories', 'user']);
+
+                // Notificar a usuarios coincidentes en segundo plano
+                dispatch(function() use ($serviceRequest) {
+                    $this->notifyMatchingUsers($serviceRequest);
+                })->afterResponse();
+
+                DB::commit();
+
+                return $this->successResponse(
+                    data: new UserServiceRequestResource($serviceRequest),
+                    message: 'Service request created successfully',
+                    statusCode: 201
+                );
+
+            } catch (\Exception $e) {
+                DB::rollBack();
+                throw $e;
             }
-
-            // Cargar relaciones necesarias
-            $serviceRequest->load(['categories', 'user']);
-
-            return $this->successResponse(
-                data: new UserServiceRequestResource($serviceRequest),
-                message: 'Service request created successfully',
-                statusCode: 201
-            );
-
         } catch (\Exception $e) {
             return $this->errorResponse(
                 message: 'Error creating service request',
                 statusCode: 500,
                 errors: ['error' => $e->getMessage()]
             );
+        }
+    }
+
+    /**
+     * Notifica a los usuarios que coinciden con las categorías de la solicitud.
+     */
+    private function notifyMatchingUsers(ServiceRequest $serviceRequest): void
+    {
+        try {
+            // Obtener los IDs de las categorías de la solicitud de servicio
+            $categoryIds = $serviceRequest->categories()
+                ->pluck('categories.id')
+                ->toArray();
+
+            Log::info('Categorías de la solicitud:', [
+                'service_request_id' => $serviceRequest->id,
+                'category_ids' => $categoryIds
+            ]);
+
+            // Obtener usuarios que tienen habilidades en las mismas categorías
+            $matchingUserIds = User::whereHas('skills', function($query) use ($categoryIds) {
+                $query->whereHas('categories', function($q) use ($categoryIds) {
+                    $q->whereIn('categories.id', $categoryIds);
+                });
+            })
+            ->where('id', '!=', $serviceRequest->user_id)
+            ->pluck('id')
+            ->toArray();
+
+            Log::info('Notificando usuarios coincidentes:', [
+                'service_request_id' => $serviceRequest->id,
+                'matching_users_count' => count($matchingUserIds),
+                'category_ids' => $categoryIds
+            ]);
+
+            // Emitir el evento de notificación si hay usuarios coincidentes
+            if (!empty($matchingUserIds)) {
+                event(new NewServiceRequestNotification($serviceRequest, $matchingUserIds));
+            }
+        } catch (\Exception $e) {
+            Log::error('Error al notificar usuarios coincidentes:', [
+                'error' => $e->getMessage(),
+                'service_request_id' => $serviceRequest->id,
+                'trace' => $e->getTraceAsString()
+            ]);
         }
     }
 
