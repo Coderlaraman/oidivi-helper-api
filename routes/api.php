@@ -22,7 +22,7 @@ use App\Http\Controllers\Api\V1\User\Transactions\UserTransactionController;
 use App\Http\Controllers\Api\V1\Chat\ChatController;
 use App\Http\Controllers\Api\V1\Chat\MessageController;
 use App\Http\Controllers\Api\V1\User\Notifications\UserNotificationController;
-use App\Http\Controllers\Api\V1\User\ServiceRequests\UserServiceOfferController;
+use App\Http\Controllers\Api\V1\User\ServiceOffers\UserServiceOfferController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 
@@ -156,10 +156,14 @@ Route::prefix('v1')->middleware('locale')->group(function () {
         });
 
         // Rutas de ofertas de servicio
-        Route::prefix('service-requests/{serviceRequest}/offers')->middleware('auth:sanctum')->group(function () {
-            Route::post('/', [UserServiceOfferController::class, 'store']);
-            Route::patch('{offer}', [UserServiceOfferController::class, 'update']);
-        });
+        // Modificar la definición de la ruta para usar el ID explícitamente
+        Route::prefix('service-requests')->middleware('auth:sanctum')->group(function () {
+            Route::post('{id}/offers', [UserServiceOfferController::class, 'store'])
+                ->where('id', '[0-9]+')
+                ->name('service-offers.store');
+            Route::patch('offers/{offer}', [UserServiceOfferController::class, 'update'])
+                ->name('service-offers.update');
+    });
 
         // Rutas de habilidades
         Route::prefix('skills')->middleware(['auth:sanctum'])->group(function () {

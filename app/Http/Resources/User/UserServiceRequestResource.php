@@ -82,7 +82,18 @@ class UserServiceRequestResource extends JsonResource
                     ->toArray(),
             ],
             'relationships' => [
-                'categories' => AdminCategoryResource::collection($this->whenLoaded('categories')),
+                'categories' => $this->whenLoaded('categories', function() {
+                    return $this->categories->map(function($category) {
+                        return [
+                            'id' => $category->id,
+                            'name' => $category->name,
+                            'slug' => $category->slug,
+                            'description' => $category->description,
+                            'created_at' => $category->created_at->format('Y-m-d H:i:s'),
+                            'updated_at' => $category->updated_at->format('Y-m-d H:i:s'),
+                        ];
+                    });
+                }),
                 'user' => new UserProfileResource($this->whenLoaded('user')),
                 'offers_count' => $this->whenLoaded('offers', function() {
                     return $this->offers->count();
