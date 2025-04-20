@@ -15,13 +15,14 @@ class PushNotification extends Model
         'service_request_id',
         'title',
         'message',
-        'is_read',
-        'read_at'
+        'read_at',
+        'data',
+        'type'
     ];
 
     protected $casts = [
-        'is_read' => 'boolean',
-        'read_at' => 'datetime'
+        'read_at' => 'datetime',
+        'data' => 'array'
     ];
 
     public function user(): BelongsTo
@@ -32,5 +33,10 @@ class PushNotification extends Model
     public function serviceRequest(): BelongsTo
     {
         return $this->belongsTo(ServiceRequest::class);
+    }
+
+    public function scopeUnread($query)
+    {
+        return $query->whereNull('read_at');
     }
 } 

@@ -153,17 +153,11 @@ Route::prefix('v1')->middleware('locale')->group(function () {
             Route::put('{id}', [UserServiceRequestController::class, 'update']);
             Route::patch('{id}/status', [UserServiceRequestController::class, 'updateStatus']);
             Route::delete('{id}', [UserServiceRequestController::class, 'destroy']);
-        });
 
-        // Rutas de ofertas de servicio
-        // Modificar la definición de la ruta para usar el ID explícitamente
-        Route::prefix('service-requests')->middleware('auth:sanctum')->group(function () {
-            Route::post('{id}/offers', [UserServiceOfferController::class, 'store'])
-                ->where('id', '[0-9]+')
-                ->name('service-offers.store');
-            Route::patch('offers/{offer}', [UserServiceOfferController::class, 'update'])
-                ->name('service-offers.update');
-    });
+            // Agregar las rutas de ofertas aquí, en el mismo grupo
+            Route::post('{serviceRequest}/offers', [UserServiceOfferController::class, 'store']);
+            Route::patch('offers/{offer}', [UserServiceOfferController::class, 'update']);
+        });
 
         // Rutas de habilidades
         Route::prefix('skills')->middleware(['auth:sanctum'])->group(function () {
@@ -204,8 +198,9 @@ Route::prefix('v1')->middleware('locale')->group(function () {
         // Rutas de notificaciones
         Route::prefix('notifications')->middleware('auth:sanctum')->group(function () {
             Route::get('/', [UserNotificationController::class, 'index']);
+            Route::get('/unread-count', [UserNotificationController::class, 'getUnreadCount']);
             Route::patch('{notification}/read', [UserNotificationController::class, 'markAsRead']);
-            Route::patch('read-all', [UserNotificationController::class, 'markAllAsRead']);
+            Route::patch('/read-all', [UserNotificationController::class, 'markAllAsRead']);
         });
     });
 

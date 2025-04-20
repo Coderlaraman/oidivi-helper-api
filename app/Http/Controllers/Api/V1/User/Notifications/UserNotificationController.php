@@ -7,6 +7,7 @@ use App\Models\PushNotification;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class UserNotificationController extends Controller
 {
@@ -14,37 +15,106 @@ class UserNotificationController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $notifications = PushNotification::where('user_id', auth()->id())
-            ->with('serviceRequest')
-            ->orderBy('created_at', 'desc')
-            ->paginate(10);
+        try {
+            $perPage = $request->input('per_page', 10);
+            $notifications = PushNotification::where('user_id', auth()->id())
+                ->with(['serviceRequest'])
+                ->orderBy('created_at', 'desc')
+                ->paginate($perPage);
 
-        return $this->successResponse($notifications, __('messages.notifications.list_success'));
+            $unreadCount = PushNotification::where('user_id', auth()->id())
+                ->unread()
+                ->count();
+
+            return $this->successResponse(
+                data: [
+                    'notifications' => $notifications,
+                    'unread_count' => $unreadCount
+                ],
+                message: 'Notifications retrieved successfully'
+            );
+        } catch (\Exception $e) {
+            Log::error('Error retrieving notifications', [
+                'error' => $e->getMessage(),
+                'user_id' => auth()->id()
+            ]);
+            return $this->errorResponse(
+                message: 'Error retrieving notifications',
+                statusCode: 500
+            );
+        }
     }
 
     public function markAsRead(Request $request, PushNotification $notification): JsonResponse
     {
-        if ($notification->user_id !== auth()->id()) {
-            return $this->errorResponse(__('messages.unauthorized'), 403);
+        try {
+            if ($notification->user_id !== auth()->id()) {
+                return $this->errorResponse(
+                    message: 'Unauthorized',
+                    statusCode: 403
+                );
+            }
+
+            $notification->update(['read_at' => now()]);
+
+            return $this->successResponse(
+                data: $notification,
+                message: 'Notification marked as read'
+            );
+        } catch (\Exception $e) {
+            Log::error('Error marking notification as read', [
+                'error' => $e->getMessage(),
+                'notification_id' => $notification->id
+            ]);
+            return $this->errorResponse(
+                message: 'Error marking notification as read',
+                statusCode: 500
+            );
         }
-
-        $notification->update([
-            'is_read' => true,
-            'read_at' => now()
-        ]);
-
-        return $this->successResponse($notification, __('messages.notifications.read'));
     }
 
-    public function markAllAsRead(Request $request): JsonResponse
+    public function markAllAsRead(): JsonResponse
     {
-        PushNotification::where('user_id', auth()->id())
-            ->where('is_read', false)
-            ->update([
-                'is_read' => true,
-                'read_at' => now()
-            ]);
+        try {
+            PushNotification::where('user_id', auth()->id())
+                ->whereNull('read_at')
+                ->update(['read_at' => now()]);
 
-        return $this->successResponse(null, __('messages.notifications.all_read'));
+            return $this->successResponse(
+                message: 'All notifications marked as read'
+            );
+        } catch (\Exception $e) {
+            Log::error('Error marking all notifications as read', [
+                'error' => $e->getMessage(),
+                'user_id' => auth()->id()
+            ]);
+            return $this->errorResponse(
+                message: 'Error marking all notifications as read',
+                statusCode: 500
+            );
+        }
+    }
+
+    public function getUnreadCount(): JsonResponse
+    {
+        try {
+            $count = PushNotification::where('user_id', auth()->id())
+                ->unread()
+                ->count();
+
+            return $this->successResponse(
+                data: ['unread_count' => $count],
+                message: 'Unread count retrieved successfully'
+            );
+        } catch (\Exception $e) {
+            Log::error('Error getting unread count', [
+                'error' => $e->getMessage(),
+                'user_id' => auth()->id()
+            ]);
+            return $this->errorResponse(
+                message: 'Error getting unread count',
+                statusCode: 500
+            );
+        }
     }
 } 
