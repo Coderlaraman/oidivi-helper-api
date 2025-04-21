@@ -81,8 +81,11 @@ class ServiceOfferStatusUpdatedNotification implements ShouldBroadcast
                     ]
                 ],
                 'notification' => [
-                    'title' => 'Offer update',
-                    'message' => $statusMessages[$this->serviceOffer->status] . " for: {$this->serviceOffer->serviceRequest->title}",
+                    'title' => __('messages.service_offers.notifications.status_update_title'),
+                    'message' => __('messages.service_offers.notifications.status_update_message', [
+                        'title' => $this->serviceOffer->serviceRequest->title,
+                        'status' => $this->serviceOffer->status
+                    ]),
                     'action_url' => "/service-requests/{$this->serviceOffer->serviceRequest->slug}/offers/{$this->serviceOffer->id}"
                 ]
             ];

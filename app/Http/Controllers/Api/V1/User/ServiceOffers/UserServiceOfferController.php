@@ -137,8 +137,8 @@ class UserServiceOfferController extends Controller
                 PushNotification::create([
                     'user_id' => $serviceRequest->user_id,
                     'service_request_id' => $serviceRequest->id,
-                    'title' => __('service_offers.notifications.new_offer_title'),
-                    'message' => __('service_offers.notifications.new_offer_message', [
+                    'title' => __('messages.service_offers.notifications.new_offer_title'),
+                    'message' => __('messages.service_offers.notifications.new_offer_message', [
                         'title' => $serviceRequest->title
                     ])
                 ]);
@@ -186,7 +186,7 @@ class UserServiceOfferController extends Controller
     {
         if ($offer->serviceRequest->user_id !== auth()->id()) {
             return $this->errorResponse(
-                message: __('service_offers.errors.unauthorized'),
+                message: __('messages.service_offers.errors.unauthorized'),
                 statusCode: 403
             );
         }
@@ -205,8 +205,8 @@ class UserServiceOfferController extends Controller
                 PushNotification::create([
                     'user_id' => $offer->user_id,
                     'service_request_id' => $offer->service_request_id,
-                    'title' => __('service_offers.notifications.status_update_title'),
-                    'message' => __('service_offers.notifications.status_update_message', [
+                    'title' => __('messages.service_offers.notifications.status_update_title'),
+                    'message' => __('messages.service_offers.notifications.status_update_message', [
                         'title' => $offer->serviceRequest->title,
                         'status' => $offer->status
                     ])
@@ -226,7 +226,7 @@ class UserServiceOfferController extends Controller
 
                 return $this->successResponse(
                     data: $offer->load(['user', 'serviceRequest']),
-                    message: __('service_offers.success.updated')
+                    message: __('messages.service_offers.success.updated')
                 );
 
             } catch (\Exception $e) {
@@ -239,7 +239,7 @@ class UserServiceOfferController extends Controller
                 'offer_id' => $offer->id
             ]);
             return $this->errorResponse(
-                message: __('service_offers.errors.update_failed'),
+                message: __('messages.service_offers.errors.update_failed'),
                 statusCode: 500,
                 errors: ['error' => $e->getMessage()]
             );

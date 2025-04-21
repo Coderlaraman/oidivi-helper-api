@@ -82,8 +82,10 @@ class NewServiceOfferNotification implements ShouldBroadcast
                     ]
                 ],
                 'notification' => [
-                    'title' => 'New offer received',
-                    'message' => "You have received a new offer for your request: {$this->serviceOffer->serviceRequest->title}",
+                    'title' => __('messages.service_offers.notifications.new_offer_title'),
+                    'message' => __('messages.service_offers.notifications.new_offer_message', [
+                        'title' => $this->serviceOffer->serviceRequest->title
+                    ]),
                     'action_url' => "/service-requests/{$this->serviceOffer->serviceRequest->slug}/offers/{$this->serviceOffer->id}"
                 ]
             ];
