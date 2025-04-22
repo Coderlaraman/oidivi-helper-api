@@ -14,451 +14,107 @@ NEXT_PUBLIC_REVERB_PORT=8080
 NEXT_PUBLIC_REVERB_SCHEME=http
 
 
-// '@/config/echo.ts'
+import { Category } from "./user/category";
 
-import Echo from "laravel-echo";
-import Pusher from "pusher-js";
-
-/* eslint-disable no-unused-vars */
-declare global {
-  interface Window {
-    Pusher: typeof Pusher;
-  }
+// Base API Response Types
+export interface ApiResponse<T = unknown> {
+  success: boolean;
+  message: string;
+  data: T;
+  errors?: Record<string, string[]>;
 }
-/* eslint-enable no-unused-vars */
 
-// Definir el tipo específico para nuestra instancia de Echo
-type EchoInstance = Echo<"reverb"> & {
-  connector: {
-    options: {
-      auth: {
-        headers: {
-          Authorization: string;
-        };
-      };
-    };
+export interface ApiErrorResponse {
+  success: boolean;
+  message: string;
+  errors: Record<string, string[]>;
+}
+
+export interface FileUploadError extends ApiErrorResponse {
+  code?: string;
+  type?: "file_size" | "file_type" | "upload_failed" | "network_error";
+  details?: {
+    maxSize?: number;
+    allowedTypes?: string[];
+    receivedType?: string;
+    receivedSize?: number;
   };
-};
+}
 
-let echoInstance: EchoInstance | null = null;
+// Permission Types
+export interface Permission {
+  id: number;
+  name: string;
+  created_at: string;
+  updated_at: string;
+}
 
-const getAuthToken = () => {
-  if (typeof window !== "undefined") {
-    return localStorage.getItem("user_auth_token");
-  }
-  return null;
-};
+// Role Types
+export interface Role {
+  id: number;
+  name: string;
+  permissions?: Permission[];
+  created_at: string;
+  updated_at: string;
+}
 
-const createEchoInstance = () => {
-  if (typeof window !== "undefined" && !echoInstance) {
-    window.Pusher = Pusher;
+// Skill Types
+export interface Skill {
+  id: number;
+  name: string;
+  description: string;
+  categories: Category[];
+  created_at: string;
+  updated_at: string;
+}
 
-    echoInstance = new Echo({
-      broadcaster: "reverb",
-      key: process.env.NEXT_PUBLIC_REVERB_APP_KEY,
-      wsHost: process.env.NEXT_PUBLIC_REVERB_HOST,
-      wsPort: Number(process.env.NEXT_PUBLIC_REVERB_PORT) || 80,
-      wssPort: Number(process.env.NEXT_PUBLIC_REVERB_PORT) || 443,
-      forceTLS: false,
-      enabledTransports: ["ws", "wss"],
-      disableStats: true,
-      authEndpoint: `${process.env.NEXT_PUBLIC_API_BASE_URL}/broadcasting/auth`,
-      auth: {
-        headers: {
-          Accept: "application/json",
-          Authorization: `Bearer ${getAuthToken()}`,
-        },
-      },
-    }) as EchoInstance;
-  }
-  return echoInstance;
-};
+// User Stats Types
+export interface UserStats {
+  id: number;
+  user_id: number;
+  completed_tasks: number;
+  active_services: number;
+  total_earnings: number;
+  rating: number;
+  satisfaction_rate: number;
+  created_at: string;
+  updated_at: string;
+}
 
-export const refreshEchoAuthToken = () => {
-  const instance = createEchoInstance();
-  if (instance?.connector) {
-    instance.connector.options.auth.headers.Authorization = `Bearer ${getAuthToken()}`;
-  }
-};
-
-// Exportar la instancia de Echo directamente
-export default createEchoInstance();
-
-// @/hooks/useEcho.ts
-
-import { useEffect } from "react";
-import echo, { refreshEchoAuthToken } from "@/config/echo";
-import { useUserAuthContext } from "@/contexts/UserAuthContext";
-import { EchoError } from "@/lib/types/echo";
-import { toast } from "sonner";
-
-export interface ServiceRequestNotification {
-  id: string;
+// Verification Document Type
+export interface VerificationDocument {
+  url: string;
   type: string;
-  timestamp: string;
-  service_request: {
-    id: number;
-    title: string;
-    slug: string;
-    description: string;
-    budget: number;
-    priority: string;
-    service_type: string;
-    created_at: string;
-  };
-  notification: {
-    title: string;
-    message: string;
-    action_url: string;
-  };
+  uploaded_at: string;
 }
 
-export interface ServiceOfferNotification {
-  id: string;
-  type: string;
-  timestamp: string;
-  service_offer: {
-    id: number;
-    price_proposed: number;
-    estimated_time: string;
-    status: string;
-    created_at: string;
-    user: {
-      id: number;
-      name: string;
-      profile_photo_url: string;
-    };
-    service_request: {
-      id: number;
-      title: string;
-      slug: string;
-    };
-  };
-  notification: {
-    title: string;
-    message: string;
-    action_url: string;
-  };
+// Review Types
+export interface Review {
+  id: number;
+  reviewer_id: number;
+  reviewed_id: number;
+  rating: number;
+  comment: string;
+  created_at: string;
+  updated_at: string;
 }
 
-export interface ServiceOfferStatusNotification {
-  id: string;
-  type: string;
-  timestamp: string;
-  service_offer: {
-    id: number;
-    status: string;
-    updated_at: string;
-    service_request: {
-      id: number;
-      title: string;
-      slug: string;
-    };
-  };
-  notification: {
-    title: string;
-    message: string;
-    action_url: string;
-  };
+// Report Types
+export interface Report {
+  id: number;
+  reported_by: number;
+  reported_user: number;
+  reason: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
 }
 
-export const useEcho = () => {
-  const { isAuthenticated, user } = useUserAuthContext();
+export * from "./user/location";
+export * from "./user/serviceRequest";
+export * from "./user/user";
+export * from "./translations";
 
-  useEffect(() => {
-    // Solo intentamos conectar si estamos en el cliente y el usuario está autenticado
-    if (typeof window === "undefined" || !isAuthenticated || !user || !echo) {
-      return;
-    }
-
-    try {
-      // Refrescar el token de autenticación antes de conectar
-      refreshEchoAuthToken();
-
-      // Suscribirse al canal privado de notificaciones del usuario
-      const notificationChannel = echo.private(`user.notifications.${user.id}`);
-      const privateChannel = echo.private(`user.${user.id}`);
-
-      // Manejar eventos de conexión del canal privado
-      privateChannel
-        .error((error: EchoError) => {
-          console.error("Error on private channel:", error);
-          // Intentar reconectar si hay un error de autenticación
-          if (error?.type === "AuthError") {
-            refreshEchoAuthToken();
-          }
-        })
-        .subscribed(() => {
-          console.log("Subscribed to private channel");
-        });
-
-      // Manejar eventos de conexión del canal de notificaciones
-      notificationChannel
-        .error((error: EchoError) => {
-          console.error("Error on notifications channel:", error);
-          // Intentar reconectar si hay un error de autenticación
-          if (error?.type === "AuthError") {
-            refreshEchoAuthToken();
-          }
-        })
-        .subscribed(() => {
-          console.log("Subscribed to notifications channel");
-        })
-        // Notificación de nueva solicitud de servicio
-        .listen(
-          ".service.request.notification",
-          (notification: ServiceRequestNotification) => {
-            console.log(
-              "New service request notification received:",
-              notification
-            );
-
-            // Mostrar notificación toast
-            toast(notification.notification.title, {
-              description: notification.notification.message,
-              action: {
-                label: "Show details",
-                onClick: () => {
-                  // Usar el ID numérico del service_request para la redirección
-                  const serviceId = notification.service_request.id;
-                  window.location.href = `/service-requests/${serviceId}`;
-                },
-              },
-              duration: 5000,
-            });
-          }
-        )
-        // Notificación de nueva oferta
-        .listen(
-          ".service.offer.notification",
-          (notification: ServiceOfferNotification) => {
-            console.log(
-              "New service offer notification received:",
-              notification
-            );
-            toast(notification.notification.title, {
-              description: notification.notification.message,
-              action: {
-                label: "Show details",
-                onClick: () => {
-                  const { slug } = notification.service_offer.service_request;
-                  const offerId = notification.service_offer.id;
-                  window.location.href = `/service-requests/${slug}/offers/${offerId}`;
-                },
-              },
-              duration: 5000,
-            });
-          }
-        )
-        // Notificación de actualización de estado de oferta
-        .listen(
-          ".service.offer.status.notification",
-          (notification: ServiceOfferStatusNotification) => {
-            console.log(
-              "Service offer status update notification received:",
-              notification
-            );
-            toast(notification.notification.title, {
-              description: notification.notification.message,
-              action: {
-                label: "Show details",
-                onClick: () => {
-                  const { slug } = notification.service_offer.service_request;
-                  const offerId = notification.service_offer.id;
-                  window.location.href = `/service-requests/${slug}/offers/${offerId}`;
-                },
-              },
-              duration: 5000,
-            });
-          }
-        );
-
-      // Cleanup function
-      return () => {
-        if (echo) {
-          echo.leave(`private-user.${user.id}`);
-          echo.leave(`private-user.notifications.${user.id}`);
-        }
-      };
-    } catch (error) {
-      console.error("Error initializing Echo:", error);
-      // Intentar reconectar si hay un error
-      refreshEchoAuthToken();
-    }
-  }, [isAuthenticated, user]);
-
-  return echo;
-};
-
-
-// '@/lib/api/index.ts'
-
-import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from "axios";
-import { ApiErrorResponse, ApiResponse, User } from "@/lib/types/";
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://oidivi-helper-api.test";
-
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    "Content-Type": "application/json",
-    Accept: "application/json",
-  },
-});
-
-// Interceptor para añadir el token de autenticación a las peticiones
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("user_auth_token");
-
-  if (token && config.headers) {
-    config.headers["Authorization"] = `Bearer ${token}`;
-  }
-
-  return config;
-});
-
-// Interceptor para manejar errores de respuesta
-api.interceptors.response.use(
-  (response) => response,
-  (error: AxiosError<ApiErrorResponse>) => {
-    if (error.response) {
-      const status = error.response.status;
-
-      if (status === 401) {
-        localStorage.removeItem("user_auth_token");
-        if (
-          typeof window !== "undefined" &&
-          !window.location.pathname.includes("/login")
-        ) {
-          window.location.href = "/login";
-        }
-      }
-
-      if (status === 403) {
-        // Acceso prohibido (email no verificado o permisos insuficientes)
-      }
-    }
-
-    return Promise.reject(error);
-  }
-);
-
-// Función genérica para realizar peticiones HTTP
-export const apiRequest = async <T>(
-  method: string,
-  url: string,
-  data?: unknown,
-  config?: AxiosRequestConfig
-): Promise<ApiResponse<T>> => {
-  try {
-    // Configurar timeout para detectar archivos grandes más rápido
-    const requestConfig = {
-      ...config,
-      timeout: config?.timeout || 30000, // 30 segundos por defecto
-    };
-
-    let response: AxiosResponse;
-
-    switch (method.toLowerCase()) {
-      case "get":
-        response = await api.get(url, requestConfig);
-        break;
-      case "post":
-        response = await api.post(url, data, requestConfig);
-        break;
-      case "put":
-        response = await api.put(url, data, requestConfig);
-        break;
-      case "patch":
-        response = await api.patch(url, data, requestConfig);
-        break;
-      case "delete":
-        response = await api.delete(url, requestConfig);
-        break;
-      default:
-        throw new Error(`HTTP method not supported: ${method}`);
-    }
-
-    return response.data;
-  } catch (error) {
-    if (axios.isAxiosError(error)) {
-      // Si hay una respuesta del servidor con errores de validación
-      if (error.response) {
-        // Detectar específicamente errores de validación de archivos grandes
-        if (
-          error.response.status === 413 ||
-          (error.response.data?.errors &&
-            error.response.data.errors.file &&
-            error.response.data.errors.file.includes("The file is too large"))
-        ) {
-          return {
-            success: false,
-            message: "This file is too large.",
-            data: {} as T,
-            errors: {
-              file: ["This file is too large."],
-            },
-          } as ApiResponse<T>;
-        }
-
-        // Devolver la respuesta de error del servidor
-        return error.response.data as ApiResponse<T>;
-      }
-
-      // Detectar errores de timeout o conexión abortada (posiblemente por archivo grande)
-      if (error.code === "ECONNABORTED" || error.message.includes("timeout")) {
-        return {
-          success: false,
-          message: "The request is taking too long. Please try again later.",
-          data: {} as T,
-          errors: {
-            file: ["The file is too large."],
-          },
-        } as ApiResponse<T>;
-      }
-    }
-
-    // Error genérico de conexión
-    return {
-      success: false,
-      message:
-        "There was a problem connecting to the server. Please try again later.",
-      data: {} as T,
-    };
-  }
-};
-
-// Tipos para la búsqueda
-interface SearchParams {
-  query?: string;
-  category?: string;
-  rating?: string;
-  price?: string;
-}
-
-// Función para buscar usuarios
-export const searchUsers = async (params: SearchParams) => {
-  const queryString = new URLSearchParams();
-
-  if (params.query) queryString.append("query", params.query);
-  if (params.category) queryString.append("category", params.category);
-  if (params.rating) queryString.append("rating", params.rating);
-  if (params.price) queryString.append("price", params.price);
-
-  return apiRequest<User[]>(
-    "get",
-    `/api/users/search?${queryString.toString()}`
-  );
-};
-
-export default api;
-
-
-// '@/lib/api/user/serviceOffers.ts'
-
-import { apiRequest } from "@/lib/api";
-import { ApiResponse } from "@/lib/types";
 
 export interface ServiceOffer {
   id: number;
@@ -489,37 +145,283 @@ export interface CreateServiceOfferData {
   message: string;
 }
 
-/**
- * Crea una nueva oferta para una solicitud de servicio.
- */
-export const createServiceOffer = async (
-  serviceRequestId: number,
-  data: CreateServiceOfferData
-): Promise<ApiResponse<ServiceOffer>> => {
-  return apiRequest<ServiceOffer>(
-    "post",
-    `/api/v1/user/service-requests/${serviceRequestId}/offers`,
-    data
-  );
-};
 
-export const getServiceOffer = async (slug: string, offerId: string) => {
-  return apiRequest<ServiceOffer>(
-    "get",
-    `/api/v1/user/service-requests/${slug}/offers/${offerId}`
-  );
-};
+// src/lib/types/user/serviceRequest.ts
 
-export const updateServiceOfferStatus = async (
-  slug: string,
-  offerId: string,
-  status: string
-) => {
-  return apiRequest<ServiceOffer>(
-    "put",
-    `/api/v1/user/service-requests/${slug}/offers/${offerId}`,
-    { status }
-  );
-};
+import { User } from "./user";
 
+export type ServiceRequestStatus =
+  | "pending"
+  | "published"
+  | "in_progress"
+  | "completed"
+  | "cancelled"
+  | "draft";
 
+export type ServiceRequestVisibility = "public" | "private";
+export type ServiceRequestPriority = "low" | "medium" | "high" | "urgent";
+export type ServiceRequestPaymentMethod =
+  | "paypal"
+  | "credit_card"
+  | "bank_transfer";
+export type ServiceRequestType = "one_time" | "recurring";
+
+export interface Category {
+  id: number;
+  name: string;
+  slug: string;
+  description: string;
+  icon: string;
+  sort_order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+  skills_count: number;
+  service_requests_count: number;
+  admin_metadata: {
+    can_be_deleted: boolean;
+    can_be_deactivated: boolean;
+    skills_count: number;
+    service_requests_count: number;
+  };
+}
+
+export interface ServiceRequestLocation {
+  latitude: string;
+  longitude: string;
+  distance?: number;
+}
+
+export interface ServiceRequestBudget {
+  amount: string;
+  currency: string;
+  formatted: string;
+}
+
+export interface ServiceRequestStatusInfo {
+  code: ServiceRequestStatus;
+  text: string;
+  color?: string;
+}
+
+export interface ServiceRequestVisibilityInfo {
+  code: ServiceRequestVisibility;
+  text: string;
+}
+
+export interface ServiceRequestPriorityInfo {
+  code: ServiceRequestPriority;
+  text: string;
+}
+
+export interface ServiceRequestPaymentMethodInfo {
+  code: ServiceRequestPaymentMethod;
+  text: string;
+}
+
+export interface ServiceRequestTypeInfo {
+  code: ServiceRequestType;
+  text: string;
+}
+
+export interface ServiceRequestDates {
+  due_date: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+  completed_at?: string;
+}
+
+export interface ServiceRequestFlags {
+  is_overdue: boolean;
+  is_published: boolean;
+  is_in_progress: boolean;
+  is_completed: boolean;
+  is_canceled: boolean;
+  is_urgent: boolean;
+  is_owner: boolean;
+  has_offers: boolean;
+}
+
+export interface ServiceRequestMetadata {
+  completion_notes?: string | null;
+  completion_evidence?: string[];
+  cancellation_reason?: string | null;
+  completed_at?: string | null;
+  additional_data?: unknown[];
+}
+
+export interface ServiceRequestRelationships {
+  categories?: Category[];
+  user?: User;
+  offers?: ServiceOffer[];
+  contract?: ServiceContract;
+  offers_count: number;
+  has_contract: boolean;
+}
+
+export interface ServiceRequestPermissions {
+  can_edit: boolean;
+  can_delete: boolean;
+  can_make_offer: boolean;
+  can_cancel: boolean;
+}
+
+export interface ServiceOffer {
+  id: number;
+  amount: number;
+  status: string;
+  message: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ServiceContract {
+  id: number;
+  status: string;
+  start_date: string;
+  end_date: string;
+  terms: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ServiceRequest {
+  id: number;
+  user_id: number;
+  title: string;
+  description: string;
+  address: string;
+  zip_code: string;
+  location: ServiceRequestLocation;
+  budget: ServiceRequestBudget;
+  status: ServiceRequestStatusInfo;
+  visibility: ServiceRequestVisibilityInfo;
+  priority: ServiceRequestPriorityInfo;
+  payment_method: ServiceRequestPaymentMethodInfo;
+  service_type: ServiceRequestTypeInfo;
+  dates: ServiceRequestDates;
+  flags: ServiceRequestFlags;
+  relationships: ServiceRequestRelationships;
+  metadata?: Record<string, unknown>;
+  deleted_at?: string | null;
+}
+
+export interface ServiceRequestData {
+  title: string;
+  description: string;
+  address: string;
+  zip_code: string;
+  latitude: number;
+  longitude: number;
+  budget: number;
+  visibility: ServiceRequestVisibility;
+  priority: ServiceRequestPriority;
+  payment_method: ServiceRequestPaymentMethod;
+  service_type: ServiceRequestType;
+  due_date: string | null;
+  category_ids: number[];
+}
+
+export interface ServiceRequestResponse {
+  success: boolean;
+  message: string;
+  data: {
+    items: ServiceRequest[];
+    meta?: {
+      pagination: {
+        current_page: number;
+        last_page: number;
+        per_page: number;
+        total: number;
+        has_more_pages: boolean;
+      };
+      filters?: {
+        available_statuses: Record<string, string>;
+        available_priorities: Record<string, string>;
+        available_payment_methods: Record<string, string>;
+        available_serviceRquest_types: Record<string, string>;
+        available_visibility: Record<string, string>;
+      };
+      applied_filters?: {
+        sort_by: string;
+        sort_direction: string;
+      };
+    };
+  };
+}
+
+export interface ServiceRequestListProps {
+  service_requests: ServiceRequest[];
+  onServiceRequestClick?: (_serviceRequest: ServiceRequest) => void;
+  onOffer?: (_serviceRequest: ServiceRequest) => void;
+  onEditServiceRequest?: (_serviceRequest: ServiceRequest) => void;
+  onDeleteServiceRequest?: (_serviceRequestId: number) => void;
+  onRestoreServiceRequest?: (_serviceRequest: ServiceRequest) => void;
+  onSearch?: (_searchTerm: string) => void;
+  onSort?: (_sortField: string) => void;
+  isLoading?: boolean;
+  error?: string;
+  title?: string;
+  subtitle?: string;
+  showCreateButton?: boolean;
+  viewType?: "default" | "trash";
+  filters?: {
+    status?: ServiceRequestStatus;
+    priority?: ServiceRequestPriority;
+    sort?: string;
+    search?: string;
+    deleted_from?: string;
+    deleted_to?: string;
+  };
+  pagination?: {
+    currentPage: number;
+    totalPages: number;
+    onPageChange: (_page: number) => void;
+    perPage?: number;
+    onPerPageChange?: (_perPage: number) => void;
+  };
+}
+
+export interface ServiceRequestCardProps {
+  service: ServiceRequest;
+  onView?: (_service: ServiceRequest) => void;
+  onEdit?: (_id: number) => void;
+  onDelete?: (_id: number) => void;
+  onContact?: (_service: ServiceRequest) => void;
+  onRestore?: (_service: ServiceRequest) => void;
+  className?: string;
+  isOwnRequest?: boolean;
+  viewMode?: "grid" | "list";
+}
+
+export interface ServiceRequestDetailProps {
+  service: ServiceRequest;
+  onEdit?: (_serviceRquest: ServiceRequest) => void;
+  onDelete?: (_serviceRquestId: number) => void;
+  onContact?: (_serviceRquest: ServiceRequest) => void;
+  onReport?: (_serviceRquest: ServiceRequest) => void;
+  isLoading?: boolean;
+  error?: string;
+}
+
+export interface ServiceRequestFormProps {
+  initialData?: ServiceRequestData;
+  onSubmit: (_data: ServiceRequestData) => void;
+  onCancel: () => void;
+  isLoading?: boolean;
+  mode?: "create" | "edit";
+}
+
+export interface ApiError {
+  status: number;
+  message: string;
+  response?: {
+    data?: {
+      message?: string;
+      errors?: Record<string, string[]>;
+    };
+    status?: number;
+  };
+}

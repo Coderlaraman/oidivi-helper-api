@@ -3,11 +3,12 @@
 namespace App\Http\Controllers\Api\V1\User\Notifications;
 
 use App\Http\Controllers\Controller;
-use App\Models\PushNotification;
+use App\Models\Notification;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use App\Http\Resources\User\UserNotificationResource;
 
 class UserNotificationController extends Controller
 {
@@ -17,19 +18,25 @@ class UserNotificationController extends Controller
     {
         try {
             $perPage = $request->input('per_page', 10);
-            $notifications = PushNotification::where('user_id', auth()->id())
-                ->with(['serviceRequest'])
+            $notifications = Notification::where('user_id', auth()->id())
+                ->with(['serviceRequest', 'user'])
                 ->orderBy('created_at', 'desc')
                 ->paginate($perPage);
 
-            $unreadCount = PushNotification::where('user_id', auth()->id())
-                ->unread()
+            $unreadCount = Notification::where('user_id', auth()->id())
+                ->where('is_read', false)
                 ->count();
 
             return $this->successResponse(
                 data: [
-                    'notifications' => $notifications,
-                    'unread_count' => $unreadCount
+                    'notifications' => UserNotificationResource::collection($notifications),
+                    'unread_count' => $unreadCount,
+                    'meta' => [
+                        'current_page' => $notifications->currentPage(),
+                        'last_page' => $notifications->lastPage(),
+                        'per_page' => $notifications->perPage(),
+                        'total' => $notifications->total()
+                    ]
                 ],
                 message: 'Notifications retrieved successfully'
             );
@@ -45,7 +52,7 @@ class UserNotificationController extends Controller
         }
     }
 
-    public function markAsRead(Request $request, PushNotification $notification): JsonResponse
+    public function markAsRead(Request $request, Notification $notification): JsonResponse
     {
         try {
             if ($notification->user_id !== auth()->id()) {
@@ -55,10 +62,10 @@ class UserNotificationController extends Controller
                 );
             }
 
-            $notification->update(['read_at' => now()]);
+            $notification->markAsRead();
 
             return $this->successResponse(
-                data: $notification,
+                data: new UserNotificationResource($notification),
                 message: 'Notification marked as read'
             );
         } catch (\Exception $e) {
@@ -76,9 +83,12 @@ class UserNotificationController extends Controller
     public function markAllAsRead(): JsonResponse
     {
         try {
-            PushNotification::where('user_id', auth()->id())
-                ->whereNull('read_at')
-                ->update(['read_at' => now()]);
+            Notification::where('user_id', auth()->id())
+                ->where('is_read', false)
+                ->update([
+                    'is_read' => true,
+                    'read_at' => now()
+                ]);
 
             return $this->successResponse(
                 message: 'All notifications marked as read'
@@ -98,8 +108,8 @@ class UserNotificationController extends Controller
     public function getUnreadCount(): JsonResponse
     {
         try {
-            $count = PushNotification::where('user_id', auth()->id())
-                ->unread()
+            $count = Notification::where('user_id', auth()->id())
+                ->where('is_read', false)
                 ->count();
 
             return $this->successResponse(
@@ -113,6 +123,40 @@ class UserNotificationController extends Controller
             ]);
             return $this->errorResponse(
                 message: 'Error getting unread count',
+                statusCode: 500
+            );
+        }
+    }
+
+    /**
+     * Elimina una notificación específica.
+     *
+     * @param Notification $notification
+     * @return JsonResponse
+     */
+    public function destroy(Notification $notification): JsonResponse
+    {
+        try {
+            // Verificar que la notificación pertenezca al usuario autenticado
+            if ($notification->user_id !== auth()->id()) {
+                return $this->errorResponse(
+                    message: 'You do not have permission to delete this notification',
+                    statusCode: 403
+                );
+            }
+
+            $notification->delete();
+
+            return $this->successResponse(
+                message: __('messages.notifications.deleted')
+            );
+        } catch (\Exception $e) {
+            Log::error('Error deleting notification', [
+                'error' => $e->getMessage(),
+                'notification_id' => $notification->id
+            ]);
+            return $this->errorResponse(
+                message: 'Error deleting notification',
                 statusCode: 500
             );
         }

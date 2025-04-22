@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
+use App\Models\Notification;
+use App\Constants\NotificationType;
 
 class ServiceRequest extends Model
 {
@@ -120,9 +122,10 @@ class ServiceRequest extends Model
             if ($users->isNotEmpty()) {
                 // Crear notificaciones en la base de datos
                 foreach ($users as $user) {
-                    PushNotification::create([
+                    Notification::create([
                         'user_id' => $user->id,
                         'service_request_id' => $serviceRequest->id,
+                        'type' => NotificationType::NEW_SERVICE_REQUEST,
                         'title' => 'New Service Request',
                         'message' => "A new service request has been published that matches your skills: {$serviceRequest->title}"
                     ]);

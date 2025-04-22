@@ -12,21 +12,21 @@ return new class extends Migration {
     {
         Schema::create('notifications', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade'); // Usuario que recibe la notificación
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->foreignId('service_request_id')->constrained()->onDelete('cascade');
+            $table->string('type');
             $table->string('title');
             $table->text('message');
-            $table->string('type'); // Tipo de notificación (ej. oferta, mensaje, actualización, etc.)
-            $table->boolean('read')->default(false);
+            $table->json('data')->nullable();
+            $table->boolean('is_read')->default(false);
+            $table->timestamp('read_at')->nullable();
             $table->timestamps();
+
+            $table->index(['user_id', 'is_read']);
+            $table->index('created_at');
         });
 
-        Schema::create('device_tokens', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->string('token')->unique();
-            $table->enum('platform', ['android', 'ios', 'web']);
-            $table->timestamps();
-        });
+        Schema::dropIfExists('device_tokens');
     }
 
     /**
@@ -35,6 +35,5 @@ return new class extends Migration {
     public function down(): void
     {
         Schema::dropIfExists('notifications');
-        Schema::dropIfExists('device_tokens');
     }
 };

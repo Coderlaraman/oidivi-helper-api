@@ -11,7 +11,8 @@ use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use App\Models\PushNotification;
+use App\Models\Notification;
+use App\Constants\NotificationType;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
@@ -134,13 +135,19 @@ class UserServiceOfferController extends Controller
                 ]);
 
                 // Crear notificación
-                PushNotification::create([
+                Notification::create([
                     'user_id' => $serviceRequest->user_id,
                     'service_request_id' => $serviceRequest->id,
+                    'type' => NotificationType::NEW_OFFER,
                     'title' => __('messages.service_offers.notifications.new_offer_title'),
                     'message' => __('messages.service_offers.notifications.new_offer_message', [
                         'title' => $serviceRequest->title
-                    ])
+                    ]),
+                    'data' => [
+                        'offer_id' => $offer->id,
+                        'price_proposed' => $offer->price_proposed,
+                        'estimated_time' => $offer->estimated_time
+                    ]
                 ]);
 
                 // Emitir evento de notificación
@@ -201,15 +208,21 @@ class UserServiceOfferController extends Controller
                     'status' => $newStatus
                 ]);
 
-                // Crear notificación en la base de datos
-                PushNotification::create([
+                // Crear notificación
+                Notification::create([
                     'user_id' => $offer->user_id,
                     'service_request_id' => $offer->service_request_id,
+                    'type' => NotificationType::OFFER_STATUS_UPDATED,
                     'title' => __('messages.service_offers.notifications.status_update_title'),
                     'message' => __('messages.service_offers.notifications.status_update_message', [
                         'title' => $offer->serviceRequest->title,
                         'status' => $offer->status
-                    ])
+                    ]),
+                    'data' => [
+                        'offer_id' => $offer->id,
+                        'old_status' => $oldStatus,
+                        'new_status' => $newStatus
+                    ]
                 ]);
 
                 // Emitir evento de notificación en tiempo real
@@ -240,6 +253,170 @@ class UserServiceOfferController extends Controller
             ]);
             return $this->errorResponse(
                 message: __('messages.service_offers.errors.update_failed'),
+                statusCode: 500,
+                errors: ['error' => $e->getMessage()]
+            );
+        }
+    }
+
+    /**
+     * Lista todas las ofertas recibidas en las solicitudes del usuario autenticado.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function receivedOffers(Request $request): JsonResponse
+    {
+        try {
+            $query = ServiceOffer::whereHas('serviceRequest', function($query) {
+                $query->where('user_id', auth()->id());
+            })->with(['user', 'serviceRequest']);
+
+            // Filtros
+            if ($request->filled('status')) {
+                $query->whereIn('status', explode(',', $request->status));
+            }
+
+            if ($request->filled('search')) {
+                $searchTerm = $request->search;
+                $query->whereHas('user', function($q) use ($searchTerm) {
+                    $q->where('name', 'LIKE', "%{$searchTerm}%");
+                })->orWhereHas('serviceRequest', function($q) use ($searchTerm) {
+                    $q->where('title', 'LIKE', "%{$searchTerm}%");
+                });
+            }
+
+            // Ordenamiento
+            $sortField = $request->input('sort_by', 'created_at');
+            $sortDirection = $request->input('sort_direction', 'desc');
+            $allowedSortFields = ['created_at', 'price_proposed', 'status'];
+
+            if (in_array($sortField, $allowedSortFields)) {
+                $query->orderBy($sortField, $sortDirection);
+            }
+
+            // Paginación
+            $perPage = $request->input('per_page', 10);
+            $offers = $query->paginate($perPage);
+
+            return $this->successResponse(
+                data: [
+                    'items' => $offers,
+                    'meta' => [
+                        'pagination' => [
+                            'current_page' => $offers->currentPage(),
+                            'last_page' => $offers->lastPage(),
+                            'per_page' => $offers->perPage(),
+                            'total' => $offers->total()
+                        ],
+                        'filters' => [
+                            'available_statuses' => ['pending', 'accepted', 'rejected'],
+                            'applied_filters' => array_filter([
+                                'status' => $request->status,
+                                'search' => $request->search,
+                                'sort_by' => $sortField,
+                                'sort_direction' => $sortDirection
+                            ])
+                        ]
+                    ]
+                ],
+                message: 'Received offers retrieved successfully'
+            );
+
+        } catch (\Exception $e) {
+            return $this->errorResponse(
+                message: 'Error retrieving received offers',
+                statusCode: 500,
+                errors: ['error' => $e->getMessage()]
+            );
+        }
+    }
+
+    /**
+     * Muestra el detalle de una oferta específica.
+     *
+     * @param ServiceOffer $offer
+     * @return JsonResponse
+     */
+    public function showOffer(ServiceOffer $offer): JsonResponse
+    {
+        try {
+            // Verificar que la oferta pertenezca a una solicitud del usuario autenticado
+            if ($offer->serviceRequest->user_id !== auth()->id()) {
+                return $this->errorResponse(
+                    message: 'You do not have permission to view this offer',
+                    statusCode: 403
+                );
+            }
+
+            $offer->load(['user', 'serviceRequest.categories']);
+
+            return $this->successResponse(
+                data: $offer,
+                message: 'Offer details retrieved successfully'
+            );
+
+        } catch (\Exception $e) {
+            return $this->errorResponse(
+                message: 'Error retrieving offer details',
+                statusCode: 500,
+                errors: ['error' => $e->getMessage()]
+            );
+        }
+    }
+
+    /**
+     * Lista las ofertas de una solicitud específica.
+     *
+     * @param Request $request
+     * @param int $id ID de la solicitud
+     * @return JsonResponse
+     */
+    public function requestOffers(Request $request, $id): JsonResponse
+    {
+        try {
+            $serviceRequest = ServiceRequest::where('user_id', auth()->id())
+                ->findOrFail($id);
+
+            $query = $serviceRequest->offers()->with(['user']);
+
+            // Filtros
+            if ($request->filled('status')) {
+                $query->whereIn('status', explode(',', $request->status));
+            }
+
+            // Ordenamiento
+            $sortField = $request->input('sort_by', 'created_at');
+            $sortDirection = $request->input('sort_direction', 'desc');
+            $allowedSortFields = ['created_at', 'price_proposed', 'status'];
+
+            if (in_array($sortField, $allowedSortFields)) {
+                $query->orderBy($sortField, $sortDirection);
+            }
+
+            // Paginación
+            $perPage = $request->input('per_page', 10);
+            $offers = $query->paginate($perPage);
+
+            return $this->successResponse(
+                data: [
+                    'service_request' => $serviceRequest,
+                    'offers' => $offers,
+                    'meta' => [
+                        'pagination' => [
+                            'current_page' => $offers->currentPage(),
+                            'last_page' => $offers->lastPage(),
+                            'per_page' => $offers->perPage(),
+                            'total' => $offers->total()
+                        ]
+                    ]
+                ],
+                message: 'Request offers retrieved successfully'
+            );
+
+        } catch (\Exception $e) {
+            return $this->errorResponse(
+                message: 'Error retrieving request offers',
                 statusCode: 500,
                 errors: ['error' => $e->getMessage()]
             );

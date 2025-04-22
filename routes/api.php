@@ -149,6 +149,9 @@ Route::prefix('v1')->middleware('locale')->group(function () {
             Route::get('/', [UserServiceRequestController::class, 'index']);
             Route::get('/my-requests', [UserServiceRequestController::class, 'myRequests']);
             Route::get('/my-requests/trash', [UserServiceRequestController::class, 'trashedRequests']);
+            Route::get('/my-requests/offers', [UserServiceOfferController::class, 'receivedOffers']);
+            Route::get('/my-requests/{id}/offers', [UserServiceOfferController::class, 'requestOffers']);
+            Route::get('/my-requests/offers/{offer}', [UserServiceOfferController::class, 'showOffer']);
             Route::get('{id}', [UserServiceRequestController::class, 'show']);
             Route::post('/', [UserServiceRequestController::class, 'store']);
             Route::put('/my-requests/{id}', [UserServiceRequestController::class, 'update']);
@@ -203,6 +206,7 @@ Route::prefix('v1')->middleware('locale')->group(function () {
             Route::get('/unread-count', [UserNotificationController::class, 'getUnreadCount']);
             Route::patch('{notification}/read', [UserNotificationController::class, 'markAsRead']);
             Route::patch('/read-all', [UserNotificationController::class, 'markAllAsRead']);
+            Route::delete('{notification}', [UserNotificationController::class, 'destroy']);
         });
     });
 
@@ -228,6 +232,3 @@ Route::prefix('v1')->middleware('locale')->group(function () {
     
 });
 
-
-
-// Broadcast::routes(['middleware' => ['auth:sanctum']]);
