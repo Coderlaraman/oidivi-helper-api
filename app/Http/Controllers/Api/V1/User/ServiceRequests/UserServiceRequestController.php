@@ -474,23 +474,17 @@ class UserServiceRequestController extends Controller
     }
 
     /**
-     * Update an existing service request.
+     * Update an existing service request that belongs to the authenticated user.
      */
     public function update(UpdateUserServiceRequest $request, $id): JsonResponse
     {
         try {
-            $serviceRequest = ServiceRequest::with(['categories', 'user'])
+            $serviceRequest = ServiceRequest::where('user_id', auth()->id())
+                ->with(['categories', 'user'])
                 ->find($id);
 
             if (!$serviceRequest) {
-                return $this->notFoundResponse('Service request not found');
-            }
-
-            if ($serviceRequest->user_id !== auth()->id()) {
-                return $this->errorResponse(
-                    message: 'You do not have permission to update this service request',
-                    statusCode: 403
-                );
+                return $this->notFoundResponse('Service request not found or does not belong to you');
             }
 
             if (!in_array($serviceRequest->status, ['published', 'in_progress'])) {
@@ -647,7 +641,7 @@ class UserServiceRequestController extends Controller
 
             DB::beginTransaction();
             try {
-                $serviceRequest->categories()->detach();
+                // $serviceRequest->categories()->detach();
                 $serviceRequest->delete();
                 DB::commit();
 
@@ -662,6 +656,144 @@ class UserServiceRequestController extends Controller
         } catch (\Exception $e) {
             return $this->errorResponse(
                 message: 'Error deleting service request',
+                statusCode: 500,
+                errors: ['error' => $e->getMessage()]
+            );
+        }
+    }
+
+    /**
+     * Restaura una solicitud de servicio previamente eliminada.
+     * Solo el propietario puede restaurar sus solicitudes eliminadas.
+     *
+     * @param int $id
+     * @return JsonResponse
+     */
+    public function restore($id): JsonResponse
+    {
+        try {
+            // Buscar la solicitud eliminada que pertenezca al usuario autenticado
+            $serviceRequest = ServiceRequest::onlyTrashed()
+                ->where('user_id', auth()->id())
+                ->find($id);
+
+            if (!$serviceRequest) {
+                return $this->notFoundResponse('Deleted service request not found or does not belong to you');
+            }
+
+            // Verificar si ya existe una solicitud activa con el mismo título
+            if (ServiceRequest::where('title', $serviceRequest->title)
+                ->where('id', '!=', $id)
+                ->exists()) {
+                return $this->errorResponse(
+                    message: 'Cannot restore the service request. A request with the same title already exists.',
+                    statusCode: 409
+                );
+            }
+
+            DB::beginTransaction();
+            try {
+                $serviceRequest->restore();
+
+                // Recargar el modelo con sus relaciones
+                $serviceRequest->load(['categories', 'user', 'offers', 'contract']);
+
+                DB::commit();
+
+                return $this->successResponse(
+                    data: new UserServiceRequestResource($serviceRequest),
+                    message: 'Service request restored successfully',
+                    statusCode: 200
+                );
+
+            } catch (\Exception $e) {
+                DB::rollBack();
+                throw $e;
+            }
+        } catch (\Exception $e) {
+            return $this->errorResponse(
+                message: 'Error restoring service request',
+                statusCode: 500,
+                errors: ['error' => $e->getMessage()]
+            );
+        }
+    }
+
+    /**
+     * Lista las solicitudes de servicio eliminadas del usuario autenticado.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function trashedRequests(Request $request): JsonResponse
+    {
+        try {
+            $query = ServiceRequest::onlyTrashed()
+                ->where('user_id', auth()->id())
+                ->with(['categories', 'user', 'offers']);
+
+            // Filtros básicos
+            if ($request->filled('search')) {
+                $searchTerm = $request->search;
+                $query->where(function($q) use ($searchTerm) {
+                    $q->where('title', 'LIKE', "%{$searchTerm}%")
+                      ->orWhere('description', 'LIKE', "%{$searchTerm}%");
+                });
+            }
+
+            // Filtro por fecha de eliminación
+            if ($request->filled('deleted_from')) {
+                $query->where('deleted_at', '>=', $request->deleted_from);
+            }
+            if ($request->filled('deleted_to')) {
+                $query->where('deleted_at', '<=', $request->deleted_to);
+            }
+
+            // Ordenación
+            $sortField = $request->input('sort_by', 'deleted_at');
+            $sortDirection = $request->input('sort_direction', 'desc');
+            $allowedSortFields = [
+                'deleted_at', 'title', 'created_at', 'budget'
+            ];
+
+            if (in_array($sortField, $allowedSortFields)) {
+                $query->orderBy($sortField, $sortDirection);
+            }
+
+            // Paginación
+            $perPage = $request->input('per_page', 10);
+            $trashedRequests = $query->paginate($perPage);
+
+            // Metadatos para la respuesta
+            $metadata = [
+                'pagination' => [
+                    'current_page' => $trashedRequests->currentPage(),
+                    'last_page' => $trashedRequests->lastPage(),
+                    'per_page' => $trashedRequests->perPage(),
+                    'total' => $trashedRequests->total(),
+                ],
+                'applied_filters' => array_filter([
+                    'search' => $request->search,
+                    'deleted_from' => $request->deleted_from,
+                    'deleted_to' => $request->deleted_to,
+                    'sort_by' => $sortField,
+                    'sort_direction' => $sortDirection,
+                ]),
+            ];
+
+            $data = [
+                'items' => UserServiceRequestResource::collection($trashedRequests),
+                'meta' => $metadata,
+            ];
+
+            return $this->successResponse(
+                data: $data,
+                message: 'Trashed service requests retrieved successfully'
+            );
+
+        } catch (\Exception $e) {
+            return $this->errorResponse(
+                message: 'Error retrieving trashed service requests',
                 statusCode: 500,
                 errors: ['error' => $e->getMessage()]
             );

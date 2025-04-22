@@ -13,8 +13,10 @@ class UpdateUserServiceRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        // Se validará en el controlador que el usuario sea el propietario.
-        return auth()->check();
+        $serviceRequestId = $this->route('id');
+        return auth()->check() && ServiceRequest::where('user_id', auth()->id())
+            ->where('id', $serviceRequestId)
+            ->exists();
     }
 
     /**

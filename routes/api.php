@@ -148,11 +148,13 @@ Route::prefix('v1')->middleware('locale')->group(function () {
         Route::prefix('service-requests')->middleware('auth:sanctum')->group(function () {
             Route::get('/', [UserServiceRequestController::class, 'index']);
             Route::get('/my-requests', [UserServiceRequestController::class, 'myRequests']);
+            Route::get('/my-requests/trash', [UserServiceRequestController::class, 'trashedRequests']);
             Route::get('{id}', [UserServiceRequestController::class, 'show']);
             Route::post('/', [UserServiceRequestController::class, 'store']);
-            Route::put('{id}', [UserServiceRequestController::class, 'update']);
+            Route::put('/my-requests/{id}', [UserServiceRequestController::class, 'update']);
             Route::patch('{id}/status', [UserServiceRequestController::class, 'updateStatus']);
             Route::delete('{id}', [UserServiceRequestController::class, 'destroy']);
+            Route::post('/my-requests/{id}/restore', [UserServiceRequestController::class, 'restore']);
 
             // Agregar las rutas de ofertas aquí, en el mismo grupo
             Route::post('{serviceRequest}/offers', [UserServiceOfferController::class, 'store']);
