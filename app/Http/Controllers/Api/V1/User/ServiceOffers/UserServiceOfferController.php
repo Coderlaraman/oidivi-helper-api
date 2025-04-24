@@ -137,17 +137,12 @@ class UserServiceOfferController extends Controller
                 // Crear notificación
                 Notification::create([
                     'user_id' => $serviceRequest->user_id,
-                    'service_request_id' => $serviceRequest->id,
                     'type' => NotificationType::NEW_OFFER,
                     'title' => __('messages.service_offers.notifications.new_offer_title'),
                     'message' => __('messages.service_offers.notifications.new_offer_message', [
                         'title' => $serviceRequest->title
                     ]),
-                    'data' => [
-                        'offer_id' => $offer->id,
-                        'price_proposed' => $offer->price_proposed,
-                        'estimated_time' => $offer->estimated_time
-                    ]
+                    'is_read' => false
                 ]);
 
                 // Emitir evento de notificación
@@ -211,18 +206,13 @@ class UserServiceOfferController extends Controller
                 // Crear notificación
                 Notification::create([
                     'user_id' => $offer->user_id,
-                    'service_request_id' => $offer->service_request_id,
                     'type' => NotificationType::OFFER_STATUS_UPDATED,
                     'title' => __('messages.service_offers.notifications.status_update_title'),
                     'message' => __('messages.service_offers.notifications.status_update_message', [
                         'title' => $offer->serviceRequest->title,
                         'status' => $offer->status
                     ]),
-                    'data' => [
-                        'offer_id' => $offer->id,
-                        'old_status' => $oldStatus,
-                        'new_status' => $newStatus
-                    ]
+                    'is_read' => false
                 ]);
 
                 // Emitir evento de notificación en tiempo real

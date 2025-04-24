@@ -12,19 +12,21 @@ class Notification extends Model
 
     protected $fillable = [
         'user_id',
-        'service_request_id',
+        'type',
         'title',
         'message',
-        'type',
-        'data',
         'is_read',
         'read_at'
     ];
 
     protected $casts = [
-        'read_at' => 'datetime',
-        'data' => 'array',
         'is_read' => 'boolean'
+    ];
+
+    protected $dates = [
+        'read_at',
+        'created_at',
+        'updated_at'
     ];
 
     public function user(): BelongsTo
@@ -32,21 +34,10 @@ class Notification extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function serviceRequest(): BelongsTo
-    {
-        return $this->belongsTo(ServiceRequest::class);
-    }
-
-    public function scopeUnread($query)
-    {
-        return $query->where('is_read', false);
-    }
-
     public function markAsRead(): bool
     {
         return $this->update([
-            'is_read' => true,
-            'read_at' => now()
+            'is_read' => true
         ]);
     }
 }

@@ -11,19 +11,15 @@ return new class extends Migration {
     public function up(): void
     {
         Schema::create('notifications', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->foreignId('service_request_id')->constrained()->onDelete('cascade');
-            $table->string('type');
-            $table->string('title');
+            $table->bigIncrements('id');
+            $table->bigInteger('user_id');
+            $table->string('type', 255);
+            $table->string('title', 255);
             $table->text('message');
-            $table->json('data')->nullable();
-            $table->boolean('is_read')->default(false);
+            $table->tinyInteger('is_read')->default(0);
             $table->timestamp('read_at')->nullable();
-            $table->timestamps();
-
-            $table->index(['user_id', 'is_read']);
-            $table->index('created_at');
+            $table->timestamp('created_at')->nullable();
+            $table->timestamp('updated_at')->nullable();
         });
 
         Schema::dropIfExists('device_tokens');

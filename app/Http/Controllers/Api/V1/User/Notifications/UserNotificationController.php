@@ -29,13 +29,13 @@ class UserNotificationController extends Controller
 
             return $this->successResponse(
                 data: [
-                    'notifications' => UserNotificationResource::collection($notifications),
-                    'unread_count' => $unreadCount,
+                    'items' => UserNotificationResource::collection($notifications),
                     'meta' => [
                         'current_page' => $notifications->currentPage(),
                         'last_page' => $notifications->lastPage(),
                         'per_page' => $notifications->perPage(),
-                        'total' => $notifications->total()
+                        'total' => $notifications->total(),
+                        'unread_count' => $unreadCount
                     ]
                 ],
                 message: 'Notifications retrieved successfully'
@@ -113,7 +113,11 @@ class UserNotificationController extends Controller
                 ->count();
 
             return $this->successResponse(
-                data: ['unread_count' => $count],
+                data: [
+                    'meta' => [
+                        'unread_count' => $count
+                    ]
+                ],
                 message: 'Unread count retrieved successfully'
             );
         } catch (\Exception $e) {

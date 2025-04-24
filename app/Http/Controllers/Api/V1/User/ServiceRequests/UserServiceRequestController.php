@@ -16,6 +16,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Models\Notification;
+use App\Models\NotificationType;
 
 class UserServiceRequestController extends Controller
 {
@@ -410,24 +412,36 @@ class UserServiceRequestController extends Controller
             ]);
 
             // Obtener usuarios que tienen habilidades en las mismas categorías
-            $matchingUserIds = User::whereHas('skills', function($query) use ($categoryIds) {
+            $matchingUsers = User::whereHas('skills', function($query) use ($categoryIds) {
                 $query->whereHas('categories', function($q) use ($categoryIds) {
                     $q->whereIn('categories.id', $categoryIds);
                 });
             })
             ->where('id', '!=', $serviceRequest->user_id)
-            ->pluck('id')
-            ->toArray();
+            ->get();
 
             Log::info('Notificando usuarios coincidentes:', [
                 'service_request_id' => $serviceRequest->id,
-                'matching_users_count' => count($matchingUserIds),
+                'matching_users_count' => $matchingUsers->count(),
                 'category_ids' => $categoryIds
             ]);
 
+            // Crear notificaciones para cada usuario coincidente
+            foreach ($matchingUsers as $user) {
+                Notification::create([
+                    'user_id' => $user->id,
+                    'type' => NotificationType::NEW_SERVICE_REQUEST,
+                    'title' => __('messages.service_requests.notifications.new_request_title'),
+                    'message' => __('messages.service_requests.notifications.new_request_message', [
+                        'title' => $serviceRequest->title
+                    ]),
+                    'is_read' => false
+                ]);
+            }
+
             // Emitir el evento de notificación si hay usuarios coincidentes
-            if (!empty($matchingUserIds)) {
-                event(new NewServiceRequestNotification($serviceRequest, $matchingUserIds));
+            if ($matchingUsers->isNotEmpty()) {
+                event(new NewServiceRequestNotification($serviceRequest, $matchingUsers->pluck('id')->toArray()));
             }
         } catch (\Exception $e) {
             Log::error('Error al notificar usuarios coincidentes:', [

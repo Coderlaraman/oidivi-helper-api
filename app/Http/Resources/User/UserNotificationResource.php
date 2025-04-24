@@ -4,7 +4,6 @@ namespace App\Http\Resources\User;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-use Carbon\Carbon;
 
 class UserNotificationResource extends JsonResource
 {
@@ -17,32 +16,14 @@ class UserNotificationResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'user_id' => $this->user_id,
             'type' => $this->type,
             'title' => $this->title,
             'message' => $this->message,
-            'data' => $this->data ?? [],
-            'read_at' => $this->read_at?->format('Y-m-d H:i:s'),
+            'is_read' => (bool)$this->is_read,
+            'read_at' => $this->read_at,
             'created_at' => $this->created_at->format('Y-m-d H:i:s'),
-            'time_ago' => $this->created_at->diffForHumans(),
-            'is_read' => $this->is_read,
-            'service_request' => $this->whenLoaded('serviceRequest', [
-                'id' => $this->serviceRequest?->id,
-                'title' => $this->serviceRequest?->title,
-                'status' => $this->serviceRequest?->status,
-                'slug' => $this->serviceRequest?->slug,
-            ]),
-            'user' => $this->whenLoaded('user', [
-                'id' => $this->user?->id,
-                'name' => $this->user?->name,
-                'profile_photo_url' => $this->user?->profile_photo_url,
-            ]),
-            'links' => [
-                'mark_as_read' => "/api/v1/user/notifications/{$this->id}/read",
-                'delete' => "/api/v1/user/notifications/{$this->id}",
-                'service_request' => $this->serviceRequest 
-                    ? "/api/v1/user/service-requests/{$this->serviceRequest->id}"
-                    : null,
-            ]
+            'updated_at' => $this->updated_at->format('Y-m-d H:i:s')
         ];
     }
 } 
