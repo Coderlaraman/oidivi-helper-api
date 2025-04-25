@@ -357,11 +357,11 @@ class ServiceRequest extends Model
                 ];
 
                 try {
-                    event(new NewServiceRequestNotification(
-                        $this, 
-                        [$notification->user_id],
-                        $notificationData
-                    ));
+                event(new NewServiceRequestNotification(
+                    $this, 
+                    [$notification->user_id],
+                    $notificationData
+                ));
 
                     Log::info('Service request notification sent', [
                         'notification_id' => $notification->id,
