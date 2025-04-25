@@ -7,11 +7,6 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 class UserNotificationResource extends JsonResource
 {
-    /**
-     * Transform the resource into an array.
-     *
-     * @return array<string, mixed>
-     */
     public function toArray(Request $request): array
     {
         return [
@@ -19,11 +14,14 @@ class UserNotificationResource extends JsonResource
             'user_id' => $this->user_id,
             'type' => $this->type,
             'title' => $this->title,
+            'title_translated' => __('notifications.types.' . $this->type),
             'message' => $this->message,
-            'is_read' => (bool)$this->is_read,
-            'read_at' => $this->read_at,
+            'is_read' => $this->is_read,
+            'read_at' => $this->read_at?->format('Y-m-d H:i:s'),
             'created_at' => $this->created_at->format('Y-m-d H:i:s'),
-            'updated_at' => $this->updated_at->format('Y-m-d H:i:s')
+            'updated_at' => $this->updated_at->format('Y-m-d H:i:s'),
+            'notifiable' => $this->whenLoaded('notifiable'),
         ];
     }
-} 
+}
+

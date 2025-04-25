@@ -10,6 +10,8 @@ use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
+use App\Models\Notification;
+use App\Constants\NotificationType;
 
 class NewServiceRequestNotification implements ShouldBroadcast
 {
@@ -26,12 +28,18 @@ class NewServiceRequestNotification implements ShouldBroadcast
     private array $userIds;
 
     /**
+     * @var array
+     */
+    private array $notificationData;
+
+    /**
      * Create a new event instance.
      */
-    public function __construct(ServiceRequest $serviceRequest, array $userIds)
+    public function __construct(ServiceRequest $serviceRequest, array $userIds, array $notificationData)
     {
         $this->serviceRequest = $serviceRequest;
         $this->userIds = array_unique($userIds);
+        $this->notificationData = $notificationData;
 
         Log::info('NewServiceRequestNotification event created', [
             'service_request_id' => $serviceRequest->id,
@@ -116,5 +124,49 @@ class NewServiceRequestNotification implements ShouldBroadcast
     public function broadcastAs(): string
     {
         return 'service.request.notification';
+    }
+
+    public function notifyMatchingUsers(): void
+    {
+        try {
+            $matchingUsers = $this->getMatchingUsers();
+            
+            if ($matchingUsers->isEmpty()) {
+                return;
+            }
+
+            $notification = $this->createNotification(
+                userIds: $matchingUsers->pluck('id')->toArray(),
+                type: NotificationType::NEW_SERVICE_REQUEST,
+                title: __('notifications.types.new_service_request'),
+                message: __('notifications.messages.new_service_request', [
+                    'title' => $this->title
+                ])
+            );
+
+            event(new NewServiceRequestNotification(
+                serviceRequest: $this,
+                userIds: $matchingUsers->pluck('id')->toArray(),
+                notificationData: [
+                    'id' => $notification->id,
+                    'type' => $notification->type,
+                    'title' => $notification->title,
+                    'message' => $notification->message,
+                    'notifiable' => [
+                        'type' => 'service_request',
+                        'data' => [
+                            'id' => $this->id,
+                            'title' => $this->title,
+                            'slug' => $this->slug
+                        ]
+                    ]
+                ]
+            ));
+        } catch (\Exception $e) {
+            Log::error('Error notifying matching users', [
+                'error' => $e->getMessage(),
+                'service_request_id' => $this->id
+            ]);
+        }
     }
 } 

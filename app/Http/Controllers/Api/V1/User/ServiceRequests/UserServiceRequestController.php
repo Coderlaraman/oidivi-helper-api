@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Models\Notification;
-use App\Models\NotificationType;
+use App\Constants\NotificationType;
 
 class UserServiceRequestController extends Controller
 {
@@ -366,18 +366,13 @@ class UserServiceRequestController extends Controller
                     $serviceRequest->attachCategories($validated['category_ids']);
                 }
 
-                // Cargar relaciones necesarias
-                $serviceRequest->load(['categories', 'user']);
-
-                // Notificar a usuarios coincidentes en segundo plano
-                dispatch(function() use ($serviceRequest) {
-                    $this->notifyMatchingUsers($serviceRequest);
-                })->afterResponse();
+                // Notificar a usuarios coincidentes
+                $serviceRequest->notifyMatchingUsers();
 
                 DB::commit();
 
                 return $this->successResponse(
-                    data: new UserServiceRequestResource($serviceRequest),
+                    data: $serviceRequest->load(['categories', 'user']),
                     message: 'Service request created successfully',
                     statusCode: 201
                 );
@@ -387,68 +382,15 @@ class UserServiceRequestController extends Controller
                 throw $e;
             }
         } catch (\Exception $e) {
+            Log::error('Error creating service request', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
             return $this->errorResponse(
                 message: 'Error creating service request',
                 statusCode: 500,
                 errors: ['error' => $e->getMessage()]
             );
-        }
-    }
-
-    /**
-     * Notifica a los usuarios que coinciden con las categorías de la solicitud.
-     */
-    private function notifyMatchingUsers(ServiceRequest $serviceRequest): void
-    {
-        try {
-            // Obtener los IDs de las categorías de la solicitud de servicio
-            $categoryIds = $serviceRequest->categories()
-                ->pluck('categories.id')
-                ->toArray();
-
-            Log::info('Categorías de la solicitud:', [
-                'service_request_id' => $serviceRequest->id,
-                'category_ids' => $categoryIds
-            ]);
-
-            // Obtener usuarios que tienen habilidades en las mismas categorías
-            $matchingUsers = User::whereHas('skills', function($query) use ($categoryIds) {
-                $query->whereHas('categories', function($q) use ($categoryIds) {
-                    $q->whereIn('categories.id', $categoryIds);
-                });
-            })
-            ->where('id', '!=', $serviceRequest->user_id)
-            ->get();
-
-            Log::info('Notificando usuarios coincidentes:', [
-                'service_request_id' => $serviceRequest->id,
-                'matching_users_count' => $matchingUsers->count(),
-                'category_ids' => $categoryIds
-            ]);
-
-            // Crear notificaciones para cada usuario coincidente
-            foreach ($matchingUsers as $user) {
-                Notification::create([
-                    'user_id' => $user->id,
-                    'type' => NotificationType::NEW_SERVICE_REQUEST,
-                    'title' => __('messages.service_requests.notifications.new_request_title'),
-                    'message' => __('messages.service_requests.notifications.new_request_message', [
-                        'title' => $serviceRequest->title
-                    ]),
-                    'is_read' => false
-                ]);
-            }
-
-            // Emitir el evento de notificación si hay usuarios coincidentes
-            if ($matchingUsers->isNotEmpty()) {
-                event(new NewServiceRequestNotification($serviceRequest, $matchingUsers->pluck('id')->toArray()));
-            }
-        } catch (\Exception $e) {
-            Log::error('Error al notificar usuarios coincidentes:', [
-                'error' => $e->getMessage(),
-                'service_request_id' => $serviceRequest->id,
-                'trace' => $e->getTraceAsString()
-            ]);
         }
     }
 

@@ -146,22 +146,31 @@ Route::prefix('v1')->middleware('locale')->group(function () {
 
         // Rutas de solicitudes de servicios (protegidas)
         Route::prefix('service-requests')->middleware('auth:sanctum')->group(function () {
+            // Rutas públicas (solicitudes de otros usuarios)
             Route::get('/', [UserServiceRequestController::class, 'index']);
-            Route::get('/my-requests', [UserServiceRequestController::class, 'myRequests']);
-            Route::get('/my-requests/trash', [UserServiceRequestController::class, 'trashedRequests']);
+            
+            // Rutas de ofertas específicas
             Route::get('/my-requests/offers', [UserServiceOfferController::class, 'receivedOffers']);
-            Route::get('/my-requests/{id}/offers', [UserServiceOfferController::class, 'requestOffers']);
             Route::get('/my-requests/offers/{offer}', [UserServiceOfferController::class, 'showOffer']);
-            Route::get('{id}', [UserServiceRequestController::class, 'show']);
+            
+            // Rutas de solicitudes propias
+            Route::prefix('my-requests')->group(function () {
+                Route::get('/', [UserServiceRequestController::class, 'myRequests']);
+                Route::get('/trash', [UserServiceRequestController::class, 'trashedRequests']);
+                Route::get('/{id}/offers', [UserServiceOfferController::class, 'requestOffers']);
+                Route::put('/{id}', [UserServiceRequestController::class, 'update']);
+                Route::post('/{id}/restore', [UserServiceRequestController::class, 'restore']);
+            });
+            
+            // Rutas generales de solicitudes
             Route::post('/', [UserServiceRequestController::class, 'store']);
-            Route::put('/my-requests/{id}', [UserServiceRequestController::class, 'update']);
-            Route::patch('{id}/status', [UserServiceRequestController::class, 'updateStatus']);
-            Route::delete('{id}', [UserServiceRequestController::class, 'destroy']);
-            Route::post('/my-requests/{id}/restore', [UserServiceRequestController::class, 'restore']);
-
-            // Agregar las rutas de ofertas aquí, en el mismo grupo
-            Route::post('{serviceRequest}/offers', [UserServiceOfferController::class, 'store']);
-            Route::patch('offers/{offer}', [UserServiceOfferController::class, 'update']);
+            Route::get('/{id}', [UserServiceRequestController::class, 'show']);
+            Route::patch('/{id}/status', [UserServiceRequestController::class, 'updateStatus']);
+            Route::delete('/{id}', [UserServiceRequestController::class, 'destroy']);
+            
+            // Rutas de ofertas
+            Route::post('/{serviceRequest}/offers', [UserServiceOfferController::class, 'store']);
+            Route::patch('/offers/{offer}', [UserServiceOfferController::class, 'update']);
         });
 
         // Rutas de habilidades
@@ -227,8 +236,6 @@ Route::prefix('v1')->middleware('locale')->group(function () {
         Route::put('/{chat}/messages/{message}', [MessageController::class, 'update']);
         Route::delete('/{chat}/messages/{message}', [MessageController::class, 'destroy']);
         Route::post('/{chat}/messages/{message}/seen', [MessageController::class, 'markAsSeen']);
-    });
-
-    
+    }); 
 });
 

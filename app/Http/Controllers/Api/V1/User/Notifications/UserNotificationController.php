@@ -19,12 +19,11 @@ class UserNotificationController extends Controller
         try {
             $perPage = $request->input('per_page', 10);
             $notifications = Notification::where('user_id', auth()->id())
-                ->with(['serviceRequest', 'user'])
                 ->orderBy('created_at', 'desc')
                 ->paginate($perPage);
 
             $unreadCount = Notification::where('user_id', auth()->id())
-                ->where('is_read', false)
+                ->whereNull('read_at')
                 ->count();
 
             return $this->successResponse(
@@ -35,7 +34,7 @@ class UserNotificationController extends Controller
                         'last_page' => $notifications->lastPage(),
                         'per_page' => $notifications->perPage(),
                         'total' => $notifications->total(),
-                        'unread_count' => $unreadCount
+                        'unread_count' => $unreadCount,
                     ]
                 ],
                 message: 'Notifications retrieved successfully'
@@ -43,12 +42,9 @@ class UserNotificationController extends Controller
         } catch (\Exception $e) {
             Log::error('Error retrieving notifications', [
                 'error' => $e->getMessage(),
-                'user_id' => auth()->id()
+                'user_id' => auth()->id(),
             ]);
-            return $this->errorResponse(
-                message: 'Error retrieving notifications',
-                statusCode: 500
-            );
+            return $this->errorResponse('Error retrieving notifications', 500);
         }
     }
 
@@ -56,10 +52,7 @@ class UserNotificationController extends Controller
     {
         try {
             if ($notification->user_id !== auth()->id()) {
-                return $this->errorResponse(
-                    message: 'Unauthorized',
-                    statusCode: 403
-                );
+                return $this->unauthorizedResponse('You do not have permission to mark this notification');
             }
 
             $notification->markAsRead();
@@ -71,12 +64,9 @@ class UserNotificationController extends Controller
         } catch (\Exception $e) {
             Log::error('Error marking notification as read', [
                 'error' => $e->getMessage(),
-                'notification_id' => $notification->id
+                'notification_id' => $notification->id,
             ]);
-            return $this->errorResponse(
-                message: 'Error marking notification as read',
-                statusCode: 500
-            );
+            return $this->errorResponse('Error marking notification as read', 500);
         }
     }
 
@@ -84,11 +74,8 @@ class UserNotificationController extends Controller
     {
         try {
             Notification::where('user_id', auth()->id())
-                ->where('is_read', false)
-                ->update([
-                    'is_read' => true,
-                    'read_at' => now()
-                ]);
+                ->whereNull('read_at')
+                ->update(['read_at' => now()]);
 
             return $this->successResponse(
                 message: 'All notifications marked as read'
@@ -96,12 +83,9 @@ class UserNotificationController extends Controller
         } catch (\Exception $e) {
             Log::error('Error marking all notifications as read', [
                 'error' => $e->getMessage(),
-                'user_id' => auth()->id()
+                'user_id' => auth()->id(),
             ]);
-            return $this->errorResponse(
-                message: 'Error marking all notifications as read',
-                statusCode: 500
-            );
+            return $this->errorResponse('Error marking all notifications as read', 500);
         }
     }
 
@@ -109,13 +93,13 @@ class UserNotificationController extends Controller
     {
         try {
             $count = Notification::where('user_id', auth()->id())
-                ->where('is_read', false)
+                ->whereNull('read_at')
                 ->count();
 
             return $this->successResponse(
                 data: [
                     'meta' => [
-                        'unread_count' => $count
+                        'unread_count' => $count,
                     ]
                 ],
                 message: 'Unread count retrieved successfully'
@@ -123,30 +107,17 @@ class UserNotificationController extends Controller
         } catch (\Exception $e) {
             Log::error('Error getting unread count', [
                 'error' => $e->getMessage(),
-                'user_id' => auth()->id()
+                'user_id' => auth()->id(),
             ]);
-            return $this->errorResponse(
-                message: 'Error getting unread count',
-                statusCode: 500
-            );
+            return $this->errorResponse('Error getting unread count', 500);
         }
     }
 
-    /**
-     * Elimina una notificación específica.
-     *
-     * @param Notification $notification
-     * @return JsonResponse
-     */
     public function destroy(Notification $notification): JsonResponse
     {
         try {
-            // Verificar que la notificación pertenezca al usuario autenticado
             if ($notification->user_id !== auth()->id()) {
-                return $this->errorResponse(
-                    message: 'You do not have permission to delete this notification',
-                    statusCode: 403
-                );
+                return $this->unauthorizedResponse('You do not have permission to delete this notification');
             }
 
             $notification->delete();
@@ -157,12 +128,9 @@ class UserNotificationController extends Controller
         } catch (\Exception $e) {
             Log::error('Error deleting notification', [
                 'error' => $e->getMessage(),
-                'notification_id' => $notification->id
+                'notification_id' => $notification->id,
             ]);
-            return $this->errorResponse(
-                message: 'Error deleting notification',
-                statusCode: 500
-            );
+            return $this->errorResponse('Error deleting notification', 500);
         }
     }
-} 
+}

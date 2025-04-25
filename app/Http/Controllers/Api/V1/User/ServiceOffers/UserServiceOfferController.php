@@ -134,18 +134,17 @@ class UserServiceOfferController extends Controller
                     'matching_categories' => array_values($matchingCategories)
                 ]);
 
-                // Crear notificación
-                Notification::create([
-                    'user_id' => $serviceRequest->user_id,
-                    'type' => NotificationType::NEW_OFFER,
-                    'title' => __('messages.service_offers.notifications.new_offer_title'),
-                    'message' => __('messages.service_offers.notifications.new_offer_message', [
+                // Crear notificación para el dueño de la solicitud
+                $offer->createNotification(
+                    userIds: [$serviceRequest->user_id],
+                    type: NotificationType::NEW_OFFER,
+                    title: __('notifications.types.new_offer'),
+                    message: __('messages.service_offers.notifications.new_offer_message', [
                         'title' => $serviceRequest->title
-                    ]),
-                    'is_read' => false
-                ]);
+                    ])
+                );
 
-                // Emitir evento de notificación
+                // Emitir evento de notificación en tiempo real
                 event(new NewServiceOfferNotification($offer, $serviceRequest->user_id));
 
                 DB::commit();
@@ -203,17 +202,16 @@ class UserServiceOfferController extends Controller
                     'status' => $newStatus
                 ]);
 
-                // Crear notificación
-                Notification::create([
-                    'user_id' => $offer->user_id,
-                    'type' => NotificationType::OFFER_STATUS_UPDATED,
-                    'title' => __('messages.service_offers.notifications.status_update_title'),
-                    'message' => __('messages.service_offers.notifications.status_update_message', [
+                // Crear notificación para el ofertante
+                $offer->createNotification(
+                    userIds: [$offer->user_id],
+                    type: NotificationType::OFFER_STATUS_UPDATED,
+                    title: __('notifications.types.offer_status_updated'),
+                    message: __('messages.service_offers.notifications.status_update_message', [
                         'title' => $offer->serviceRequest->title,
-                        'status' => $offer->status
-                    ]),
-                    'is_read' => false
-                ]);
+                        'status' => $newStatus
+                    ])
+                );
 
                 // Emitir evento de notificación en tiempo real
                 event(new ServiceOfferStatusUpdatedNotification($offer, $offer->user_id));

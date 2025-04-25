@@ -1,0 +1,1118 @@
+{
+    "success": true,
+    "message": "Service requests retrieved successfully",
+    "data": {
+        "items": [
+            {
+                "id": 1,
+                "title": "Urgent Plumbing Repair Needed",
+                "slug": "urgent-plumbing-repair-needed",
+                "description": "Water leak under kitchen sink needs immediate attention. The leak appears to be coming from the pipe connection and is causing water damage to the cabinet.",
+                "address": "123 Main St, Anytown, ST 12345",
+                "zip_code": "12345",
+                "location": {
+                    "latitude": "-56.0000000",
+                    "longitude": "150.0000000"
+                },
+                "budget": {
+                    "amount": "171.00",
+                    "formatted": "171.00"
+                },
+                "visibility": {
+                    "code": "public",
+                    "text": "Public"
+                },
+                "status": {
+                    "code": "published",
+                    "text": "Published"
+                },
+                "priority": {
+                    "code": "urgent",
+                    "text": "Urgent"
+                },
+                "payment_method": {
+                    "code": "credit_card",
+                    "text": "Credit Card"
+                },
+                "service_type": {
+                    "code": "one_time",
+                    "text": "One Time"
+                },
+                "dates": {
+                    "due_date": "2025-05-23 00:02:56",
+                    "created_at": "2025-04-25 00:02:56",
+                    "updated_at": "2025-04-25 00:02:56",
+                    "deleted_at": null
+                },
+                "flags": {
+                    "is_overdue": false,
+                    "is_published": true,
+                    "is_in_progress": false,
+                    "is_completed": false,
+                    "is_canceled": false,
+                    "is_urgent": true,
+                    "is_owner": false
+                },
+                "metadata": {
+                    "completion_notes": null,
+                    "completion_evidence": [],
+                    "cancellation_reason": null,
+                    "completed_at": null,
+                    "additional_data": []
+                },
+                "relationships": {
+                    "categories": [
+                        {
+                            "id": 1,
+                            "name": "Plumbing",
+                            "slug": "plumbing",
+                            "description": "Plumbing services including repairs, installations, and maintenance.",
+                            "created_at": "2025-04-25 00:02:54",
+                            "updated_at": "2025-04-25 00:02:54"
+                        },
+                        {
+                            "id": 46,
+                            "name": "Emergency Services",
+                            "slug": "emergency-services",
+                            "description": "24/7 emergency repair and maintenance services.",
+                            "created_at": "2025-04-25 00:02:54",
+                            "updated_at": "2025-04-25 00:02:54"
+                        }
+                    ],
+                    "user": {
+                        "id": 11,
+                        "name": "Alexandra Urbina",
+                        "email": "cjaime@example.com",
+                        "phone": "+34 970-539836",
+                        "address": "Plaza Nahia, 39, Entre suelo 6º, 35646, L' Godínez",
+                        "zip_code": "86057",
+                        "latitude": -35.5531,
+                        "longitude": 96.5187,
+                        "profile_photo_url": "http://oidivi-helper-api.test/storage/https://i.pravatar.cc/200?img=51",
+                        "profile_video_url": "http://oidivi-helper-api.test/storage/http://www.henriquez.net/aut-earum-autem-cumque-porro.html",
+                        "biography": "Provident beatae sed asperiores dolor id. Praesentium cumque quidem debitis omnis quidem enim.\n\nTempore dicta temporibus quis repellendus quia sed cumque. Corporis cumque ut delectus. Et molestiae inventore vel et quas.",
+                        "verification_status": "rejected",
+                        "is_verified": false,
+                        "verification_documents": [
+                            {
+                                "url": "http://oidivi-helper-api.test/storage/http://www.lomeli.com/officiis-occaecati-rerum-corrupti-expedita-non.html",
+                                "type": "resume",
+                                "uploaded_at": "2025-03-29 00:02:54"
+                            }
+                        ],
+                        "documents_verified_at": null,
+                        "roles": [
+                            "user"
+                        ],
+                        "created_at": "2025-04-25T00:02:54.000000Z",
+                        "updated_at": "2025-04-25T00:02:54.000000Z"
+                    },
+                    "offers_count": 0
+                },
+                "permissions": {
+                    "can_edit": false,
+                    "can_delete": false,
+                    "can_make_offer": true,
+                    "can_cancel": false
+                }
+            },
+            {
+                "id": 2,
+                "title": "Weekly House Cleaning Service",
+                "slug": "weekly-house-cleaning-service",
+                "description": "Looking for a professional cleaner for weekly house cleaning. 3 bedroom, 2 bathroom house. Tasks include dusting, vacuuming, mopping, and bathroom cleaning.",
+                "address": "123 Main St, Anytown, ST 12345",
+                "zip_code": "12345",
+                "location": {
+                    "latitude": "13.0000000",
+                    "longitude": "-107.0000000"
+                },
+                "budget": {
+                    "amount": "847.00",
+                    "formatted": "847.00"
+                },
+                "visibility": {
+                    "code": "public",
+                    "text": "Public"
+                },
+                "status": {
+                    "code": "published",
+                    "text": "Published"
+                },
+                "priority": {
+                    "code": "medium",
+                    "text": "Medium"
+                },
+                "payment_method": {
+                    "code": "bank_transfer",
+                    "text": "Bank Transfer"
+                },
+                "service_type": {
+                    "code": "recurring",
+                    "text": "Recurring"
+                },
+                "dates": {
+                    "due_date": "2025-05-04 00:02:56",
+                    "created_at": "2025-04-25 00:02:56",
+                    "updated_at": "2025-04-25 00:02:56",
+                    "deleted_at": null
+                },
+                "flags": {
+                    "is_overdue": false,
+                    "is_published": true,
+                    "is_in_progress": false,
+                    "is_completed": false,
+                    "is_canceled": false,
+                    "is_urgent": false,
+                    "is_owner": false
+                },
+                "metadata": {
+                    "completion_notes": null,
+                    "completion_evidence": [],
+                    "cancellation_reason": null,
+                    "completed_at": null,
+                    "additional_data": []
+                },
+                "relationships": {
+                    "categories": [
+                        {
+                            "id": 3,
+                            "name": "Cleaning",
+                            "slug": "cleaning",
+                            "description": "Professional cleaning services for homes and offices.",
+                            "created_at": "2025-04-25 00:02:54",
+                            "updated_at": "2025-04-25 00:02:54"
+                        },
+                        {
+                            "id": 5,
+                            "name": "Home Maintenance",
+                            "slug": "home-maintenance",
+                            "description": "General home maintenance and repair services.",
+                            "created_at": "2025-04-25 00:02:54",
+                            "updated_at": "2025-04-25 00:02:54"
+                        }
+                    ],
+                    "user": {
+                        "id": 10,
+                        "name": "Lic. Saúl Castaño Tercero",
+                        "email": "castaneda.iker@example.com",
+                        "phone": "907 451549",
+                        "address": "Travessera Teresa, 73, Bajo 5º, 18958, As Mora",
+                        "zip_code": "09198",
+                        "latitude": -33.5003,
+                        "longitude": 113.38,
+                        "profile_photo_url": "http://oidivi-helper-api.test/storage/https://i.pravatar.cc/200?img=21",
+                        "profile_video_url": "http://oidivi-helper-api.test/storage/http://www.feliciano.es/occaecati-illo-enim-nemo-sequi-sed-possimus-accusamus-magnam.html",
+                        "biography": "Eum et veritatis consequatur dolorum. Cupiditate sequi et sunt animi impedit culpa. Mollitia vel et reprehenderit dolores hic sed similique. Architecto et aliquam est et. Ipsam veritatis distinctio non distinctio.\n\nEsse omnis eius odio ea beatae soluta et. Eaque rerum nemo facere numquam. Possimus voluptatem ea eum non aut saepe. Aperiam molestiae aspernatur explicabo in aperiam quidem.",
+                        "verification_status": "verified",
+                        "is_verified": true,
+                        "verification_documents": [
+                            {
+                                "url": "http://oidivi-helper-api.test/storage/http://www.galvez.com/",
+                                "type": "certification",
+                                "uploaded_at": "2025-04-10 00:02:54"
+                            },
+                            {
+                                "url": "http://oidivi-helper-api.test/storage/https://ojeda.org/non-et-omnis-ipsa-praesentium.html",
+                                "type": "resume",
+                                "uploaded_at": "2025-04-02 00:02:54"
+                            },
+                            {
+                                "url": "http://oidivi-helper-api.test/storage/http://alonso.es/quidem-aperiam-harum-architecto.html",
+                                "type": "resume",
+                                "uploaded_at": "2025-03-27 00:02:54"
+                            }
+                        ],
+                        "documents_verified_at": null,
+                        "roles": [
+                            "user"
+                        ],
+                        "created_at": "2025-04-25T00:02:54.000000Z",
+                        "updated_at": "2025-04-25T00:02:54.000000Z"
+                    },
+                    "offers_count": 0
+                },
+                "permissions": {
+                    "can_edit": false,
+                    "can_delete": false,
+                    "can_make_offer": true,
+                    "can_cancel": false
+                }
+            },
+            {
+                "id": 3,
+                "title": "Garden Landscaping Project",
+                "slug": "garden-landscaping-project",
+                "description": "Need help redesigning and landscaping backyard garden. Area is approximately 500 sq ft. Looking for someone to create a modern, low-maintenance design.",
+                "address": "123 Main St, Anytown, ST 12345",
+                "zip_code": "12345",
+                "location": {
+                    "latitude": "-11.0000000",
+                    "longitude": "-106.0000000"
+                },
+                "budget": {
+                    "amount": "989.00",
+                    "formatted": "989.00"
+                },
+                "visibility": {
+                    "code": "public",
+                    "text": "Public"
+                },
+                "status": {
+                    "code": "published",
+                    "text": "Published"
+                },
+                "priority": {
+                    "code": "low",
+                    "text": "Low"
+                },
+                "payment_method": {
+                    "code": "paypal",
+                    "text": "PayPal"
+                },
+                "service_type": {
+                    "code": "one_time",
+                    "text": "One Time"
+                },
+                "dates": {
+                    "due_date": "2025-05-05 00:02:56",
+                    "created_at": "2025-04-25 00:02:56",
+                    "updated_at": "2025-04-25 00:02:56",
+                    "deleted_at": null
+                },
+                "flags": {
+                    "is_overdue": false,
+                    "is_published": true,
+                    "is_in_progress": false,
+                    "is_completed": false,
+                    "is_canceled": false,
+                    "is_urgent": false,
+                    "is_owner": false
+                },
+                "metadata": {
+                    "completion_notes": null,
+                    "completion_evidence": [],
+                    "cancellation_reason": null,
+                    "completed_at": null,
+                    "additional_data": []
+                },
+                "relationships": {
+                    "categories": [
+                        {
+                            "id": 4,
+                            "name": "Gardening",
+                            "slug": "gardening",
+                            "description": "Garden maintenance, landscaping, and plant care services.",
+                            "created_at": "2025-04-25 00:02:54",
+                            "updated_at": "2025-04-25 00:02:54"
+                        },
+                        {
+                            "id": 5,
+                            "name": "Home Maintenance",
+                            "slug": "home-maintenance",
+                            "description": "General home maintenance and repair services.",
+                            "created_at": "2025-04-25 00:02:54",
+                            "updated_at": "2025-04-25 00:02:54"
+                        }
+                    ],
+                    "user": {
+                        "id": 10,
+                        "name": "Lic. Saúl Castaño Tercero",
+                        "email": "castaneda.iker@example.com",
+                        "phone": "907 451549",
+                        "address": "Travessera Teresa, 73, Bajo 5º, 18958, As Mora",
+                        "zip_code": "09198",
+                        "latitude": -33.5003,
+                        "longitude": 113.38,
+                        "profile_photo_url": "http://oidivi-helper-api.test/storage/https://i.pravatar.cc/200?img=21",
+                        "profile_video_url": "http://oidivi-helper-api.test/storage/http://www.feliciano.es/occaecati-illo-enim-nemo-sequi-sed-possimus-accusamus-magnam.html",
+                        "biography": "Eum et veritatis consequatur dolorum. Cupiditate sequi et sunt animi impedit culpa. Mollitia vel et reprehenderit dolores hic sed similique. Architecto et aliquam est et. Ipsam veritatis distinctio non distinctio.\n\nEsse omnis eius odio ea beatae soluta et. Eaque rerum nemo facere numquam. Possimus voluptatem ea eum non aut saepe. Aperiam molestiae aspernatur explicabo in aperiam quidem.",
+                        "verification_status": "verified",
+                        "is_verified": true,
+                        "verification_documents": [
+                            {
+                                "url": "http://oidivi-helper-api.test/storage/http://www.galvez.com/",
+                                "type": "certification",
+                                "uploaded_at": "2025-04-10 00:02:54"
+                            },
+                            {
+                                "url": "http://oidivi-helper-api.test/storage/https://ojeda.org/non-et-omnis-ipsa-praesentium.html",
+                                "type": "resume",
+                                "uploaded_at": "2025-04-02 00:02:54"
+                            },
+                            {
+                                "url": "http://oidivi-helper-api.test/storage/http://alonso.es/quidem-aperiam-harum-architecto.html",
+                                "type": "resume",
+                                "uploaded_at": "2025-03-27 00:02:54"
+                            }
+                        ],
+                        "documents_verified_at": null,
+                        "roles": [
+                            "user"
+                        ],
+                        "created_at": "2025-04-25T00:02:54.000000Z",
+                        "updated_at": "2025-04-25T00:02:54.000000Z"
+                    },
+                    "offers_count": 0
+                },
+                "permissions": {
+                    "can_edit": false,
+                    "can_delete": false,
+                    "can_make_offer": true,
+                    "can_cancel": false
+                }
+            },
+            {
+                "id": 5,
+                "title": "Emergency Electrical Repair",
+                "slug": "emergency-electrical-repair",
+                "description": "Power outage in half of the house. Circuit breaker issues. Need licensed electrician for immediate inspection and repair.",
+                "address": "123 Main St, Anytown, ST 12345",
+                "zip_code": "12345",
+                "location": {
+                    "latitude": "-28.0000000",
+                    "longitude": "-56.0000000"
+                },
+                "budget": {
+                    "amount": "529.00",
+                    "formatted": "529.00"
+                },
+                "visibility": {
+                    "code": "public",
+                    "text": "Public"
+                },
+                "status": {
+                    "code": "published",
+                    "text": "Published"
+                },
+                "priority": {
+                    "code": "urgent",
+                    "text": "Urgent"
+                },
+                "payment_method": {
+                    "code": "credit_card",
+                    "text": "Credit Card"
+                },
+                "service_type": {
+                    "code": "one_time",
+                    "text": "One Time"
+                },
+                "dates": {
+                    "due_date": "2025-05-08 00:02:56",
+                    "created_at": "2025-04-25 00:02:56",
+                    "updated_at": "2025-04-25 00:02:56",
+                    "deleted_at": null
+                },
+                "flags": {
+                    "is_overdue": false,
+                    "is_published": true,
+                    "is_in_progress": false,
+                    "is_completed": false,
+                    "is_canceled": false,
+                    "is_urgent": true,
+                    "is_owner": false
+                },
+                "metadata": {
+                    "completion_notes": null,
+                    "completion_evidence": [],
+                    "cancellation_reason": null,
+                    "completed_at": null,
+                    "additional_data": []
+                },
+                "relationships": {
+                    "categories": [
+                        {
+                            "id": 2,
+                            "name": "Electrical",
+                            "slug": "electrical",
+                            "description": "Electrical services including wiring, repairs, and installations.",
+                            "created_at": "2025-04-25 00:02:54",
+                            "updated_at": "2025-04-25 00:02:54"
+                        },
+                        {
+                            "id": 46,
+                            "name": "Emergency Services",
+                            "slug": "emergency-services",
+                            "description": "24/7 emergency repair and maintenance services.",
+                            "created_at": "2025-04-25 00:02:54",
+                            "updated_at": "2025-04-25 00:02:54"
+                        }
+                    ],
+                    "user": {
+                        "id": 11,
+                        "name": "Alexandra Urbina",
+                        "email": "cjaime@example.com",
+                        "phone": "+34 970-539836",
+                        "address": "Plaza Nahia, 39, Entre suelo 6º, 35646, L' Godínez",
+                        "zip_code": "86057",
+                        "latitude": -35.5531,
+                        "longitude": 96.5187,
+                        "profile_photo_url": "http://oidivi-helper-api.test/storage/https://i.pravatar.cc/200?img=51",
+                        "profile_video_url": "http://oidivi-helper-api.test/storage/http://www.henriquez.net/aut-earum-autem-cumque-porro.html",
+                        "biography": "Provident beatae sed asperiores dolor id. Praesentium cumque quidem debitis omnis quidem enim.\n\nTempore dicta temporibus quis repellendus quia sed cumque. Corporis cumque ut delectus. Et molestiae inventore vel et quas.",
+                        "verification_status": "rejected",
+                        "is_verified": false,
+                        "verification_documents": [
+                            {
+                                "url": "http://oidivi-helper-api.test/storage/http://www.lomeli.com/officiis-occaecati-rerum-corrupti-expedita-non.html",
+                                "type": "resume",
+                                "uploaded_at": "2025-03-29 00:02:54"
+                            }
+                        ],
+                        "documents_verified_at": null,
+                        "roles": [
+                            "user"
+                        ],
+                        "created_at": "2025-04-25T00:02:54.000000Z",
+                        "updated_at": "2025-04-25T00:02:54.000000Z"
+                    },
+                    "offers_count": 0
+                },
+                "permissions": {
+                    "can_edit": false,
+                    "can_delete": false,
+                    "can_make_offer": true,
+                    "can_cancel": false
+                }
+            },
+            {
+                "id": 6,
+                "title": "Monthly Pool Maintenance Service",
+                "slug": "monthly-pool-maintenance-service",
+                "description": "Looking for regular pool maintenance including chemical balance, cleaning, and equipment check. Pool size is 15x30 feet.",
+                "address": "123 Main St, Anytown, ST 12345",
+                "zip_code": "12345",
+                "location": {
+                    "latitude": "53.0000000",
+                    "longitude": "-99.0000000"
+                },
+                "budget": {
+                    "amount": "71.00",
+                    "formatted": "71.00"
+                },
+                "visibility": {
+                    "code": "public",
+                    "text": "Public"
+                },
+                "status": {
+                    "code": "published",
+                    "text": "Published"
+                },
+                "priority": {
+                    "code": "low",
+                    "text": "Low"
+                },
+                "payment_method": {
+                    "code": "bank_transfer",
+                    "text": "Bank Transfer"
+                },
+                "service_type": {
+                    "code": "recurring",
+                    "text": "Recurring"
+                },
+                "dates": {
+                    "due_date": "2025-04-30 00:02:56",
+                    "created_at": "2025-04-25 00:02:56",
+                    "updated_at": "2025-04-25 00:02:56",
+                    "deleted_at": null
+                },
+                "flags": {
+                    "is_overdue": false,
+                    "is_published": true,
+                    "is_in_progress": false,
+                    "is_completed": false,
+                    "is_canceled": false,
+                    "is_urgent": false,
+                    "is_owner": false
+                },
+                "metadata": {
+                    "completion_notes": null,
+                    "completion_evidence": [],
+                    "cancellation_reason": null,
+                    "completed_at": null,
+                    "additional_data": []
+                },
+                "relationships": {
+                    "categories": [],
+                    "user": {
+                        "id": 12,
+                        "name": "Gloria Castaño",
+                        "email": "qordonez@example.org",
+                        "phone": "913-01-5920",
+                        "address": "Carrer Coronado, 25, 86º F, 68773, Las Santos Medio",
+                        "zip_code": "08927",
+                        "latitude": -81.1251,
+                        "longitude": 153.432,
+                        "profile_photo_url": "http://oidivi-helper-api.test/storage/https://i.pravatar.cc/200?img=34",
+                        "profile_video_url": "http://oidivi-helper-api.test/storage/http://pichardo.com/repellat-possimus-odio-qui-itaque",
+                        "biography": "Et rerum omnis pariatur adipisci. Nemo nam dolorum corporis cumque doloribus rerum quidem deleniti. Necessitatibus rerum ut dolores veniam odit nulla.\n\nReprehenderit a amet cumque suscipit ex non. Deserunt explicabo unde a tempora eius. Totam cumque quia ut a sint nobis. Et aut voluptatum accusamus hic ut voluptas sed non. Eligendi quia beatae necessitatibus est.",
+                        "verification_status": "pending",
+                        "is_verified": false,
+                        "verification_documents": [],
+                        "documents_verified_at": null,
+                        "roles": [
+                            "moderator"
+                        ],
+                        "created_at": "2025-04-25T00:02:54.000000Z",
+                        "updated_at": "2025-04-25T00:02:54.000000Z"
+                    },
+                    "offers_count": 0
+                },
+                "permissions": {
+                    "can_edit": false,
+                    "can_delete": false,
+                    "can_make_offer": true,
+                    "can_cancel": false
+                }
+            },
+            {
+                "id": 7,
+                "title": "Professional Moving Assistance",
+                "slug": "professional-moving-assistance",
+                "description": "Need help moving from a 2-bedroom apartment to a new house. Includes furniture disassembly/assembly. Distance is approximately 15 miles.",
+                "address": "123 Main St, Anytown, ST 12345",
+                "zip_code": "12345",
+                "location": {
+                    "latitude": "-78.0000000",
+                    "longitude": "-46.0000000"
+                },
+                "budget": {
+                    "amount": "807.00",
+                    "formatted": "807.00"
+                },
+                "visibility": {
+                    "code": "public",
+                    "text": "Public"
+                },
+                "status": {
+                    "code": "published",
+                    "text": "Published"
+                },
+                "priority": {
+                    "code": "medium",
+                    "text": "Medium"
+                },
+                "payment_method": {
+                    "code": "paypal",
+                    "text": "PayPal"
+                },
+                "service_type": {
+                    "code": "one_time",
+                    "text": "One Time"
+                },
+                "dates": {
+                    "due_date": "2025-05-15 00:02:56",
+                    "created_at": "2025-04-25 00:02:56",
+                    "updated_at": "2025-04-25 00:02:56",
+                    "deleted_at": null
+                },
+                "flags": {
+                    "is_overdue": false,
+                    "is_published": true,
+                    "is_in_progress": false,
+                    "is_completed": false,
+                    "is_canceled": false,
+                    "is_urgent": false,
+                    "is_owner": false
+                },
+                "metadata": {
+                    "completion_notes": null,
+                    "completion_evidence": [],
+                    "cancellation_reason": null,
+                    "completed_at": null,
+                    "additional_data": []
+                },
+                "relationships": {
+                    "categories": [],
+                    "user": {
+                        "id": 14,
+                        "name": "Ing. Oriol Ruvalcaba",
+                        "email": "sergio.suarez@example.net",
+                        "phone": "+34 984-628735",
+                        "address": "Plaza Zamora, 3, 5º B, 93689, Los De la Torre del Bages",
+                        "zip_code": "48093",
+                        "latitude": 52.6778,
+                        "longitude": -99.1014,
+                        "profile_photo_url": "http://oidivi-helper-api.test/storage/https://i.pravatar.cc/200?img=69",
+                        "profile_video_url": "http://oidivi-helper-api.test/storage/http://www.muro.com/expedita-veniam-unde-ipsum-dolore-consequatur-sed-deleniti-ea",
+                        "biography": "Ipsum libero sint vel commodi labore velit id. Iusto fugit quisquam quibusdam iure. Nam aspernatur fuga rerum.\n\nEnim laborum dolorum in totam hic maiores. Ad et sunt commodi nulla. Quia et modi suscipit facilis voluptatum sapiente et.",
+                        "verification_status": "pending",
+                        "is_verified": false,
+                        "verification_documents": [],
+                        "documents_verified_at": null,
+                        "roles": [
+                            "support"
+                        ],
+                        "created_at": "2025-04-25T00:02:54.000000Z",
+                        "updated_at": "2025-04-25T00:02:54.000000Z"
+                    },
+                    "offers_count": 0
+                },
+                "permissions": {
+                    "can_edit": false,
+                    "can_delete": false,
+                    "can_make_offer": true,
+                    "can_cancel": false
+                }
+            },
+            {
+                "id": 9,
+                "title": "Computer Network Setup for Small Office",
+                "slug": "computer-network-setup-for-small-office",
+                "description": "Need IT professional to set up network for small office. Includes router configuration, printer setup, and basic security measures.",
+                "address": "123 Main St, Anytown, ST 12345",
+                "zip_code": "12345",
+                "location": {
+                    "latitude": "38.0000000",
+                    "longitude": "-26.0000000"
+                },
+                "budget": {
+                    "amount": "251.00",
+                    "formatted": "251.00"
+                },
+                "visibility": {
+                    "code": "public",
+                    "text": "Public"
+                },
+                "status": {
+                    "code": "published",
+                    "text": "Published"
+                },
+                "priority": {
+                    "code": "high",
+                    "text": "High"
+                },
+                "payment_method": {
+                    "code": "bank_transfer",
+                    "text": "Bank Transfer"
+                },
+                "service_type": {
+                    "code": "one_time",
+                    "text": "One Time"
+                },
+                "dates": {
+                    "due_date": "2025-05-08 00:02:56",
+                    "created_at": "2025-04-25 00:02:56",
+                    "updated_at": "2025-04-25 00:02:56",
+                    "deleted_at": null
+                },
+                "flags": {
+                    "is_overdue": false,
+                    "is_published": true,
+                    "is_in_progress": false,
+                    "is_completed": false,
+                    "is_canceled": false,
+                    "is_urgent": false,
+                    "is_owner": false
+                },
+                "metadata": {
+                    "completion_notes": null,
+                    "completion_evidence": [],
+                    "cancellation_reason": null,
+                    "completed_at": null,
+                    "additional_data": []
+                },
+                "relationships": {
+                    "categories": [
+                        {
+                            "id": 21,
+                            "name": "IT Services",
+                            "slug": "it-services",
+                            "description": "Computer and network support services.",
+                            "created_at": "2025-04-25 00:02:54",
+                            "updated_at": "2025-04-25 00:02:54"
+                        }
+                    ],
+                    "user": {
+                        "id": 3,
+                        "name": "Jesús Reséndez",
+                        "email": "javier.leyva@example.com",
+                        "phone": "+34 967876821",
+                        "address": "Paseo Juan, 586, 5º B, 65919, Vall Vigil Alta",
+                        "zip_code": "26361",
+                        "latitude": -38.6691,
+                        "longitude": -80.2188,
+                        "profile_photo_url": "http://oidivi-helper-api.test/storage/https://i.pravatar.cc/200?img=34",
+                        "profile_video_url": "http://oidivi-helper-api.test/storage/http://www.jaramillo.com/esse-sed-sint-est-illum-natus-eveniet-aperiam",
+                        "biography": "Non accusantium porro nam voluptas. Ad est aut accusantium alias maiores. Aliquam commodi ratione velit numquam veritatis quae doloribus. Dicta commodi et cupiditate minima rerum maiores incidunt dicta.\n\nUt dicta facere corrupti illum corrupti labore. Alias similique qui ullam ut nihil sunt. Iure eius voluptatem nam veniam incidunt odio. Suscipit enim ullam similique et.",
+                        "verification_status": "pending",
+                        "is_verified": false,
+                        "verification_documents": [],
+                        "documents_verified_at": null,
+                        "roles": [
+                            "user"
+                        ],
+                        "created_at": "2025-04-25T00:02:54.000000Z",
+                        "updated_at": "2025-04-25T00:02:54.000000Z"
+                    },
+                    "offers_count": 0
+                },
+                "permissions": {
+                    "can_edit": false,
+                    "can_delete": false,
+                    "can_make_offer": true,
+                    "can_cancel": false
+                }
+            },
+            {
+                "id": 11,
+                "title": "Regular Dog Walking Service",
+                "slug": "regular-dog-walking-service",
+                "description": "Looking for a reliable dog walker for daily walks. Medium-sized dog, needs 30-minute walks twice a day.",
+                "address": "123 Main St, Anytown, ST 12345",
+                "zip_code": "12345",
+                "location": {
+                    "latitude": "86.0000000",
+                    "longitude": "-170.0000000"
+                },
+                "budget": {
+                    "amount": "265.00",
+                    "formatted": "265.00"
+                },
+                "visibility": {
+                    "code": "public",
+                    "text": "Public"
+                },
+                "status": {
+                    "code": "published",
+                    "text": "Published"
+                },
+                "priority": {
+                    "code": "low",
+                    "text": "Low"
+                },
+                "payment_method": {
+                    "code": "bank_transfer",
+                    "text": "Bank Transfer"
+                },
+                "service_type": {
+                    "code": "recurring",
+                    "text": "Recurring"
+                },
+                "dates": {
+                    "due_date": "2025-04-28 00:02:56",
+                    "created_at": "2025-04-25 00:02:56",
+                    "updated_at": "2025-04-25 00:02:56",
+                    "deleted_at": null
+                },
+                "flags": {
+                    "is_overdue": false,
+                    "is_published": true,
+                    "is_in_progress": false,
+                    "is_completed": false,
+                    "is_canceled": false,
+                    "is_urgent": false,
+                    "is_owner": false
+                },
+                "metadata": {
+                    "completion_notes": null,
+                    "completion_evidence": [],
+                    "cancellation_reason": null,
+                    "completed_at": null,
+                    "additional_data": []
+                },
+                "relationships": {
+                    "categories": [
+                        {
+                            "id": 31,
+                            "name": "Pet Care",
+                            "slug": "pet-care",
+                            "description": "Pet grooming, walking, and care services.",
+                            "created_at": "2025-04-25 00:02:54",
+                            "updated_at": "2025-04-25 00:02:54"
+                        }
+                    ],
+                    "user": {
+                        "id": 5,
+                        "name": "Sra. Ana Isabel Casado Tercero",
+                        "email": "laureano.martina@example.org",
+                        "phone": "+34 915-66-3919",
+                        "address": "Ruela Fernández, 275, 3º C, 18962, Los Alanis",
+                        "zip_code": "58313",
+                        "latitude": -2.61764,
+                        "longitude": -173.961,
+                        "profile_photo_url": "http://oidivi-helper-api.test/storage/https://i.pravatar.cc/200?img=51",
+                        "profile_video_url": "http://oidivi-helper-api.test/storage/http://cerda.com/aut-sint-exercitationem-officiis-possimus-odit",
+                        "biography": "Ipsam exercitationem vitae nihil sed dicta. Totam ex inventore quasi commodi sunt sed soluta. Facere veritatis aut ipsum velit error.\n\nIure non cum veniam iusto a assumenda voluptatibus. Aut qui similique nemo quis dolores eligendi. Velit laboriosam qui perspiciatis eum. Possimus dolores et praesentium at nostrum. Accusamus dicta occaecati hic.",
+                        "verification_status": "verified",
+                        "is_verified": true,
+                        "verification_documents": [],
+                        "documents_verified_at": "2025-04-25T00:02:54.000000Z",
+                        "roles": [
+                            "user"
+                        ],
+                        "created_at": "2025-04-25T00:02:54.000000Z",
+                        "updated_at": "2025-04-25T00:02:54.000000Z"
+                    },
+                    "offers_count": 0
+                },
+                "permissions": {
+                    "can_edit": false,
+                    "can_delete": false,
+                    "can_make_offer": true,
+                    "can_cancel": false
+                }
+            },
+            {
+                "id": 13,
+                "title": "HVAC System Maintenance",
+                "slug": "hvac-system-maintenance",
+                "description": "Regular maintenance check for central air conditioning and heating system. Includes filter replacement and system inspection.",
+                "address": "123 Main St, Anytown, ST 12345",
+                "zip_code": "12345",
+                "location": {
+                    "latitude": "-66.0000000",
+                    "longitude": "-153.0000000"
+                },
+                "budget": {
+                    "amount": "986.00",
+                    "formatted": "986.00"
+                },
+                "visibility": {
+                    "code": "public",
+                    "text": "Public"
+                },
+                "status": {
+                    "code": "published",
+                    "text": "Published"
+                },
+                "priority": {
+                    "code": "medium",
+                    "text": "Medium"
+                },
+                "payment_method": {
+                    "code": "bank_transfer",
+                    "text": "Bank Transfer"
+                },
+                "service_type": {
+                    "code": "recurring",
+                    "text": "Recurring"
+                },
+                "dates": {
+                    "due_date": "2025-05-14 00:02:56",
+                    "created_at": "2025-04-25 00:02:56",
+                    "updated_at": "2025-04-25 00:02:56",
+                    "deleted_at": null
+                },
+                "flags": {
+                    "is_overdue": false,
+                    "is_published": true,
+                    "is_in_progress": false,
+                    "is_completed": false,
+                    "is_canceled": false,
+                    "is_urgent": false,
+                    "is_owner": false
+                },
+                "metadata": {
+                    "completion_notes": null,
+                    "completion_evidence": [],
+                    "cancellation_reason": null,
+                    "completed_at": null,
+                    "additional_data": []
+                },
+                "relationships": {
+                    "categories": [
+                        {
+                            "id": 10,
+                            "name": "HVAC",
+                            "slug": "hvac",
+                            "description": "Heating, ventilation, and air conditioning services.",
+                            "created_at": "2025-04-25 00:02:54",
+                            "updated_at": "2025-04-25 00:02:54"
+                        }
+                    ],
+                    "user": {
+                        "id": 6,
+                        "name": "Marco Rincón",
+                        "email": "ocampo.mariadolores@example.com",
+                        "phone": "902 20 9502",
+                        "address": "Passeig Rentería, 983, 8º 2º, 41419, Marroquín del Penedès",
+                        "zip_code": "57727",
+                        "latitude": -78.5352,
+                        "longitude": -171.46,
+                        "profile_photo_url": "http://oidivi-helper-api.test/storage/https://i.pravatar.cc/200?img=30",
+                        "profile_video_url": "http://oidivi-helper-api.test/storage/http://casas.com/",
+                        "biography": "Non corporis delectus aut qui sunt amet architecto qui. Facilis laboriosam voluptates provident eos. Recusandae et et placeat blanditiis dolores error ducimus. Sapiente minus velit ex est libero.\n\nEst facilis cumque rerum adipisci. Nesciunt assumenda laborum est omnis voluptatem dolores sit. Soluta quibusdam sunt voluptatem blanditiis odio. Voluptatem laudantium omnis est eos illum.",
+                        "verification_status": "rejected",
+                        "is_verified": false,
+                        "verification_documents": [
+                            {
+                                "url": "http://oidivi-helper-api.test/storage/http://www.vega.com/voluptas-eos-repellendus-laborum-saepe-distinctio-repudiandae.html",
+                                "type": "certification",
+                                "uploaded_at": "2025-04-05 00:02:54"
+                            },
+                            {
+                                "url": "http://oidivi-helper-api.test/storage/http://galindo.org/et-perspiciatis-occaecati-fuga-sit.html",
+                                "type": "resume",
+                                "uploaded_at": "2025-04-15 00:02:54"
+                            }
+                        ],
+                        "documents_verified_at": "2025-04-25T00:02:54.000000Z",
+                        "roles": [
+                            "user"
+                        ],
+                        "created_at": "2025-04-25T00:02:54.000000Z",
+                        "updated_at": "2025-04-25T00:02:54.000000Z"
+                    },
+                    "offers_count": 0
+                },
+                "permissions": {
+                    "can_edit": false,
+                    "can_delete": false,
+                    "can_make_offer": true,
+                    "can_cancel": false
+                }
+            },
+            {
+                "id": 15,
+                "title": "Website Development for Small Business",
+                "slug": "website-development-for-small-business",
+                "description": "Need a professional website developer to create an e-commerce website for a small retail business.",
+                "address": "123 Main St, Anytown, ST 12345",
+                "zip_code": "12345",
+                "location": {
+                    "latitude": "34.0000000",
+                    "longitude": "-92.0000000"
+                },
+                "budget": {
+                    "amount": "949.00",
+                    "formatted": "949.00"
+                },
+                "visibility": {
+                    "code": "public",
+                    "text": "Public"
+                },
+                "status": {
+                    "code": "published",
+                    "text": "Published"
+                },
+                "priority": {
+                    "code": "high",
+                    "text": "High"
+                },
+                "payment_method": {
+                    "code": "bank_transfer",
+                    "text": "Bank Transfer"
+                },
+                "service_type": {
+                    "code": "one_time",
+                    "text": "One Time"
+                },
+                "dates": {
+                    "due_date": "2025-05-17 00:02:56",
+                    "created_at": "2025-04-25 00:02:56",
+                    "updated_at": "2025-04-25 00:02:56",
+                    "deleted_at": null
+                },
+                "flags": {
+                    "is_overdue": false,
+                    "is_published": true,
+                    "is_in_progress": false,
+                    "is_completed": false,
+                    "is_canceled": false,
+                    "is_urgent": false,
+                    "is_owner": false
+                },
+                "metadata": {
+                    "completion_notes": null,
+                    "completion_evidence": [],
+                    "cancellation_reason": null,
+                    "completed_at": null,
+                    "additional_data": []
+                },
+                "relationships": {
+                    "categories": [
+                        {
+                            "id": 22,
+                            "name": "Web Development",
+                            "slug": "web-development",
+                            "description": "Website development and maintenance services.",
+                            "created_at": "2025-04-25 00:02:54",
+                            "updated_at": "2025-04-25 00:02:54"
+                        }
+                    ],
+                    "user": {
+                        "id": 8,
+                        "name": "Lucas Pelayo",
+                        "email": "echavarria@example.org",
+                        "phone": "941 07 6233",
+                        "address": "Carrer Santos, 114, 4º D, 15469, O Balderas",
+                        "zip_code": "60425",
+                        "latitude": -29.2586,
+                        "longitude": 52.1851,
+                        "profile_photo_url": "http://oidivi-helper-api.test/storage/https://i.pravatar.cc/200?img=29",
+                        "profile_video_url": "http://oidivi-helper-api.test/storage/http://soliz.com/sint-repellat-est-ut-repudiandae-sit-assumenda.html",
+                        "biography": "Omnis et debitis voluptate saepe numquam. Eveniet aspernatur et eum dolorem ut ut.\n\nUt accusamus rem voluptatibus voluptate reprehenderit. Blanditiis itaque necessitatibus nulla soluta incidunt accusantium.",
+                        "verification_status": "pending",
+                        "is_verified": false,
+                        "verification_documents": [
+                            {
+                                "url": "http://oidivi-helper-api.test/storage/http://polanco.es/sint-eos-impedit-quia-commodi-optio-eos-consequatur-molestias",
+                                "type": "recommendation_letter",
+                                "uploaded_at": "2025-04-07 00:02:54"
+                            },
+                            {
+                                "url": "http://oidivi-helper-api.test/storage/https://delarosa.org/ipsa-ab-dolore-enim-aut.html",
+                                "type": "recommendation_letter",
+                                "uploaded_at": "2025-04-22 00:02:54"
+                            }
+                        ],
+                        "documents_verified_at": "2025-04-25T00:02:54.000000Z",
+                        "roles": [
+                            "user"
+                        ],
+                        "created_at": "2025-04-25T00:02:54.000000Z",
+                        "updated_at": "2025-04-25T00:02:54.000000Z"
+                    },
+                    "offers_count": 0
+                },
+                "permissions": {
+                    "can_edit": false,
+                    "can_delete": false,
+                    "can_make_offer": true,
+                    "can_cancel": false
+                }
+            }
+        ],
+        "meta": {
+            "filters": {
+                "available_statuses": {
+                    "published": "Published",
+                    "in_progress": "In Progress",
+                    "completed": "Completed",
+                    "canceled": "Canceled"
+                },
+                "available_priorities": {
+                    "low": "Low",
+                    "medium": "Medium",
+                    "high": "High",
+                    "urgent": "Urgent"
+                },
+                "available_payment_methods": {
+                    "paypal": "PayPal",
+                    "credit_card": "Credit Card",
+                    "bank_transfer": "Bank Transfer"
+                },
+                "available_service_types": {
+                    "one_time": "One Time",
+                    "recurring": "Recurring"
+                },
+                "available_visibility": {
+                    "public": "Public",
+                    "private": "Private"
+                }
+            },
+            "pagination": {
+                "current_page": 1,
+                "last_page": 5,
+                "per_page": 10,
+                "total": 44,
+                "has_more_pages": true
+            },
+            "applied_filters": {
+                "sort_by": "created_at",
+                "sort_direction": "desc"
+            }
+        }
+    }
+}

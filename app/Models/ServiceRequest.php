@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Events\NewServiceRequestNotification;
+use App\Traits\Notifiable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -12,10 +13,11 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 use App\Models\Notification;
 use App\Constants\NotificationType;
+use Illuminate\Support\Facades\Log;
 
 class ServiceRequest extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes, Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -108,31 +110,6 @@ class ServiceRequest extends Model
         static::updating(function ($serviceRequest) {
             if ($serviceRequest->isDirty('title')) {
                 $serviceRequest->generateUniqueSlug();
-            }
-        });
-
-        static::created(function ($serviceRequest) {
-            // Obtener usuarios con habilidades en las mismas categorías
-            $categoryIds = $serviceRequest->categories()->pluck('categories.id');
-            
-            $users = User::whereHas('skills.categories', function($query) use ($categoryIds) {
-                $query->whereIn('categories.id', $categoryIds);
-            })->get();
-
-            if ($users->isNotEmpty()) {
-                // Crear notificaciones en la base de datos
-                foreach ($users as $user) {
-                    Notification::create([
-                        'user_id' => $user->id,
-                        'service_request_id' => $serviceRequest->id,
-                        'type' => NotificationType::NEW_SERVICE_REQUEST,
-                        'title' => 'New Service Request',
-                        'message' => "A new service request has been published that matches your skills: {$serviceRequest->title}"
-                    ]);
-                }
-
-                // Disparar evento de notificación en tiempo real
-                event(new NewServiceRequestNotification($serviceRequest, $users->pluck('id')->toArray()));
             }
         });
     }
@@ -328,5 +305,96 @@ class ServiceRequest extends Model
     public function getServiceTypeTextAttribute(): string
     {
         return self::SERVICE_TYPES[$this->service_type] ?? 'Unknown';
+    }
+
+    public function notifyMatchingUsers(): void
+    {
+        try {
+            $matchingUsers = $this->getMatchingUsers();
+            
+            if ($matchingUsers->isEmpty()) {
+                Log::info('No matching users found for service request', [
+                    'service_request_id' => $this->id
+                ]);
+                return;
+            }
+
+            Log::info('Found matching users for service request', [
+                'service_request_id' => $this->id,
+                'user_count' => $matchingUsers->count()
+            ]);
+
+            $notifications = $this->createNotification(
+                userIds: $matchingUsers->pluck('id')->toArray(),
+                type: NotificationType::NEW_SERVICE_REQUEST,
+                title: __('notifications.types.new_service_request'),
+                message: __('notifications.messages.new_service_request', [
+                    'title' => $this->title
+                ])
+            );
+
+            foreach ($notifications as $notification) {
+                $notificationData = [
+                    'id' => $notification->id,
+                    'type' => NotificationType::NEW_SERVICE_REQUEST,
+                    'timestamp' => now()->toIso8601String(),
+                    'is_read' => false,
+                    'service_request' => [
+                        'id' => $this->id,
+                        'title' => $this->title,
+                        'slug' => $this->slug,
+                        'description' => $this->description,
+                        'budget' => $this->budget,
+                        'priority' => $this->priority,
+                        'service_type' => $this->service_type,
+                        'created_at' => $this->created_at->toIso8601String()
+                    ],
+                    'notification' => [
+                        'title' => $notification->title,
+                        'message' => $notification->message,
+                        'action_url' => "/service-requests/{$this->id}"
+                    ]
+                ];
+
+                try {
+                    event(new NewServiceRequestNotification(
+                        $this, 
+                        [$notification->user_id],
+                        $notificationData
+                    ));
+
+                    Log::info('Service request notification sent', [
+                        'notification_id' => $notification->id,
+                        'user_id' => $notification->user_id,
+                        'service_request_id' => $this->id
+                    ]);
+                } catch (\Exception $e) {
+                    Log::error('Error sending notification event', [
+                        'error' => $e->getMessage(),
+                        'notification_id' => $notification->id,
+                        'user_id' => $notification->user_id,
+                        'service_request_id' => $this->id
+                    ]);
+                }
+            }
+        } catch (\Exception $e) {
+            Log::error('Error notifying matching users', [
+                'error' => $e->getMessage(),
+                'service_request_id' => $this->id
+            ]);
+        }
+    }
+
+    public function getMatchingUsers()
+    {
+        return User::whereHas('skills.categories', function ($query) {
+            $query->whereIn('categories.id', function ($subQuery) {
+                $subQuery->select('category_id')
+                    ->from('categorizables')
+                    ->where('categorizable_type', ServiceRequest::class)
+                    ->where('categorizable_id', $this->id);
+            });
+        })->where('id', '!=', $this->user_id)
+          ->get();
     }
 }

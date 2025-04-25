@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphToMany;
+use Illuminate\Support\Carbon;
 
 class Notification extends Model
 {
@@ -15,18 +17,11 @@ class Notification extends Model
         'type',
         'title',
         'message',
-        'is_read',
-        'read_at'
+        'read_at',
     ];
 
     protected $casts = [
-        'is_read' => 'boolean'
-    ];
-
-    protected $dates = [
-        'read_at',
-        'created_at',
-        'updated_at'
+        'read_at' => 'datetime',
     ];
 
     public function user(): BelongsTo
@@ -34,10 +29,25 @@ class Notification extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function serviceRequests(): MorphToMany
+    {
+        return $this->morphedByMany(ServiceRequest::class, 'notifiable');
+    }
+
+    public function serviceOffers(): MorphToMany
+    {
+        return $this->morphedByMany(ServiceOffer::class, 'notifiable');
+    }
+
+    public function getIsReadAttribute(): bool
+    {
+        return !is_null($this->read_at);
+    }
+
     public function markAsRead(): bool
     {
         return $this->update([
-            'is_read' => true
+            'read_at' => Carbon::now(),
         ]);
     }
 }

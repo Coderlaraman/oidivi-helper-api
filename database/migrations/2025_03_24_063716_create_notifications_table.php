@@ -5,31 +5,33 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
+        // Tabla principal de notificaciones
         Schema::create('notifications', function (Blueprint $table) {
-            $table->bigIncrements('id');
-            $table->bigInteger('user_id');
+            $table->id();
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->string('type', 255);
             $table->string('title', 255);
             $table->text('message');
-            $table->tinyInteger('is_read')->default(0);
             $table->timestamp('read_at')->nullable();
-            $table->timestamp('created_at')->nullable();
-            $table->timestamp('updated_at')->nullable();
+            $table->timestamps();
+            $table->index(['user_id', 'read_at']);
+            $table->index(['created_at']);
         });
 
-        Schema::dropIfExists('device_tokens');
+        // Tabla pivot para relaciones polimórficas
+        Schema::create('notifiables', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('notification_id')->constrained()->onDelete('cascade');
+            $table->morphs('notifiable');
+            $table->timestamps();
+        });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
+        Schema::dropIfExists('notifiables');
         Schema::dropIfExists('notifications');
     }
 };
