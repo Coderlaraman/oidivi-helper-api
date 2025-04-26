@@ -2,19 +2,19 @@
 
 namespace App\Http\Controllers\Api\V1\User\ServiceOffers;
 
+use App\Constants\NotificationType;
 use App\Events\NewServiceOfferNotification;
 use App\Events\ServiceOfferStatusUpdatedNotification;
 use App\Http\Controllers\Controller;
+use App\Models\Notification;
 use App\Models\ServiceOffer;
 use App\Models\ServiceRequest;
 use App\Traits\ApiResponseTrait;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use App\Models\Notification;
-use App\Constants\NotificationType;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class UserServiceOfferController extends Controller
 {
@@ -35,7 +35,8 @@ class UserServiceOfferController extends Controller
             $user = auth()->user();
 
             // 1. Verificar si el usuario ya tiene una oferta para esta solicitud
-            $existingOffer = $serviceRequest->offers()
+            $existingOffer = $serviceRequest
+                ->offers()
                 ->where('user_id', $user->id)
                 ->exists();
 
@@ -66,7 +67,8 @@ class UserServiceOfferController extends Controller
             $requestCategoryIds = $serviceRequest->categories->pluck('id')->toArray();
 
             // 4. Obtener las categorías de las habilidades del usuario
-            $userSkillCategories = $user->skills()
+            $userSkillCategories = $user
+                ->skills()
                 ->with('categories')
                 ->get()
                 ->pluck('categories')
@@ -88,9 +90,9 @@ class UserServiceOfferController extends Controller
             if (empty($matchingCategories)) {
                 $requestCategories = $serviceRequest->categories->pluck('name')->join(', ');
                 $userCategories = $userSkillCategories->pluck('name')->unique()->join(', ');
-                
+
                 return $this->errorResponse(
-                    message: 'You don\'t have the necessary skills to make an offer for this service request',
+                    message: "You don't have the necessary skills to make an offer for this service request",
                     statusCode: 403,
                     errors: [
                         'categories' => [
@@ -134,18 +136,8 @@ class UserServiceOfferController extends Controller
                     'matching_categories' => array_values($matchingCategories)
                 ]);
 
-                // Crear notificación para el dueño de la solicitud
-                $offer->createNotification(
-                    userIds: [$serviceRequest->user_id],
-                    type: NotificationType::NEW_OFFER,
-                    title: __('notifications.types.new_offer'),
-                    message: __('messages.service_offers.notifications.new_offer_message', [
-                        'title' => $serviceRequest->title
-                    ])
-                );
-
-                // Emitir evento de notificación en tiempo real
-                event(new NewServiceOfferNotification($offer, $serviceRequest->user_id));
+                // Notificar al dueño de la solicitud siguiendo el patrón ServiceRequest
+                $offer->notifyRequestOwner();
 
                 DB::commit();
 
@@ -154,7 +146,6 @@ class UserServiceOfferController extends Controller
                     message: 'Offer created successfully. The request creator will be notified.',
                     statusCode: 201
                 );
-
             } catch (\Exception $e) {
                 DB::rollBack();
                 Log::error('Error in offer creation transaction', [
@@ -163,7 +154,6 @@ class UserServiceOfferController extends Controller
                 ]);
                 throw $e;
             }
-
         } catch (ModelNotFoundException $e) {
             Log::warning('Service request not found', ['id' => $serviceRequest]);
             return $this->errorResponse(
@@ -229,7 +219,6 @@ class UserServiceOfferController extends Controller
                     data: $offer->load(['user', 'serviceRequest']),
                     message: __('messages.service_offers.success.updated')
                 );
-
             } catch (\Exception $e) {
                 DB::rollBack();
                 throw $e;
@@ -256,7 +245,7 @@ class UserServiceOfferController extends Controller
     public function receivedOffers(Request $request): JsonResponse
     {
         try {
-            $query = ServiceOffer::whereHas('serviceRequest', function($query) {
+            $query = ServiceOffer::whereHas('serviceRequest', function ($query) {
                 $query->where('user_id', auth()->id());
             })->with(['user', 'serviceRequest']);
 
@@ -267,9 +256,9 @@ class UserServiceOfferController extends Controller
 
             if ($request->filled('search')) {
                 $searchTerm = $request->search;
-                $query->whereHas('user', function($q) use ($searchTerm) {
+                $query->whereHas('user', function ($q) use ($searchTerm) {
                     $q->where('name', 'LIKE', "%{$searchTerm}%");
-                })->orWhereHas('serviceRequest', function($q) use ($searchTerm) {
+                })->orWhereHas('serviceRequest', function ($q) use ($searchTerm) {
                     $q->where('title', 'LIKE', "%{$searchTerm}%");
                 });
             }
@@ -310,7 +299,6 @@ class UserServiceOfferController extends Controller
                 ],
                 message: 'Received offers retrieved successfully'
             );
-
         } catch (\Exception $e) {
             return $this->errorResponse(
                 message: 'Error retrieving received offers',
@@ -343,7 +331,6 @@ class UserServiceOfferController extends Controller
                 data: $offer,
                 message: 'Offer details retrieved successfully'
             );
-
         } catch (\Exception $e) {
             return $this->errorResponse(
                 message: 'Error retrieving offer details',
@@ -401,7 +388,6 @@ class UserServiceOfferController extends Controller
                 ],
                 message: 'Request offers retrieved successfully'
             );
-
         } catch (\Exception $e) {
             return $this->errorResponse(
                 message: 'Error retrieving request offers',
