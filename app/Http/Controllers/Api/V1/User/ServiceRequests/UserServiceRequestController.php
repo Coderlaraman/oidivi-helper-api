@@ -416,6 +416,11 @@ class UserServiceRequestController extends Controller
                 );
             }
 
+            // Si el usuario es el propietario, cargar offers.user
+            if ($isOwner) {
+                $serviceRequest->loadMissing('offers.user');
+            }
+
             return $this->successResponse(
                 data: new UserServiceRequestResource($serviceRequest),
                 message: 'Service request details retrieved successfully'

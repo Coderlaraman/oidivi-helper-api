@@ -4,8 +4,8 @@ namespace App\Http\Resources\User;
 
 use App\Http\Resources\Admin\AdminCategoryResource;
 use App\Http\Resources\User\UserProfileResource;
-use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Http\Request;
 
 class UserServiceRequestResource extends JsonResource
 {
@@ -27,7 +27,7 @@ class UserServiceRequestResource extends JsonResource
             'location' => [
                 'latitude' => $this->latitude,
                 'longitude' => $this->longitude,
-                'distance' => $this->when(isset($this->distance), function() {
+                'distance' => $this->when(isset($this->distance), function () {
                     return round($this->distance, 2);
                 }),
             ],
@@ -74,7 +74,7 @@ class UserServiceRequestResource extends JsonResource
                 'completion_notes' => $this->metadata['completion_notes'] ?? null,
                 'completion_evidence' => $this->metadata['completion_evidence'] ?? [],
                 'cancellation_reason' => $this->metadata['cancellation_reason'] ?? null,
-                'completed_at' => isset($this->metadata['completed_at']) 
+                'completed_at' => isset($this->metadata['completed_at'])
                     ? date('Y-m-d H:i:s', strtotime($this->metadata['completed_at']))
                     : null,
                 'additional_data' => collect($this->metadata)
@@ -82,8 +82,8 @@ class UserServiceRequestResource extends JsonResource
                     ->toArray(),
             ],
             'relationships' => [
-                'categories' => $this->whenLoaded('categories', function() {
-                    return $this->categories->map(function($category) {
+                'categories' => $this->whenLoaded('categories', function () {
+                    return $this->categories->map(function ($category) {
                         return [
                             'id' => $category->id,
                             'name' => $category->name,
@@ -95,23 +95,24 @@ class UserServiceRequestResource extends JsonResource
                     });
                 }),
                 'user' => new UserProfileResource($this->whenLoaded('user')),
-                'offers_count' => $this->whenLoaded('offers', function() {
+                'offers' => $this->whenLoaded('offers'),
+                'offers_count' => $this->whenLoaded('offers', function () {
                     return $this->offers->count();
                 }),
-                'has_contract' => $this->whenLoaded('contract', function() {
+                'has_contract' => $this->whenLoaded('contract', function () {
                     return $this->contract->isNotEmpty();
                 }),
             ],
             'permissions' => [
-                'can_edit' => auth()->id() === $this->user_id && 
-                             in_array($this->status, ['published', 'in_progress']),
-                'can_delete' => auth()->id() === $this->user_id && 
-                               $this->status === 'published' &&
-                               ($this->offers_count ?? 0) === 0,
-                'can_make_offer' => auth()->id() !== $this->user_id && 
-                                  $this->status === 'published',
-                'can_cancel' => auth()->id() === $this->user_id && 
-                               !in_array($this->status, ['completed', 'canceled']),
+                'can_edit' => auth()->id() === $this->user_id &&
+                    in_array($this->status, ['published', 'in_progress']),
+                'can_delete' => auth()->id() === $this->user_id &&
+                    $this->status === 'published' &&
+                    ($this->offers_count ?? 0) === 0,
+                'can_make_offer' => auth()->id() !== $this->user_id &&
+                    $this->status === 'published',
+                'can_cancel' => auth()->id() === $this->user_id &&
+                    !in_array($this->status, ['completed', 'canceled']),
             ],
         ];
     }
