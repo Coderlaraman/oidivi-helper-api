@@ -13,14 +13,14 @@ jobs:
       - name: SSH into Amazon Lightsail and pull latest code
         uses: appleboy/ssh-action@master
         with:
-          host: 3.148.55.185
-          username: ubuntu
+          host: ${{ secrets.OIDIVI_API_LIGHTSAIL_HOST }}
+          username: ${{ secrets.OIDIVI_API_LIGHTSAIL_USER }}
           key: ${{ secrets.OIDIVI_API_LIGHTSAIL_SSH_KEY }}
           script: |
-            cd /var/www/oidivi-api
+            cd /var/www/oidivi-helper-api
 
             # Configurar el directorio seguro para Git (opcional, pero recomendado)
-            git config --global --add safe.directory /var/www/oidivi-api
+            git config --global --add safe.directory /var/www/oidivi-helper-api
 
             # Resetear el repositorio y traer los últimos cambios de la rama master
             git reset --hard
@@ -30,8 +30,8 @@ jobs:
             # sudo chown -R www-data:www-data storage bootstrap/cache
             # sudo chmod -R 775 storage bootstrap/cache
 
-            # Reiniciar Apache, limpiar caché y ejecutar migraciones
-            sudo systemctl restart apache2
+            # Reiniciar Nginx, limpiar caché y ejecutar migraciones
+            sudo systemctl restart nginx
             php artisan cache:clear
             php artisan config:clear
             php artisan view:clear
@@ -39,5 +39,5 @@ jobs:
 
             php artisan migrate --force
 
-            # Reiniciar Apache nuevamente si es necesario
-            sudo systemctl restart apache2
+            # Reiniciar Nginx nuevamente si es necesario
+            sudo systemctl restart nginx
