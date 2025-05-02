@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\User\Profiles;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\User\Profile\UpdateUserProfileRequest;
+use App\Http\Resources\User\PublicUserResource;
 use App\Http\Resources\User\UserAuthResource;
 use App\Http\Resources\User\UserStatResource;
 use App\Models\User;
@@ -29,10 +30,10 @@ class UserProfileController extends Controller
     {
         $user = $request->user();
         $response = new UserAuthResource($user);
-        
+
         $response->additional([
             'needs_skill_setup' => $user->needsSkillSetup(),
-            'message' => $user->needsSkillSetup() 
+            'message' => $user->needsSkillSetup()
                 ? __('messages.profile.skill_setup_required')
                 : null
         ]);
@@ -259,5 +260,18 @@ public function deleteProfileVideo(): JsonResponse
             'user' => new UserAuthResource($user),
             'stats' => new UserStatResource($user->stats),
         ], __('messages.dashboard.data_retrieved'));
+    }
+
+    /**
+     * Retrieve the public profile information for a given user.
+     *
+     * @param User $user
+     * @return JsonResponse
+     */
+    public function showPublicProfile(User $user): JsonResponse
+    {
+        $user->load(['skills', 'stats', 'reviewsReceived']);
+
+        return $this->successResponse(PublicUserResource::make($user), 'Public user profile retrieved successfully.');
     }
 }

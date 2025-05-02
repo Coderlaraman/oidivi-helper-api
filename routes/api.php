@@ -92,7 +92,7 @@ Route::prefix('v1')->middleware('locale')->group(function () {
             Route::post('logout', [UserAuthController::class, 'logout'])
                 ->name('user.auth.logout')
                 ->middleware('auth:sanctum');
-            
+
             // Password reset routes
             Route::post('forgot-password', [UserAuthController::class, 'forgotPassword'])->name('user.auth.forgot-password');
             Route::post('reset-password', [UserAuthController::class, 'resetPassword'])->name('user.auth.reset-password');
@@ -148,11 +148,11 @@ Route::prefix('v1')->middleware('locale')->group(function () {
         Route::prefix('service-requests')->middleware('auth:sanctum')->group(function () {
             // Rutas públicas (solicitudes de otros usuarios)
             Route::get('/', [UserServiceRequestController::class, 'index']);
-            
+
             // Rutas de ofertas específicas
             Route::get('/my-requests/offers', [UserServiceOfferController::class, 'receivedOffers']);
             Route::get('/my-requests/offers/{offer}', [UserServiceOfferController::class, 'showOffer']);
-            
+
             // Rutas de solicitudes propias
             Route::prefix('my-requests')->group(function () {
                 Route::get('/', [UserServiceRequestController::class, 'myRequests']);
@@ -161,13 +161,13 @@ Route::prefix('v1')->middleware('locale')->group(function () {
                 Route::put('/{id}', [UserServiceRequestController::class, 'update']);
                 Route::post('/{id}/restore', [UserServiceRequestController::class, 'restore']);
             });
-            
+
             // Rutas generales de solicitudes
             Route::post('/', [UserServiceRequestController::class, 'store']);
             Route::get('/{id}', [UserServiceRequestController::class, 'show']);
             Route::patch('/{id}/status', [UserServiceRequestController::class, 'updateStatus']);
             Route::delete('/{id}', [UserServiceRequestController::class, 'destroy']);
-            
+
             // Rutas de ofertas
             Route::post('/{serviceRequest}/offers', [UserServiceOfferController::class, 'store']);
             Route::patch('/offers/{offer}', [UserServiceOfferController::class, 'update']);
@@ -209,6 +209,9 @@ Route::prefix('v1')->middleware('locale')->group(function () {
             Route::get('/', [UserCategoryController::class, 'index']);
         });
 
+        // Rutas públicas de perfiles de usuario
+        Route::get('public/profiles/{user}', [UserProfileController::class, 'showPublicProfile']);
+
         // Rutas de notificaciones
         Route::prefix('notifications')->middleware('auth:sanctum')->group(function () {
             Route::get('/', [UserNotificationController::class, 'index']);
@@ -228,7 +231,7 @@ Route::prefix('v1')->middleware('locale')->group(function () {
         Route::delete('/{chat}', [ChatController::class, 'destroy']);
         Route::post('/{chat}/read', [ChatController::class, 'markAsRead']);
         Route::post('/{chat}/typing', [ChatController::class, 'typing']);
-        
+
         // Rutas de mensajes
         Route::get('/{chat}/messages', [MessageController::class, 'index']);
         Route::post('/{chat}/messages', [MessageController::class, 'store']);
@@ -236,6 +239,5 @@ Route::prefix('v1')->middleware('locale')->group(function () {
         Route::put('/{chat}/messages/{message}', [MessageController::class, 'update']);
         Route::delete('/{chat}/messages/{message}', [MessageController::class, 'destroy']);
         Route::post('/{chat}/messages/{message}/seen', [MessageController::class, 'markAsSeen']);
-    }); 
+    });
 });
-
