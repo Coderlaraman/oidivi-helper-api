@@ -11,7 +11,7 @@ use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
-class ClientReviewController extends Controller
+class UserReviewController extends Controller
 {
     use ApiResponseTrait;
 
