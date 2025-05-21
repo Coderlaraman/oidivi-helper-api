@@ -30,20 +30,19 @@ Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
 }, ['guards' => ['sanctum']]);
 
 
-// // Canal para chats privados
-// Broadcast::channel('chat.{chatId}', function ($user, $chatId) {
-//     $chat = Chat::find($chatId);
-    
-//     if (!$chat) {
-//         return false;
-//     }
-    
-//     // Verificar si el usuario es participante del chat
-//     return $chat->isParticipant($user);
-// }, ['guards' => ['sanctum']]);
+// Canal para chats privados
+Broadcast::channel('chat.{chatId}', function ($user, $chatId) {
+    $chat = \App\Models\Chat::find($chatId); // Usar el FQN para Chat
+
+    if (!$chat) {
+        return false;
+    }
+
+    // Verificar si el usuario es participante del chat
+    return $chat->isParticipant($user);
+}, ['guards' => ['sanctum']]);
 
 
 // Broadcast::channel('my-proof', function(){
 //     return true;
 // });
-

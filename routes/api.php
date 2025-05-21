@@ -233,8 +233,8 @@ Route::prefix('v1')->middleware('locale')->group(function () {
         Route::post('/{chat}/typing', [ChatController::class, 'typing']);
 
         // Rutas de mensajes
-        Route::get('/{chat}/messages', [MessageController::class, 'index']);
-        Route::post('/{chat}/messages', [MessageController::class, 'store']);
+        Route::get('/{chat}/messages', [MessageController::class, 'index']); // Mantener si MessageController maneja listado
+        Route::post('/{chat}/messages', [ChatController::class, 'storeMessage']); // Apuntar al nuevo método en ChatController
         Route::get('/{chat}/messages/{message}', [MessageController::class, 'show']);
         Route::put('/{chat}/messages/{message}', [MessageController::class, 'update']);
         Route::delete('/{chat}/messages/{message}', [MessageController::class, 'destroy']);
