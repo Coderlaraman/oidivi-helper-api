@@ -21,7 +21,7 @@ return new class extends Migration {
             $table->string('media_type')->nullable(); // Tipo de archivo multimedia
             $table->json('metadata')->nullable(); // Metadatos adicionales (coordenadas, duración, etc.)
             $table->boolean('seen')->default(false);
-            $table->morphs('service_request'); // Relación polimórfica con solicitudes de servicio
+            $table->morphs('service_request')->nullable(); // Relación polimórfica con solicitudes de servicio
             $table->timestamps();
             $table->softDeletes(); // Permite borrado suave
 

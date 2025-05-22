@@ -135,7 +135,11 @@ class ChatController extends Controller
             'data' => $chat->load([
                 'userOne:id,name,profile_photo_url',
                 'userTwo:id,name,profile_photo_url',
-                'serviceRequest:id,title,description,status'
+                'serviceRequest:id,title,description,status',
+                'messages' => function ($query) {
+                    $query->orderBy('created_at', 'desc');
+                },
+                'messages.sender:id,name,profile_photo_url' // Incluir mensajes y el remitente de cada mensaje
             ])
         ]);
     }
