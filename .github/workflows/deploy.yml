@@ -37,7 +37,7 @@ jobs:
             php artisan view:clear
             php artisan route:clear
 
-            php artisan migrate:fresh --seed
+            php artisan migrate:fresh --seed --force
 
             # Reiniciar Nginx nuevamente si es necesario
             sudo systemctl restart nginx
