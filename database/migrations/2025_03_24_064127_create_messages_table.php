@@ -4,7 +4,8 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration {
+return new class extends Migration
+{
     /**
      * Run the migrations.
      */
@@ -12,23 +13,16 @@ return new class extends Migration {
     {
         Schema::create('messages', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('chat_id')->constrained()->onDelete('cascade');
-            $table->foreignId('sender_id')->constrained('users')->onDelete('cascade'); // Remitente
-            $table->foreignId('receiver_id')->nullable()->constrained('users')->onDelete('set null'); // Receptor (opcional para grupos)
-            $table->text('message');
-            $table->string('type')->default('text'); // Tipo de mensaje: text, image, video, audio, file, location
-            $table->string('media_url')->nullable(); // URL del archivo multimedia
-            $table->string('media_type')->nullable(); // Tipo de archivo multimedia
-            $table->json('metadata')->nullable(); // Metadatos adicionales (coordenadas, duración, etc.)
+            $table->foreignId('chat_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('sender_id')->constrained('users')->cascadeOnDelete();
+            $table->foreignId('receiver_id')->nullable()->constrained('users')->cascadeOnDelete();
+            $table->text('message')->nullable();
+            $table->string('type')->default('text');
+            $table->string('media_url')->nullable();
+            $table->string('media_type')->nullable();
             $table->boolean('seen')->default(false);
-            $table->morphs('service_request')->nullable(); // Relación polimórfica con solicitudes de servicio
+            $table->json('metadata')->nullable();
             $table->timestamps();
-            $table->softDeletes(); // Permite borrado suave
-
-        // Índices para mejorar el rendimiento de las consultas
-        $table->index(['chat_id', 'created_at']);
-        $table->index(['sender_id', 'created_at']);
-        $table->index(['receiver_id', 'created_at']);
         });
     }
 

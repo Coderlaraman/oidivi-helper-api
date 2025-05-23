@@ -145,52 +145,6 @@ class ChatController extends Controller
     }
 
     /**
-     * Update the specified chat in storage.
-     */
-    public function update(Request $request, Chat $chat)
-    {
-        $user = Auth::user();
-
-        // Verificar si el usuario es participante del chat
-        if (!$chat->isParticipant($user)) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Unauthorized access to this chat'
-            ], 403);
-        }
-
-        // Solo se puede actualizar si es un chat grupal
-        if (!$chat->is_group) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Cannot update a one-on-one chat'
-            ], 403);
-        }
-
-        $validator = Validator::make($request->all(), [
-            'name' => 'nullable|string|max:255',
-            'description' => 'nullable|string|max:1000',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Validation failed',
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        // Actualizar chat
-        $chat->update($request->only(['name', 'description']));
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Chat updated successfully',
-            'data' => $chat
-        ]);
-    }
-
-    /**
      * Remove the specified chat from storage.
      */
     public function destroy(Chat $chat)
@@ -296,7 +250,7 @@ class ChatController extends Controller
         $message = $chat->messages()->create([
             'sender_id' => $user->id,
             // Si es un chat uno a uno, establecer el receiver_id
-            'receiver_id' => $chat->is_group ? null : $chat->getOtherParticipant($user)?->id,
+            'receiver_id' => $chat->getOtherParticipant($user)?->id,
             'message' => $request->message,
             'type' => $request->input('type', 'text'),
             'seen' => false, // Marcar como no leído inicialmente
