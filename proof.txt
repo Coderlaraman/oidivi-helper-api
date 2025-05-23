@@ -1,25 +1,25 @@
 Production DB Users
 
- name                          | email                        | is_active |
-+-------------------------------+------------------------------+-----------+
-| Jaime Sierra                  | coderman1980@gmail.com       |         1 |
-| Víctor Villegas               | montenegro.eva@example.com   |         1 |
-| Miguel Ángel Roldán           | erivera@example.com          |         1 |
-| Antonia Corona                | diego78@example.org          |         1 |
-| Asier Serrano                 | chavez.candela@example.org   |         1 |
-| Lucía Riera Tercero           | garrido.yaiza@example.org    |         1 |
-| Raúl Bustos                   | yago61@example.com           |         1 |
-| Ona Jimínez                   | omar.santillan@example.net   |         1 |
-| Eva Quintero                  | yago.guillen@example.com     |         1 |
-| Alberto Patiño                | jbarrientos@example.org      |         0 |
-| Cristina Barraza              | adrian42@example.org         |         1 |
-| Victoria Barraza Hijo         | hugo.vega@example.com        |         1 |
-| Gerard Espino                 | angela44@example.net         |         1 |
-| Lic. Ignacio Domenech Segundo | alex.jaramillo@example.net   |         0 |
-| Mara Vela                     | vicente.valeria@example.com  |         1 |
-| Jaime Sierra                  | coderman19580@gmail.com      |         1 |
-| Marcos Pérez                  | marcpe@mail.com              |         1 |
-| Jaime Sierra                  | jaalsima1980@gmail.com       |         1 |
-| Jaime Sierra                  | codermandd1980@gmail.com     |         1 |
-| Carlos Pérez                  | carlospe@mail.com            |         1 |
-| williamprueba1                | williamsharrycelis@gmail.com |         1 
+ mysql> select name, email from users;
++---------------------------+-------------------------------+
+| name                      | email                         |
++---------------------------+-------------------------------+
+| Jaime Sierra              | coderman1980@gmail.com        |
+| Clara Quintanilla         | samuel.corrales@example.org   |
+| Raúl Valles Hijo          | rafael84@example.net          |
+| Srta. Inés Badillo        | ismael.lemus@example.com      |
+| Diego Serrano             | leo60@example.org             |
+| Vera Bautista             | asantillan@example.com        |
+| Ing. César Alonso         | luevano.vera@example.com      |
+| Lic. Rosa Flórez Tercero  | carmen25@example.org          |
+| Gerard Ochoa              | canales.anaisabel@example.net |
+| D. Marco Godoy Segundo    | crenteria@example.com         |
+| D. Andrés Villanueva      | baez.mariacarmen@example.net  |
+| Ing. Saúl Jaramillo       | wvidal@example.net            |
+| Encarnación Álvarez       | egalarza@example.com          |
+| Sofía Avilés              | nadia.lozano@example.net      |
+| Daniela Alcántar          | pgaray@example.com            |
++---------------------------+-------------------------------+
+15 rows in set (0.00 sec)
+
+mysql>
