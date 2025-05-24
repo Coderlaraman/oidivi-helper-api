@@ -14,8 +14,14 @@ use App\Models\Chat;
 |
 */
 
-Broadcast::channel('users.{id}', function ($user, $id) {
-    return (int) $user->id === (int) $id;
+Broadcast::channel('user.{id}', function ($user, $id) {
+    // Solo el propio usuario puede suscribirse
+    return (int)$user->id === (int)$id;
+});
+
+// Canal específico para notificaciones de usuario
+Broadcast::channel('user.notifications.{id}', function ($user, $id) {
+    return (int)$user->id === (int)$id;
 });
 
 Broadcast::channel('chats.{chatId}', function ($user, $chatId) {

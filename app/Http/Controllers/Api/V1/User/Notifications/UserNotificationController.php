@@ -19,7 +19,7 @@ class UserNotificationController extends Controller
         try {
             $perPage = $request->input('per_page', 10);
             $notifications = Notification::where('user_id', auth()->id())
-                ->with(['serviceRequests'])
+                ->with(['serviceRequests', 'serviceOffers.serviceRequest']) // Cargar relaciones necesarias (plural)
                 ->orderBy('created_at', 'desc')
                 ->paginate($perPage);
 
