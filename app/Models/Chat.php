@@ -77,4 +77,22 @@ class Chat extends Model
 
         return null;
     }
+
+    /**
+     * Mark all unread messages in the chat as read for a specific user.
+     */
+    public function markAsRead(User $user): void
+    {
+        // Obtener todos los mensajes no leídos enviados al usuario
+        $unreadMessages = $this->messages()
+            ->where('receiver_id', $user->id)
+            ->where('seen', false)
+            ->get();
+
+        // Marcar cada mensaje como leído y disparar evento
+        foreach ($unreadMessages as $message) {
+            $message->markAsSeen();
+            event(new \App\Events\MessageSeen($message, $user));
+        }
+    }
 }

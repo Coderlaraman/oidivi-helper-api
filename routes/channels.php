@@ -24,7 +24,7 @@ Broadcast::channel('user.notifications.{id}', function ($user, $id) {
     return (int)$user->id === (int)$id;
 });
 
-Broadcast::channel('chats.{chatId}', function ($user, $chatId) {
+Broadcast::channel('chat.{chatId}', function ($user, $chatId) {
     $chat = Chat::find($chatId);
 
     if (!$chat) {
