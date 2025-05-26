@@ -89,7 +89,11 @@ class ServiceOffer extends Model
                     'notification' => [
                         'title' => $notification->title,
                         'message' => $notification->message,
-                        'action_url' => "/service-requests/{$this->service_request_id}"
+                        'action_url' => self::getNotificationActionUrl(
+                            NotificationType::NEW_OFFER,
+                            $this->service_request_id,
+                            $this->id
+                        )
                     ]
                 ];
 
@@ -114,5 +118,17 @@ class ServiceOffer extends Model
                 'service_offer_id' => $this->id
             ]);
         }
+    }
+
+    /**
+     * Genera la URL de acción para notificaciones según el tipo.
+     */
+    public static function getNotificationActionUrl($type, $serviceRequestId, $offerId = null)
+    {
+        if ($type === NotificationType::NEW_OFFER || $type === NotificationType::OFFER_STATUS_UPDATED) {
+            return "/service-requests/my/{$serviceRequestId}/offers/{$offerId}";
+        }
+        // Para solicitudes de servicio
+        return "/service-requests/{$serviceRequestId}";
     }
 }

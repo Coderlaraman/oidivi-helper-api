@@ -352,7 +352,10 @@ class ServiceRequest extends Model
                     'notification' => [
                         'title' => $notification->title,
                         'message' => $notification->message,
-                        'action_url' => "/service-requests/{$this->id}"
+                        'action_url' => \App\Models\ServiceOffer::getNotificationActionUrl(
+                            \App\Constants\NotificationType::NEW_SERVICE_REQUEST,
+                            $this->id
+                        )
                     ]
                 ];
 

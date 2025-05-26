@@ -86,7 +86,11 @@ class ServiceOfferStatusUpdatedNotification implements ShouldBroadcast
                         'title' => $this->serviceOffer->serviceRequest->title,
                         'status' => $this->serviceOffer->status
                     ]),
-                    'action_url' => "/service-requests/{$this->serviceOffer->serviceRequest->slug}/offers/{$this->serviceOffer->id}"
+                    'action_url' => \App\Models\ServiceOffer::getNotificationActionUrl(
+                        \App\Constants\NotificationType::OFFER_STATUS_UPDATED,
+                        $this->serviceOffer->serviceRequest->id,
+                        $this->serviceOffer->id
+                    )
                 ]
             ];
 

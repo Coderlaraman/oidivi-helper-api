@@ -12,6 +12,7 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 use App\Models\Notification;
 use App\Constants\NotificationType;
+use App\Models\ServiceOffer;
 
 class NewServiceRequestNotification implements ShouldBroadcast
 {
@@ -97,9 +98,14 @@ class NewServiceRequestNotification implements ShouldBroadcast
                     'created_at' => $this->serviceRequest->created_at->toIso8601String()
                 ],
                 'notification' => [
-                    'title' => 'New Service Request',
-                    'message' => "A new service request has been published that matches your skills: {$this->serviceRequest->title}",
-                    'action_url' => "/service-requests/{$this->serviceRequest->slug}"
+                    'title' => __('notifications.types.new_service_request'),
+                    'message' => __('notifications.messages.new_service_request', [
+                        'title' => $this->serviceRequest->title
+                    ]),
+                    'action_url' => ServiceOffer::getNotificationActionUrl(
+                        'new_service_request',
+                        $this->serviceRequest->id
+                    )
                 ]
             ];
 
