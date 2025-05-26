@@ -2,7 +2,7 @@
 
 use App\Http\Controllers\Api\V1\Admin\Auth\AdminAuthController;
 use App\Http\Controllers\Api\V1\Admin\Categories\AdminCategoryController;
-// use App\Http\Controllers\Api\V1\Admin\ServiceRequests\AdminServiceRequestController;
+use App\Http\Controllers\Api\V1\Admin\ServiceRequests\AdminServiceRequestController;
 use App\Http\Controllers\Api\V1\Admin\Skills\AdminSkillController;
 use App\Http\Controllers\Api\V1\Admin\Users\AdminUserController;
 use App\Http\Controllers\Api\V1\User\Auth\UserAuthController;
