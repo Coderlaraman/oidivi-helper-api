@@ -62,7 +62,7 @@ class NewServiceOfferNotification implements ShouldBroadcast
         try {
             $data = [
                 'id' => uniqid('notification_'),
-                'type' => 'new_service_offer',
+                'type' => 'new_offer',
                 'timestamp' => now()->toIso8601String(),
                 'service_offer' => [
                     'id' => $this->serviceOffer->id,
@@ -116,4 +116,4 @@ class NewServiceOfferNotification implements ShouldBroadcast
     {
         return 'service.offer.notification';
     }
-} 
+}
