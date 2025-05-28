@@ -33,6 +33,14 @@ class ServiceOffer extends Model
     {
         return $this->belongsTo(User::class);
     }
+    
+    /**
+     * Get the chats associated with the service offer.
+     */
+    public function chats()
+    {
+        return $this->hasMany(Chat::class);
+    }
 
     public function notifyStatusUpdate(): void
     {

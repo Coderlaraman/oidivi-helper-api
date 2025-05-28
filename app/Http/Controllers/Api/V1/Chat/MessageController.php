@@ -104,6 +104,12 @@ class MessageController extends Controller
         // Disparar evento de mensaje enviado
         event(new MessageSent($message));
 
+        // Enviar notificación al receptor si no está en línea
+        $receiver = $chat->getOtherParticipant($user);
+        if ($receiver) {
+            $receiver->notify(new \App\Notifications\NewMessageNotification($message));
+        }
+
         return response()->json([
             'status' => 'success',
             'message' => 'Message sent successfully',

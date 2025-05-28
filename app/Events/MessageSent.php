@@ -54,13 +54,12 @@ class MessageSent implements ShouldBroadcast
             'id' => $this->message->id,
             'chat_id' => $this->message->chat_id,
             'sender_id' => $this->message->sender_id,
-            'receiver_id' => $this->message->receiver_id,
             'message' => $this->message->message,
             'type' => $this->message->type,
             'media_url' => $this->message->media_url,
             'media_type' => $this->message->media_type,
             'metadata' => $this->message->metadata,
-            'seen' => $this->message->seen,
+            'seen_at' => $this->message->seen_at,
             'created_at' => $this->message->created_at,
             'sender' => [
                 'id' => $this->message->sender->id,
@@ -77,4 +76,4 @@ class MessageSent implements ShouldBroadcast
     {
         return 'message.sent';
     }
-} 
+}

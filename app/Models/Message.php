@@ -5,10 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Message extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     /**
      * The attributes that are mass assignable.
@@ -18,13 +19,12 @@ class Message extends Model
     protected $fillable = [
         'chat_id',
         'sender_id',
-        'receiver_id',
         'message',
         'type',
         'media_url',
         'media_type',
-        'seen',
         'metadata',
+        'seen_at',
     ];
 
     /**
@@ -33,8 +33,9 @@ class Message extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'seen' => 'boolean',
         'metadata' => 'array',
+        'seen_at' => 'datetime',
+        'deleted_at' => 'datetime',
     ];
 
     /**
@@ -54,20 +55,36 @@ class Message extends Model
     }
 
     /**
-     * Get the receiver of the message.
-     */
-    public function receiver(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'receiver_id');
-    }
-
-    /**
      * Mark the message as seen.
      */
     public function markAsSeen(): void
     {
-        if (!$this->seen) {
-            $this->update(['seen' => true]);
+        if (!$this->seen_at) {
+            $this->update(['seen_at' => now()]);
         }
+    }
+
+    /**
+     * Check if the message has been seen.
+     */
+    public function isSeen(): bool
+    {
+        return $this->seen_at !== null;
+    }
+
+    /**
+     * Scope a query to only include messages sent after a specific date.
+     */
+    public function scopeSentAfter($query, $date)
+    {
+        return $query->where('created_at', '>', $date);
+    }
+
+    /**
+     * Scope a query to only include unseen messages.
+     */
+    public function scopeUnseen($query)
+    {
+        return $query->whereNull('seen_at');
     }
 }

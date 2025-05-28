@@ -15,14 +15,14 @@ return new class extends Migration
             $table->id();
             $table->foreignId('chat_id')->constrained()->cascadeOnDelete();
             $table->foreignId('sender_id')->constrained('users')->cascadeOnDelete();
-            $table->foreignId('receiver_id')->nullable()->constrained('users')->cascadeOnDelete();
             $table->text('message')->nullable();
-            $table->string('type')->default('text');
+            $table->string('type')->default('text'); // text, image, file, system
             $table->string('media_url')->nullable();
             $table->string('media_type')->nullable();
-            $table->boolean('seen')->default(false);
-            $table->json('metadata')->nullable();
+            $table->json('metadata')->nullable(); // Para datos adicionales como reacciones, etc.
+            $table->timestamp('seen_at')->nullable(); // Reemplaza el booleano seen por un timestamp
             $table->timestamps();
+            $table->softDeletes(); // Para permitir borrar mensajes sin perderlos
         });
     }
 

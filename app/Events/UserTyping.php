@@ -17,18 +17,18 @@ class UserTyping implements ShouldBroadcast
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     /**
-     * The chat where the user is typing.
+     * The chat ID where the user is typing.
      *
-     * @var \App\Models\Chat
+     * @var int
      */
-    public $chat;
+    public $chatId;
 
     /**
-     * The user who is typing.
+     * The user ID who is typing.
      *
-     * @var \App\Models\User
+     * @var int
      */
-    public $user;
+    public $userId;
 
     /**
      * Whether the user is typing or not.
@@ -40,10 +40,10 @@ class UserTyping implements ShouldBroadcast
     /**
      * Create a new event instance.
      */
-    public function __construct(Chat $chat, User $user, bool $isTyping = true)
+    public function __construct(int $chatId, int $userId, bool $isTyping = true)
     {
-        $this->chat = $chat;
-        $this->user = $user;
+        $this->chatId = $chatId;
+        $this->userId = $userId;
         $this->isTyping = $isTyping;
     }
 
@@ -56,7 +56,7 @@ class UserTyping implements ShouldBroadcast
     {
         // Canal privado para el chat específico
         return [
-            new PrivateChannel('chat.' . $this->chat->id),
+            new PrivateChannel('chat.' . $this->chatId),
         ];
     }
 
@@ -67,10 +67,12 @@ class UserTyping implements ShouldBroadcast
      */
     public function broadcastWith(): array
     {
+        // Obtener información básica del usuario
+        $user = User::select('id', 'name', 'profile_photo_url')->find($this->userId);
+        
         return [
-            'chat_id' => $this->chat->id,
-            'user_id' => $this->user->id,
-            'user_name' => $this->user->name,
+            'chat_id' => $this->chatId,
+            'user' => $user,
             'is_typing' => $this->isTyping,
             'timestamp' => now(),
         ];
@@ -83,4 +85,4 @@ class UserTyping implements ShouldBroadcast
     {
         return 'user.typing';
     }
-} 
+}
