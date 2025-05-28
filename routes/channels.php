@@ -33,3 +33,11 @@ Broadcast::channel('chat.{chatId}', function ($user, $chatId) {
 
     return $chat->isParticipant($user);
 });
+
+// Canal privado para el seguimiento de ubicación del usuario
+Broadcast::channel('location-tracking.{userId}', function ($user, $userId) {
+    // Solo el propio usuario puede suscribirse a su canal de ubicación
+    return (int)$user->id === (int)$userId;
+});
+
+Broadcast::routes(['middleware' => ['auth:sanctum']]);

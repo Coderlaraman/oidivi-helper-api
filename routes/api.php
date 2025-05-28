@@ -238,6 +238,5 @@ Route::prefix('v1')->middleware('locale')->group(function () {
         Route::get('/{chat}/messages/{message}', [MessageController::class, 'show']);
         Route::put('/{chat}/messages/{message}', [MessageController::class, 'update']);
         Route::delete('/{chat}/messages/{message}', [MessageController::class, 'destroy']);
-        Route::post('/{chat}/messages/{message}/seen', [MessageController::class, 'markAsSeen']);
     });
 });
