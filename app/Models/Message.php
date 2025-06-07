@@ -4,17 +4,16 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Models\Chat;
+use App\Models\User;
 
 class Message extends Model
 {
     use HasFactory, SoftDeletes;
 
     /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
+     * Campos asignables
      */
     protected $fillable = [
         'chat_id',
@@ -23,68 +22,59 @@ class Message extends Model
         'type',
         'media_url',
         'media_type',
+        'media_name',
         'metadata',
         'seen_at',
     ];
 
     /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
+     * Casteo de atributos
      */
     protected $casts = [
-        'metadata' => 'array',
-        'seen_at' => 'datetime',
+        'metadata'   => 'array',
+        'seen_at'    => 'datetime',
         'deleted_at' => 'datetime',
     ];
 
     /**
-     * Get the chat that the message belongs to.
+     * Relación: cada mensaje pertenece a un chat
      */
-    public function chat(): BelongsTo
+    public function chat()
     {
         return $this->belongsTo(Chat::class);
     }
 
     /**
-     * Get the sender of the message.
+     * Relación: cada mensaje tiene un remitente (usuario)
      */
-    public function sender(): BelongsTo
+    public function sender()
     {
         return $this->belongsTo(User::class, 'sender_id');
     }
 
     /**
-     * Mark the message as seen.
+     * Marca el mensaje como visto (setea seen_at)
      */
     public function markAsSeen(): void
     {
-        if (!$this->seen_at) {
+        if (is_null($this->seen_at)) {
             $this->update(['seen_at' => now()]);
         }
     }
 
     /**
-     * Check if the message has been seen.
+     * Verifica si el mensaje tiene adjunto
      */
-    public function isSeen(): bool
+    public function hasMedia(): bool
     {
-        return $this->seen_at !== null;
+        return in_array($this->type, ['image', 'video', 'file']);
     }
 
     /**
-     * Scope a query to only include messages sent after a specific date.
+     * Obtiene datos concretos del JSON metadata (p.ej. dimensiones de imagen)
      */
-    public function scopeSentAfter($query, $date)
+    public function getMetadataValue(string $key, $default = null)
     {
-        return $query->where('created_at', '>', $date);
-    }
-
-    /**
-     * Scope a query to only include unseen messages.
-     */
-    public function scopeUnseen($query)
-    {
-        return $query->whereNull('seen_at');
+        return $this->metadata[$key] ?? $default;
     }
 }

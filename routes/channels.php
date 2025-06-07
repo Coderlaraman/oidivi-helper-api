@@ -1,21 +1,24 @@
 <?php
 
+use App\Models\ServiceOffer;
 use Illuminate\Support\Facades\Broadcast;
-use App\Models\Chat;
 
 /*
 |--------------------------------------------------------------------------
 | Broadcast Channels
 |--------------------------------------------------------------------------
 |
-| Here you may register all of the event broadcasting channels that your
-| application supports. The given channel authorization callbacks are
-| used to check if an authenticated user can listen to the channel.
+| Aquí se registran los canales privados (y públicos, si los hubiera).
+| La llamada a Broadcast::routes() registra las rutas internas que usa
+| Laravel para autenticar suscripciones a canales privados.
 |
 */
 
+// Registrar las rutas de autorización de canales
+Broadcast::routes(['middleware' => ['auth:sanctum']]);
+
+// Canal genérico para cada usuario (notificaciones, etc.)
 Broadcast::channel('user.{id}', function ($user, $id) {
-    // Solo el propio usuario puede suscribirse
     return (int)$user->id === (int)$id;
 });
 
@@ -24,20 +27,20 @@ Broadcast::channel('user.notifications.{id}', function ($user, $id) {
     return (int)$user->id === (int)$id;
 });
 
-Broadcast::channel('chat.{chatId}', function ($user, $chatId) {
-    $chat = Chat::find($chatId);
-
-    if (!$chat) {
+// Canal del chat 1:1 por oferta (chat.offer.{offerId})
+Broadcast::channel('chat.offer.{offerId}', function ($user, $offerId) {
+    $offer = ServiceOffer::with('serviceRequest.user')->find($offerId);
+    if (! $offer) {
         return false;
     }
 
-    return $chat->isParticipant($user);
+    $requesterId = $offer->serviceRequest->user_id;
+    $offererId   = $offer->user_id;
+
+    return $user->id === $requesterId || $user->id === $offererId;
 });
 
-// Canal privado para el seguimiento de ubicación del usuario
+// Canal privado para seguimiento de ubicación (si lo usas)
 Broadcast::channel('location-tracking.{userId}', function ($user, $userId) {
-    // Solo el propio usuario puede suscribirse a su canal de ubicación
     return (int)$user->id === (int)$userId;
 });
-
-Broadcast::routes(['middleware' => ['auth:sanctum']]);

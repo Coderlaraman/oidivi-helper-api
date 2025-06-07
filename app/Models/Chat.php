@@ -4,195 +4,117 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Support\Facades\Auth;
+use App\Models\ServiceOffer;
+use App\Models\Message;
+use App\Models\User;
 
 class Chat extends Model
 {
     use HasFactory, SoftDeletes;
 
     /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
+     * Campos asignables
      */
     protected $fillable = [
-        'service_request_id',
         'service_offer_id',
-        'name',
-        'type',
-        'last_message_at',
     ];
 
     /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
+     * Relaciones y métodos
      */
-    protected $casts = [
-        'last_message_at' => 'datetime',
-        'deleted_at' => 'datetime',
-    ];
 
     /**
-     * Get the service request associated with the chat.
+     * Cada Chat pertenece a una ServiceOffer
      */
-    public function serviceRequest(): BelongsTo
-    {
-        return $this->belongsTo(ServiceRequest::class);
-    }
-    
-    /**
-     * Get the service offer associated with the chat.
-     */
-    public function serviceOffer(): BelongsTo
+    public function serviceOffer()
     {
         return $this->belongsTo(ServiceOffer::class);
     }
 
     /**
-     * Get the messages for the chat.
+     * Obtener usuario que hizo la oferta (offerer)
      */
-    public function messages(): HasMany
+    public function offerer()
+    {
+        return $this->serviceOffer->user();
+    }
+
+    /**
+     * Obtener usuario que publicó la solicitud (requester)
+     */
+    public function requester()
+    {
+        return $this->serviceOffer->serviceRequest->user();
+    }
+
+    /**
+     * Mensajes del chat
+     */
+    public function messages()
     {
         return $this->hasMany(Message::class);
     }
 
     /**
-     * Get the participants of the chat.
+     * Devuelve el otro participante en un chat 1:1
+     *
+     * @param  User|int  $user
+     * @return User|null
      */
-    public function participants(): BelongsToMany
-    {
-        return $this->belongsToMany(User::class, 'chat_participants')
-            ->withPivot(['is_admin', 'last_read_at'])
-            ->withTimestamps();
-    }
-
-    /**
-     * Check if a user is a participant in the chat.
-     * @param User|int $user User object or user ID
-     */
-    public function isParticipant($user): bool
+    public function getOtherParticipant($user)
     {
         $userId = $user instanceof User ? $user->id : $user;
-        return $this->participants()->where('users.id', $userId)->exists();
-    }
 
-    /**
-     * Add a participant to the chat.
-     * @param User|int $user User object or user ID
-     */
-    public function addParticipant($user, bool $isAdmin = false): void
-    {
-        $userId = $user instanceof User ? $user->id : $user;
-        
-        if (!$this->isParticipant($userId)) {
-            $this->participants()->attach($userId, [
-                'is_admin' => $isAdmin,
-                'last_read_at' => now(),
-            ]);
-        }
-    }
-
-    /**
-     * Remove a participant from the chat.
-     * @param User|int $user User object or user ID
-     */
-    public function removeParticipant($user): void
-    {
-        $userId = $user instanceof User ? $user->id : $user;
-        $this->participants()->detach($userId);
-    }
-
-    /**
-     * Get the other participant in a direct chat.
-     * Only applicable for direct chats (type = 'direct').
-     * @param User|int $user User object or user ID
-     */
-    public function getOtherParticipant($user): ?User
-    {
-        if ($this->type !== 'direct') {
-            return null;
+        // Si el usuario es quien hizo la oferta, el otro es el solicitante
+        if ($userId === $this->serviceOffer->user_id) {
+            return $this->requester()->first();
         }
 
-        $userId = $user instanceof User ? $user->id : $user;
-        
-        return $this->participants()
-            ->where('users.id', '!=', $userId)
-            ->first();
+        // Si el usuario es quien solicitó, el otro es el oferente
+        if ($userId === $this->serviceOffer->serviceRequest->user_id) {
+            return $this->offerer()->first();
+        }
+
+        return null;
     }
 
     /**
-     * Mark all unread messages in the chat as read for a specific user.
-     * @param User|int $user User object or user ID
-     * @return int Number of messages marked as read
+     * Marca todos los mensajes no leídos como leídos para un usuario dado
+     *
+     * @param  User|int  $user
+     * @return int  Cantidad de mensajes marcados
      */
     public function markAsRead($user): int
     {
         $userId = $user instanceof User ? $user->id : $user;
-        $userObj = $user instanceof User ? $user : User::find($userId);
-        
-        if (!$userObj) {
-            return 0;
-        }
-        
-        // Actualizar el timestamp de última lectura para el usuario
-        $this->participants()->updateExistingPivot($userId, [
-            'last_read_at' => now(),
-        ]);
+        $unread = $this->messages()
+                       ->where('sender_id', '<>', $userId)
+                       ->whereNull('seen_at')
+                       ->get();
 
-        // Disparar evento de mensajes leídos si es necesario
-        $unreadMessages = $this->getUnreadMessagesForUser($userObj);
-        $markedCount = 0;
-        
-        foreach ($unreadMessages as $message) {
-            if ($message->sender_id !== $userId && !$message->seen_at) {
-                $message->markAsSeen();
-                event(new \App\Events\MessageSeen($message, $userObj));
-                $markedCount++;
-            }
+        $count = 0;
+        foreach ($unread as $msg) {
+            $msg->markAsSeen();
+            $count++;
         }
-        
-        return $markedCount;
+
+        return $count;
     }
 
     /**
-     * Get unread messages for a specific user.
-     * @param User|int $user User object or user ID
-     */
-    public function getUnreadMessagesForUser($user): array
-    {
-        $userId = $user instanceof User ? $user->id : $user;
-        
-        $participant = $this->participants()->where('users.id', $userId)->first();
-        if (!$participant) {
-            return [];
-        }
-
-        $lastReadAt = $participant->pivot->last_read_at;
-        if (!$lastReadAt) {
-            return $this->messages()->where('sender_id', '!=', $userId)->get()->all();
-        }
-
-        return $this->messages()
-            ->where('sender_id', '!=', $userId)
-            ->where(function ($query) use ($lastReadAt) {
-                $query->whereNull('seen_at')
-                    ->orWhere('created_at', '>', $lastReadAt);
-            })
-            ->get()
-            ->all();
-    }
-
-    /**
-     * Get the count of unread messages for a specific user.
-     * @param User|int $user User object or user ID
+     * Cuenta mensajes no leídos para un usuario
+     *
+     * @param  User|int  $user
+     * @return int
      */
     public function getUnreadCount($user): int
     {
-        return count($this->getUnreadMessagesForUser($user));
+        $userId = $user instanceof User ? $user->id : $user;
+
+        return $this->messages()
+                    ->where('sender_id', '<>', $userId)
+                    ->whereNull('seen_at')
+                    ->count();
     }
 }

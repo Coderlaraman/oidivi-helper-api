@@ -223,20 +223,10 @@ Route::prefix('v1')->middleware('locale')->group(function () {
     });
 
     // Rutas de chat y mensajes
-    Route::prefix('chats')->middleware(['auth:sanctum'])->group(function () {
-        Route::get('/', [ChatController::class, 'index']);
-        Route::post('/', [ChatController::class, 'store']);
-        Route::get('/{chat}', [ChatController::class, 'show']);
-        Route::put('/{chat}', [ChatController::class, 'update']);
-        Route::delete('/{chat}', [ChatController::class, 'destroy']);
-        Route::post('/{chat}/read', [ChatController::class, 'markAsRead']);
-        Route::post('/{chat}/typing', [ChatController::class, 'typing']);
-
-        // Rutas de mensajes
-        Route::get('/{chat}/messages', [MessageController::class, 'index']); // Mantener si MessageController maneja listado
-        Route::post('/{chat}/messages', [ChatController::class, 'storeMessage']); // Apuntar al nuevo método en ChatController
-        Route::get('/{chat}/messages/{message}', [MessageController::class, 'show']);
-        Route::put('/{chat}/messages/{message}', [MessageController::class, 'update']);
-        Route::delete('/{chat}/messages/{message}', [MessageController::class, 'destroy']);
-    });
+    Route::prefix('chats')->middleware('auth:sanctum')->group(function () {
+        Route::get('/', [ChatController::class, 'index']); // GET /api/v1/chat
+         Route::get('/offers/{offerId}', [ChatController::class, 'showOrCreate']); // GET /api/v1/chat/offers/{offerId}
+         Route::post('/offers/{offerId}/messages', [MessageController::class, 'store']); // POST /api/v1/chat/offers/{offerId}/messages
+         Route::post('/{chat}/messages', [MessageController::class, 'store']);
+     });
 });
