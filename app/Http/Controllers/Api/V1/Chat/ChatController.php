@@ -47,12 +47,14 @@ class ChatController extends Controller
                 'created_at'       => $chat->created_at->toDateTimeString(),
                 'updated_at'       => $chat->updated_at->toDateTimeString(),
                 'requester'        => [
-                    'id'   => $chat->serviceOffer->serviceRequest->user->id,
-                    'name' => $chat->serviceOffer->serviceRequest->user->name,
+                    'id'                => $chat->serviceOffer->serviceRequest->user->id,
+                    'name'              => $chat->serviceOffer->serviceRequest->user->name,
+                    'profile_photo_url' => $chat->serviceOffer->serviceRequest->user->profile_photo_url ? \Storage::url($chat->serviceOffer->serviceRequest->user->profile_photo_url) : null,
                 ],
                 'offerer' => [
-                    'id'   => $chat->serviceOffer->user->id,
-                    'name' => $chat->serviceOffer->user->name,
+                    'id'                => $chat->serviceOffer->user->id,
+                    'name'              => $chat->serviceOffer->user->name,
+                    'profile_photo_url' => $chat->serviceOffer->user->profile_photo_url ? \Storage::url($chat->serviceOffer->user->profile_photo_url) : null,
                 ],
                 'last_message' => $lastMessage ? [
                     'id'         => $lastMessage->id,
