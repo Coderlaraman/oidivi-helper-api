@@ -9,6 +9,7 @@ use App\Traits\ApiResponseTrait;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 
 class ChatController extends Controller
 {
@@ -16,8 +17,6 @@ class ChatController extends Controller
 
     /**
      * Listar todos los chats asociados al usuario autenticado.
-     *
-     * @return JsonResponse
      */
     public function index(): JsonResponse
     {
@@ -39,22 +38,24 @@ class ChatController extends Controller
         ->latest()
         ->get();
 
-        $payload = $chats->map(function ($chat) {
+        $payload = $chats->map(function ($chat) use ($user) {
             $lastMessage = $chat->messages->first();
+
+            $isRequester = $chat->serviceOffer->serviceRequest->user->id === $user->id;
+
+            $otherUser = $isRequester
+                ? $chat->serviceOffer->user
+                : $chat->serviceOffer->serviceRequest->user;
+
             return [
                 'id'               => $chat->id,
                 'service_offer_id' => $chat->service_offer_id,
                 'created_at'       => $chat->created_at->toDateTimeString(),
                 'updated_at'       => $chat->updated_at->toDateTimeString(),
-                'requester'        => [
-                    'id'                => $chat->serviceOffer->serviceRequest->user->id,
-                    'name'              => $chat->serviceOffer->serviceRequest->user->name,
-                    'profile_photo_url' => $chat->serviceOffer->serviceRequest->user->profile_photo_url ? \Storage::url($chat->serviceOffer->serviceRequest->user->profile_photo_url) : null,
-                ],
-                'offerer' => [
-                    'id'                => $chat->serviceOffer->user->id,
-                    'name'              => $chat->serviceOffer->user->name,
-                    'profile_photo_url' => $chat->serviceOffer->user->profile_photo_url ? \Storage::url($chat->serviceOffer->user->profile_photo_url) : null,
+                'other_participant' => [
+                    'id'                => $otherUser->id,
+                    'name'              => $otherUser->name,
+                    'profile_photo_url' => $otherUser->profile_photo_url ? Storage::url($otherUser->profile_photo_url) : null,
                 ],
                 'last_message' => $lastMessage ? [
                     'id'         => $lastMessage->id,
@@ -71,9 +72,6 @@ class ChatController extends Controller
 
     /**
      * Obtener o crear el chat asociado a una oferta.
-     *
-     * @param  int  $offerId
-     * @return JsonResponse
      */
     public function showOrCreate(int $offerId): JsonResponse
     {
@@ -136,5 +134,4 @@ class ChatController extends Controller
 
         return $this->successResponse($payload);
     }
-
 }
