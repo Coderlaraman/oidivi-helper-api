@@ -2,6 +2,7 @@
 
 namespace App\Events;
 
+use App\Constants\NotificationType;
 use App\Models\ServiceOffer;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
@@ -86,8 +87,8 @@ class ServiceOfferStatusUpdatedNotification implements ShouldBroadcast
                         'title' => $this->serviceOffer->serviceRequest->title,
                         'status' => $this->serviceOffer->status
                     ]),
-                    'action_url' => \App\Models\ServiceOffer::getNotificationActionUrl(
-                        \App\Constants\NotificationType::OFFER_STATUS_UPDATED,
+                    'action_url' => ServiceOffer::getNotificationActionUrl(
+                        $this->serviceOffer->status === 'accepted' ? NotificationType::OFFER_ACCEPTED : NotificationType::OFFER_STATUS_UPDATED,
                         $this->serviceOffer->serviceRequest->id,
                         $this->serviceOffer->id
                     )
@@ -117,4 +118,4 @@ class ServiceOfferStatusUpdatedNotification implements ShouldBroadcast
     {
         return 'service.offer.status.notification';
     }
-} 
+}

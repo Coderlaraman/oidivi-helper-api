@@ -11,27 +11,34 @@ class Contract extends Model
     use HasFactory;
 
     protected $fillable = [
+        'service_offer_id',
         'service_request_id',
-        'user_id', // Usuario que creó la solicitud (cliente en ese contexto)
-        'assigned_user_id', // Usuario asignado para ejecutar el servicio (helper en ese contexto)
+        'provider_id',
+        'client_id',
+        'price',
+        'estimated_time',
         'start_date',
         'end_date',
-        'status',
-        'payment_status'
+        'status'
     ];
+
+    public function serviceOffer(): BelongsTo
+    {
+        return $this->belongsTo(ServiceOffer::class);
+    }
 
     public function serviceRequest(): BelongsTo
     {
         return $this->belongsTo(ServiceRequest::class);
     }
 
-    public function user(): BelongsTo
+    public function provider(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'user_id');
+        return $this->belongsTo(User::class, 'provider_id');
     }
 
-    public function assignedUser(): BelongsTo
+    public function client(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'assigned_user_id');
+        return $this->belongsTo(User::class, 'client_id');
     }
 }

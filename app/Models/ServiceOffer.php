@@ -33,7 +33,12 @@ class ServiceOffer extends Model
     {
         return $this->belongsTo(User::class);
     }
-    
+
+    public function contract()
+    {
+        return $this->hasOne(Contract::class);
+    }
+
     /**
      * Get the chats associated with the service offer.
      */
@@ -58,6 +63,30 @@ class ServiceOffer extends Model
             event(new ServiceOfferStatusUpdatedNotification($this, $this->user_id));
         } catch (\Exception $e) {
             Log::error('Error notifying offer status update', [
+                'error' => $e->getMessage(),
+                'offer_id' => $this->id
+            ]);
+        }
+    }
+
+    /**
+     * Notifica al dueño de la solicitud que se ha recibido una nueva oferta.
+     */
+    public function notifyOfferAccepted(): void
+    {
+        try {
+            $this->createNotification(
+                userIds: [$this->user_id],
+                type: NotificationType::OFFER_ACCEPTED,
+                title: __('notifications.types.offer_accepted'),
+                message: __('messages.service_offers.notifications.offer_accepted_message', [
+                    'title' => $this->serviceRequest->title
+                ])
+            );
+
+            event(new ServiceOfferStatusUpdatedNotification($this, $this->user_id));
+        } catch (\Exception $e) {
+            Log::error('Error notifying offer accepted', [
                 'error' => $e->getMessage(),
                 'offer_id' => $this->id
             ]);
@@ -133,7 +162,7 @@ class ServiceOffer extends Model
      */
     public static function getNotificationActionUrl($type, $serviceRequestId, $offerId = null)
     {
-        if ($type === NotificationType::NEW_OFFER || $type === NotificationType::OFFER_STATUS_UPDATED) {
+        if ($type === NotificationType::NEW_OFFER || $type === NotificationType::OFFER_STATUS_UPDATED || $type === NotificationType::OFFER_ACCEPTED) {
             return "/service-requests/my/{$serviceRequestId}/offers/{$offerId}";
         }
         // Para solicitudes de servicio

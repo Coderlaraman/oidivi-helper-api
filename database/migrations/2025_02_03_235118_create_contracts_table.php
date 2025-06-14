@@ -12,13 +12,15 @@ return new class extends Migration {
     {
         Schema::create('contracts', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('service_request_id')->constrained()->onDelete('cascade');
-            $table->foreignId('user_id')->constrained('users')->onDelete('cascade'); // Cliente (quien publicó la solicitud)
-            $table->foreignId('assigned_user_id')->constrained('users')->onDelete('cascade'); // Helper (quien ejecuta el servicio)
+            $table->foreignId('service_offer_id')->constrained('service_offers')->onDelete('cascade');
+            $table->foreignId('service_request_id')->constrained('service_requests')->onDelete('cascade');
+            $table->foreignId('provider_id')->constrained('users')->onDelete('cascade');
+            $table->foreignId('client_id')->constrained('users')->onDelete('cascade');
+            $table->decimal('price', 10, 2);
+            $table->integer('estimated_time');
             $table->timestamp('start_date')->nullable();
             $table->timestamp('end_date')->nullable();
-            $table->enum('status', ['active', 'completed', 'disputed'])->default('active');
-            $table->enum('payment_status', ['pending', 'paid', 'refunded'])->default('pending');
+            $table->string('status')->default('pending'); // e.g., pending, in_progress, completed, cancelled
             $table->timestamps();
         });
     }

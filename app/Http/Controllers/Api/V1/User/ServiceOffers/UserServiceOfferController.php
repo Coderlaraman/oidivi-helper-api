@@ -9,6 +9,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Notification;
 use App\Models\ServiceOffer;
 use App\Models\ServiceRequest;
+use App\Models\Contract;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
@@ -174,67 +175,119 @@ class UserServiceOfferController extends Controller
     }
 
     public function update(Request $request, ServiceOffer $offer): JsonResponse
-    {
-        if ($offer->serviceRequest->user_id !== auth()->id()) {
-            return $this->errorResponse(
-                message: __('messages.service_offers.errors.unauthorized'),
-                statusCode: 403
-            );
-        }
-
-        try {
-            DB::beginTransaction();
-            try {
-                $oldStatus = $offer->status;
-                $newStatus = $request->input('status');
-
-                $offer->update([
-                    'status' => $newStatus
-                ]);
-
-                // Crear notificación para el ofertante
-                $offer->createNotification(
-                    userIds: [$offer->user_id],
-                    type: NotificationType::OFFER_STATUS_UPDATED,
-                    title: __('notifications.types.offer_status_updated'),
-                    message: __('messages.service_offers.notifications.status_update_message', [
-                        'title' => $offer->serviceRequest->title,
-                        'status' => $newStatus
-                    ])
-                );
-
-                // Emitir evento de notificación en tiempo real
-                event(new ServiceOfferStatusUpdatedNotification($offer, $offer->user_id));
-
-                DB::commit();
-
-                Log::info('Offer status updated', [
-                    'offer_id' => $offer->id,
-                    'old_status' => $oldStatus,
-                    'new_status' => $newStatus,
-                    'updated_by' => auth()->id()
-                ]);
-
-                return $this->successResponse(
-                    data: $offer->load(['user', 'serviceRequest']),
-                    message: __('messages.service_offers.success.updated')
-                );
-            } catch (\Exception $e) {
-                DB::rollBack();
-                throw $e;
-            }
-        } catch (\Exception $e) {
-            Log::error('Error updating offer', [
-                'error' => $e->getMessage(),
-                'offer_id' => $offer->id
-            ]);
-            return $this->errorResponse(
-                message: __('messages.service_offers.errors.update_failed'),
-                statusCode: 500,
-                errors: ['error' => $e->getMessage()]
-            );
-        }
+{
+    if ($offer->serviceRequest->user_id !== auth()->id()) {
+        return $this->errorResponse(
+            message: __('messages.service_offers.errors.unauthorized'),
+            statusCode: 403
+        );
     }
+
+    try {
+        DB::beginTransaction();
+
+        $oldStatus = $offer->status;
+        $newStatus = $request->input('status');
+
+        $offer->update([
+            'status' => $newStatus
+        ]);
+
+        if ($newStatus === 'accepted') {
+            $offer->serviceRequest->markInProgress();
+
+            $offer->notifyOfferAccepted();
+
+            $offer->serviceRequest->offers()
+                ->where('id', '!=', $offer->id)
+                ->update(['status' => 'declined']);
+
+            foreach (
+                $offer->serviceRequest->offers()->where('id', '!=', $offer->id)->get()
+                as $declinedOffer
+            ) {
+                if ($declinedOffer->user) {
+                    $declinedOffer->notifyOfferStatusUpdated(NotificationType::OFFER_STATUS_UPDATED);
+                }
+            }
+
+            $offer->createNotification(
+                userIds: [$offer->user_id],
+                type: NotificationType::OFFER_ACCEPTED,
+                title: __('notifications.types.offer_accepted'),
+                message: __('messages.service_offers.notifications.offer_accepted_message', [
+                    'title' => $offer->serviceRequest->title
+                ])
+            );
+
+            event(new ServiceOfferStatusUpdatedNotification($offer, $offer->user_id));
+
+            $offer->serviceRequest->serviceOffers()
+                ->where('id', '!=', $offer->id)
+                ->where('status', '!=', 'accepted')
+                ->update(['status' => 'rejected']);
+
+            $otherOffers = $offer->serviceRequest->serviceOffers()
+                ->where('id', '!=', $offer->id)
+                ->get();
+
+            foreach ($otherOffers as $otherOffer) {
+                if ($otherOffer->status === 'rejected') {
+                    $otherOffer->createNotification(
+                        userIds: [$otherOffer->user_id],
+                        type: NotificationType::OFFER_STATUS_UPDATED,
+                        title: __('notifications.types.offer_status_updated'),
+                        message: __('messages.service_offers.notifications.status_update_message', [
+                            'title' => $otherOffer->serviceRequest->title,
+                            'status' => 'rejected'
+                        ])
+                    );
+                    event(new ServiceOfferStatusUpdatedNotification($otherOffer, $otherOffer->user_id));
+                }
+            }
+        } else {
+            $offer->createNotification(
+                userIds: [$offer->user_id],
+                type: NotificationType::OFFER_STATUS_UPDATED,
+                title: __('notifications.types.offer_status_updated'),
+                message: __('messages.service_offers.notifications.status_update_message', [
+                    'title' => $offer->serviceRequest->title,
+                    'status' => $newStatus
+                ])
+            );
+
+            event(new ServiceOfferStatusUpdatedNotification($offer, $offer->user_id));
+        }
+
+        DB::commit();
+
+        Log::info('Offer status updated', [
+            'offer_id' => $offer->id,
+            'old_status' => $oldStatus,
+            'new_status' => $newStatus,
+            'updated_by' => auth()->id()
+        ]);
+
+        return $this->successResponse(
+            data: $offer->load(['user', 'serviceRequest']),
+            message: __('messages.service_offers.success.updated')
+        );
+    } catch (\Exception $e) {
+        DB::rollBack();
+
+        Log::error('Error updating offer', [
+            'error' => $e->getMessage(),
+            'offer_id' => $offer->id
+        ]);
+
+        return $this->errorResponse(
+            message: __('messages.service_offers.errors.update_failed'),
+            statusCode: 500,
+            errors: ['error' => $e->getMessage()]
+        );
+    }
+}
+
 
     /**
      * Lista todas las ofertas recibidas en las solicitudes del usuario autenticado.

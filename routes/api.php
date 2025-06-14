@@ -23,6 +23,7 @@ use App\Http\Controllers\Api\V1\Chat\ChatController;
 use App\Http\Controllers\Api\V1\Chat\MessageController;
 use App\Http\Controllers\Api\V1\User\Notifications\UserNotificationController;
 use App\Http\Controllers\Api\V1\User\ServiceOffers\UserServiceOfferController;
+use App\Http\Controllers\Api\V1\User\Contracts\UserContractController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 
@@ -40,7 +41,7 @@ Route::prefix('v1')->middleware('locale')->group(function () {
     // Ruta de prueba
     Route::get('test', fn() => response()->json(['message' => 'API is working']));
 
-    // Rutas públicas de autenticación para el administrador
+    // Rutas de autenticación para el administrador
     Route::prefix('admin/auth')->group(function () {
         Route::post('login', [AdminAuthController::class, 'login']);
     });
@@ -84,6 +85,19 @@ Route::prefix('v1')->middleware('locale')->group(function () {
 
     // Rutas públicas para los usuarios comunes
     Route::prefix('user')->group(function () {
+
+        Route::prefix('categories')->group(function () {
+        Route::get('/', [UserCategoryController::class, 'index']);
+        });
+
+        // Rutas de notificaciones
+        Route::prefix('notifications')->middleware('auth:sanctum')->group(function () {
+            Route::get('/', [UserNotificationController::class, 'index']);
+            Route::get('/unread-count', [UserNotificationController::class, 'getUnreadCount']);
+            Route::patch('{notification}/read', [UserNotificationController::class, 'markAsRead']);
+            Route::patch('/read-all', [UserNotificationController::class, 'markAllAsRead']);
+            Route::delete('{notification}', [UserNotificationController::class, 'destroy']);
+        });
 
         // Rutas de autenticación del usuario común
         Route::prefix('auth')->group(function () {  // Changed from 'user/auth' to just 'auth'
@@ -198,30 +212,30 @@ Route::prefix('v1')->middleware('locale')->group(function () {
             Route::post('tickets/{ticket}/reply', [UserTicketController::class, 'reply']);
         });
 
+        // Rutas de contratos
+        Route::prefix('contracts')->middleware(['auth:sanctum', 'verified'])->group(function () {
+            Route::get('/', [UserContractController::class, 'index']);
+            Route::post('/', [UserContractController::class, 'store']);
+            Route::get('/{contract}', [UserContractController::class, 'show']);
+            Route::put('/{contract}', [UserContractController::class, 'update']);
+            Route::delete('/{contract}', [UserContractController::class, 'destroy']);
+        });
+
         // Rutas de transacciones
         Route::prefix('transactions')->group(function () {
             Route::get('/', [UserTransactionController::class, 'index']);
-            Route::get('{transaction}', [UserTransactionController::class, 'show']);
+            Route::get('/{transaction}', [UserTransactionController::class, 'show']);
             Route::post('{transaction}/refund', [UserTransactionController::class, 'refund']);
+            Route::post('{transaction}/cancel', [UserTransactionController::class, 'cancel']);
+            Route::post('{transaction}/complete', [UserTransactionController::class, 'complete']);
         });
 
-        Route::prefix('categories')->group(function () {
-            Route::get('/', [UserCategoryController::class, 'index']);
-        });
+
 
         // Rutas públicas de perfiles de usuario
         Route::get('public/profiles/{user}', [UserProfileController::class, 'showPublicProfile']);
 
-        // Rutas de notificaciones
-        Route::prefix('notifications')->middleware('auth:sanctum')->group(function () {
-            Route::get('/', [UserNotificationController::class, 'index']);
-            Route::get('/unread-count', [UserNotificationController::class, 'getUnreadCount']);
-            Route::patch('{notification}/read', [UserNotificationController::class, 'markAsRead']);
-            Route::patch('/read-all', [UserNotificationController::class, 'markAllAsRead']);
-            Route::delete('{notification}', [UserNotificationController::class, 'destroy']);
-        });
     });
-
     // Rutas de chat y mensajes
     Route::prefix('chats')->middleware('auth:sanctum')->group(function () {
         Route::get('/', [ChatController::class, 'index']); // GET /api/v1/chat
@@ -230,3 +244,5 @@ Route::prefix('v1')->middleware('locale')->group(function () {
          Route::post('/{chat}/messages', [MessageController::class, 'store']);
      });
 });
+
+

@@ -266,6 +266,12 @@ class ServiceRequest extends Model
         return $this->priority === 'urgent';
     }
 
+    public function markInProgress(): void
+    {
+        $this->status = self::STATUSES['in_progress'];
+        $this->save();
+    }
+
     public function categories(): MorphToMany
     {
         return $this->morphToMany(Category::class, 'categorizable')
