@@ -267,10 +267,10 @@ class ServiceRequest extends Model
     }
 
     public function markInProgress(): void
-    {
-        $this->status = self::STATUSES['in_progress'];
-        $this->save();
-    }
+{
+    $this->status = array_search('In Progress', self::STATUSES, true);
+    $this->save();
+}
 
     public function categories(): MorphToMany
     {

@@ -15,6 +15,16 @@ class ServiceOffer extends Model
 {
     use HasFactory, Notifiable;
 
+    public const STATUS_PENDING = 'pending';
+    public const STATUS_ACCEPTED = 'accepted';
+    public const STATUS_REJECTED = 'rejected';
+
+    public const STATUSES = [
+        self::STATUS_PENDING,
+        self::STATUS_ACCEPTED,
+        self::STATUS_REJECTED
+    ];
+
     protected $fillable = [
         'service_request_id',
         'user_id',
@@ -79,7 +89,7 @@ class ServiceOffer extends Model
                 userIds: [$this->user_id],
                 type: NotificationType::OFFER_ACCEPTED,
                 title: __('notifications.types.offer_accepted'),
-                message: __('messages.service_offers.notifications.offer_accepted_message', [
+                message: __('messages.offer_accepted_message', [
                     'title' => $this->serviceRequest->title
                 ])
             );
