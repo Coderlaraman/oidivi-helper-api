@@ -57,6 +57,27 @@ class ServiceOffer extends Model
         return $this->hasMany(Chat::class);
     }
 
+    /**
+     * Verifica si un usuario dado es participante del chat asociado a esta oferta.
+     * Un participante es o el que creó la solicitud de servicio (requester) o el que hizo la oferta (offerer).
+     *
+     * @param \App\Models\User $user
+     * @return bool
+     */
+    public function isParticipant(User $user): bool
+    {
+        // Carga la relación serviceRequest si no ha sido cargada para evitar consultas N+1.
+        $this->loadMissing('serviceRequest');
+
+        // Maneja el caso de que la relación serviceRequest sea nula por alguna razón.
+        if (!$this->serviceRequest) {
+            return false;
+        }
+
+        // Compara los IDs de forma segura (haciendo casting a entero).
+        return (int) $user->id === (int) $this->serviceRequest->user_id || (int) $user->id === (int) $this->user_id;
+    }
+
     public function notifyStatusUpdate(): void
     {
         try {

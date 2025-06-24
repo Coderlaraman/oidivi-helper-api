@@ -8,36 +8,35 @@ use Illuminate\Support\Facades\Broadcast;
 | Broadcast Channels
 |--------------------------------------------------------------------------
 |
-| Aquí se registran los canales privados (y públicos, si los hubiera).
-| La llamada a Broadcast::routes() registra las rutas internas que usa
-| Laravel para autenticar suscripciones a canales privados.
+| Aquí registras todos los canales de difusión de eventos que tu aplicación
+| soporta. Estos callbacks son ejecutados para verificar si un usuario
+| autenticado puede escuchar en el canal dado.
 |
 */
 
-// Registrar las rutas de autorización de canales
+// Middleware: 'auth:sanctum' es el correcto para una API de Laravel que usa Bearer Tokens.
 Broadcast::routes(['middleware' => ['auth:sanctum']]);
 
-// Canal genérico para cada usuario (notificaciones, etc.)
-Broadcast::channel('user.{id}', function ($user, $id) {
-    return (int)$user->id === (int)$id;
-});
-
-// Canal específico para notificaciones de usuario
+// Canal para notificaciones generales y de chat para un usuario específico.
+// Este canal es crucial para las notificaciones push.
 Broadcast::channel('user.notifications.{id}', function ($user, $id) {
-    return (int)$user->id === (int)$id;
+    // Verifica que el usuario autenticado solo pueda escuchar su propio canal.
+    return (int) $user->id === (int) $id;
 });
 
-// Canal del chat 1:1 por oferta (chat.offer.{offerId})
+// Canal para la sala de chat en tiempo real.
+// Este canal es para cuando el usuario tiene la ventana de chat abierta.
 Broadcast::channel('chat.offer.{offerId}', function ($user, $offerId) {
-    $offer = ServiceOffer::with('serviceRequest.user')->find($offerId);
-    if (! $offer) {
+    $offer = ServiceOffer::find($offerId);
+
+    // Si la oferta no existe, deniega el acceso.
+    if (!$offer) {
         return false;
     }
 
-    $requesterId = $offer->serviceRequest->user_id;
-    $offererId   = $offer->user_id;
-
-    return $user->id === $requesterId || $user->id === $offererId;
+    // Usa un método en el modelo para mantener la lógica encapsulada y limpia.
+    // Esto es más mantenible que tener la lógica de negocio aquí.
+    return $offer->isParticipant($user);
 });
 
 // Canal privado para seguimiento de ubicación (si lo usas)

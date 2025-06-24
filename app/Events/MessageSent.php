@@ -2,6 +2,7 @@
 
 namespace App\Events;
 
+use App\Http\Resources\User\UserMessageResource;
 use App\Models\Message;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
@@ -16,41 +17,21 @@ class MessageSent implements ShouldBroadcast
 
     public Message $message;
 
-    /**
-     * Crear una nueva instancia del evento.
-     */
     public function __construct(Message $message)
     {
         $this->message = $message;
     }
 
-    /**
-     * Definir el canal privado dinámico: chat.oferta.{offerId}
-     */
     public function broadcastOn(): Channel
     {
-        $offerId = $this->message->chat->service_offer_id;
-        return new PrivateChannel("chat.offer.{$offerId}");
+        $this->message->loadMissing('chat');
+        return new PrivateChannel("chat.offer.{$this->message->chat->service_offer_id}");
     }
 
-    /**
-     * Datos que el frontend recibirá en tiempo real.
-     */
     public function broadcastWith(): array
     {
-        return [
-            'id'          => $this->message->id,
-            'chat_id'     => $this->message->chat_id,
-            'sender_id'   => $this->message->sender_id,
-            'sender_name' => $this->message->sender->name,
-            'message'     => $this->message->message,
-            'type'        => $this->message->type,
-            'media_url'   => $this->message->media_url,
-            'media_type'  => $this->message->media_type,
-            'media_name'  => $this->message->media_name,
-            'metadata'    => $this->message->metadata,
-            'seen_at'     => $this->message->seen_at?->toDateTimeString(),
-            'created_at'  => $this->message->created_at->toDateTimeString(),
-        ];
+        // Aseguramos que la relación 'sender' esté cargada antes de pasarla al resource
+        $this->message->loadMissing('sender');
+        return (new UserMessageResource($this->message))->resolve();
     }
 }

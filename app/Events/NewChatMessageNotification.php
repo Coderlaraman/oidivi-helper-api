@@ -2,6 +2,8 @@
 
 namespace App\Events;
 
+use App\Constants\NotificationType;
+use App\Http\Resources\User\UserMessageResource; // <--- USO CONSISTENTE
 use App\Models\Message;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
@@ -17,54 +19,43 @@ class NewChatMessageNotification implements ShouldBroadcast
     public Message $message;
     public int $recipientId;
 
-    /**
-     * @param Message $message     El mensaje recién creado
-     * @param int     $recipientId ID del usuario receptor
-     */
     public function __construct(Message $message, int $recipientId)
     {
-        $this->message     = $message;
+        $this->message = $message;
         $this->recipientId = $recipientId;
     }
 
-    /**
-     * Indica el canal privado al que se va a emitir la notificación.
-     */
     public function broadcastOn(): PrivateChannel
     {
         return new PrivateChannel("user.notifications.{$this->recipientId}");
     }
 
-    /**
-     * Datos que recibirá el frontend cuando escuche este evento.
-     */
     public function broadcastWith(): array
     {
+        $this->message->loadMissing('sender', 'chat.serviceOffer');
+
         return [
-            'notification_id'     => null, // si quieres incluir el ID de tu tabla custom, remplázalo luego
-            'type'                => \App\Constants\NotificationType::NEW_CHAT_MESSAGE,
-            'timestamp'           => now()->toIso8601String(),
-            'message_id'          => $this->message->id,
-            'chat_id'             => $this->message->chat_id,
-            'sender_id'           => $this->message->sender_id,
-            'sender_name'         => $this->message->sender->name,
-            'message_content'     => $this->message->message,
-            'chat_type'           => $this->message->chat->type,
-            'service_request_id'  => $this->message->chat->service_request_id,
-            'service_offer_id'    => $this->message->chat->service_offer_id,
-            // Si hay multimedia:
-            'type_message'        => $this->message->type,
-            'media_url'           => $this->message->media_url,
-            'media_type'          => $this->message->media_type,
-            'media_name'          => $this->message->media_name,
+            // Sección para el TOAST
+            'id' => 'chat-notif-' . $this->message->id,
+            'type' => NotificationType::NEW_CHAT_MESSAGE,
+            'timestamp' => now()->toIso8601String(),
+            'title' => __('notifications.types.new_chat_message', ['sender' => $this->message->sender->name]),
+            'message' => $this->message->message ?? __('messages.file_placeholder'),
+            'action_url' => "/messages?offerId=" . $this->message->chat->service_offer_id,
+            'sender_name' => $this->message->sender->name,
+            'sender_photo_url' => $this->message->sender->profile_photo_url,
+
+            // Sección para la ACTUALIZACIÓN DEL ESTADO en React (ChatContext)
+            'chat_message' => (new UserMessageResource($this->message))->resolve(),
+
+            // Datos extra para el frontend
+            'chat_id' => $this->message->chat_id,
+            'service_offer_id' => $this->message->chat->service_offer_id,
         ];
     }
 
-    /**
-     * Nombre del evento para que el frontend lo identifique.
-     */
     public function broadcastAs(): string
     {
-        return 'notification.new_chat_message';
+        return 'chat.message.new';
     }
 }

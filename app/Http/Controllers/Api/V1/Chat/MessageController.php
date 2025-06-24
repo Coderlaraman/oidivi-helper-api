@@ -2,19 +2,19 @@
 
 namespace App\Http\Controllers\Api\V1\Chat;
 
-use App\Constants\NotificationType;
+use App\Events\MessageSent;
 use App\Events\NewChatMessageNotification;
 use App\Http\Controllers\Controller;
+use App\Http\Resources\UserMessageResource; // Importante para la consistencia
 use App\Models\Chat;
 use App\Models\Message;
-use App\Models\Notification as CustomNotification;  // tu modelo custom
 use App\Models\ServiceOffer;
-use App\Models\User;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
 class MessageController extends Controller
@@ -24,108 +24,73 @@ class MessageController extends Controller
     public function store(Request $request, int $offerId): JsonResponse
     {
         $user = Auth::user();
-        $offer = ServiceOffer::with('serviceRequest.user')->find($offerId);
 
+        // 1. Validar la oferta y la participación del usuario
+        $offer = ServiceOffer::find($offerId);
         if (!$offer) {
             return $this->notFoundResponse(__('messages.offer_not_found'));
         }
-
-        $requesterId = $offer->serviceRequest->user_id;
-        $offererId = $offer->user_id;
-        if ($user->id !== $requesterId && $user->id !== $offererId) {
+        if (!$offer->isParticipant($user)) {
             return $this->unauthorizedResponse(__('messages.unauthorized'));
         }
 
-        $validator = \Validator::make($request->all(), [
+        // 2. Validar la entrada
+        $validator = Validator::make($request->all(), [
             'message' => 'required_without:attachment|string|max:2000',
-            'attachment' => 'required_without:message|file|max:10240',
+            'attachment' => 'nullable|file|max:10240', // Usar 'nullable' es más flexible
         ]);
         if ($validator->fails()) {
             return $this->validationErrorResponse($validator->errors()->toArray());
         }
 
-        $chat = Chat::firstOrCreate(
-            ['service_offer_id' => $offer->id],
-            ['service_offer_id' => $offer->id]
-        );
+        // 3. Obtener o crear el chat
+        $chat = Chat::firstOrCreate(['service_offer_id' => $offer->id]);
 
+        // 4. Preparar los datos del mensaje
         $data = ['chat_id' => $chat->id, 'sender_id' => $user->id];
 
-        if ($request->filled('message')) {
-            $data['type'] = 'text';
-            $data['message'] = $request->input('message');
-        } elseif ($request->hasFile('attachment')) {
+        if ($request->hasFile('attachment')) {
             $file = $request->file('attachment');
             $mime = $file->getClientMimeType();
-            $original = $file->getClientOriginalName();
-            $filename = Str::uuid()->toString() . '_' . $original;
-            $path = $file->storeAs('chat_media/' . $offer->id, $filename, config('filesystems.default'));
-            $url = Storage::url($path);
+            $originalName = $file->getClientOriginalName();
+            $filename = Str::uuid()->toString() . '.' . $file->getClientOriginalExtension();
+            $path = $file->storeAs('chat_media/' . $chat->id, $filename, 'public');
 
-            if (Str::startsWith($mime, 'image/')) {
-                $data['type'] = 'image';
-            } elseif (Str::startsWith($mime, 'video/')) {
-                $data['type'] = 'video';
-            } else {
-                $data['type'] = 'file';
-            }
-
-            $data['media_url'] = $url;
+            $data['type'] = Str::startsWith($mime, 'image/') ? 'image' : (Str::startsWith($mime, 'video/') ? 'video' : 'file');
+            $data['media_url'] = Storage::url($path);
             $data['media_type'] = $mime;
-            $data['media_name'] = $original;
+            $data['media_name'] = $originalName;
+            $data['message'] = $request->input('message'); // Permite texto con archivo
 
-            $metadata = [];
-            if ($data['type'] === 'image') {
+            if ($data['type'] === 'image' && function_exists('getimagesize')) {
                 try {
                     [$width, $height] = getimagesize($file->getRealPath());
-                    $metadata['width'] = $width;
-                    $metadata['height'] = $height;
-                } catch (\Exception $e) {
-                    // Omite si falla
-                }
+                    $data['metadata'] = ['width' => $width, 'height' => $height];
+                } catch (\Exception $e) {}
             }
-            if (!empty($metadata)) {
-                $data['metadata'] = $metadata;
-            }
+        } else {
+            $data['type'] = 'text';
+            $data['message'] = $request->input('message');
         }
 
+        // 5. Crear el mensaje y cargar relaciones
         $message = Message::create($data);
-        $message->load('sender', 'chat');
+        $message->load('sender'); // Solo 'sender' es necesario para los eventos
 
-        // 1) Broadcast del chat en sí (para quienes estén viendo la sala)
-        broadcast(new \App\Events\MessageSent($message))->toOthers();
+        // 6. Despachar los eventos de broadcasting
+        // Evento para la sala de chat (actualiza la UI de la conversación)
+        broadcast(new MessageSent($message))->toOthers();
 
-        // 2) Crear tu notificación custom en base de datos
-        $recipient = $chat->getOtherParticipant($user);
-
-        if ($recipient) {
-            $customNotif = CustomNotification::create([
-                'user_id' => $recipient->id,
-                'type' => NotificationType::NEW_CHAT_MESSAGE,
-                'title' => __('notifications.types.new_chat_message'),
-                'message' => substr($message->message ?? __('messages.file_placeholder'), 0, 100),
-                'read_at' => null,
-            ]);
-
-            // 3) Emitir evento para que el frontend reciba la alerta
+        // Evento para la notificación push (toast y contador)
+        if ($recipient = $chat->getOtherParticipant($user)) {
             event(new NewChatMessageNotification($message, $recipient->id));
         }
 
-        $response = [
-            'id' => $message->id,
-            'chat_id' => $message->chat_id,
-            'sender_id' => $message->sender_id,
-            'sender_name' => $message->sender->name,
-            'message' => $message->message,
-            'type' => $message->type,
-            'media_url' => $message->media_url,
-            'media_type' => $message->media_type,
-            'media_name' => $message->media_name,
-            'metadata' => $message->metadata,
-            'seen_at' => $message->seen_at?->toDateTimeString(),
-            'created_at' => $message->created_at->toDateTimeString(),
-        ];
-
-        return $this->successResponse($response, __('messages.message_sent'), 201);
+        // 7. Devolver una respuesta exitosa y consistente
+        return $this->successResponse(
+            (new UserMessageResource($message))->resolve(),
+            __('messages.message_sent'),
+            201
+        );
     }
 }
