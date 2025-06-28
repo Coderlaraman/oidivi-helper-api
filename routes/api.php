@@ -24,6 +24,7 @@ use App\Http\Controllers\Api\V1\Chat\MessageController;
 use App\Http\Controllers\Api\V1\User\Notifications\UserNotificationController;
 use App\Http\Controllers\Api\V1\User\ServiceOffers\UserServiceOfferController;
 use App\Http\Controllers\Api\V1\User\Contracts\UserContractController;
+use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 
@@ -35,6 +36,14 @@ use Illuminate\Http\Request;
 | Se definen las rutas para la versión 1 de la API, separadas por dominios.
 |
 */
+
+// --- REGISTRO MANUAL DE RUTA DE BROADCASTING ---
+// Esta es la corrección clave. Forzamos la ruta de autorización a pasar
+// por el middleware 'auth:sanctum' de la API.
+// Route::post('/broadcasting/auth', function (Illuminate\Http\Request $request) {
+//     return Broadcast::auth($request);
+// })->middleware('auth:sanctum');
+// ----------------------------------------------
 
 Route::prefix('v1')->middleware('locale')->group(function () {
 
@@ -236,13 +245,13 @@ Route::prefix('v1')->middleware('locale')->group(function () {
         Route::get('public/profiles/{user}', [UserProfileController::class, 'showPublicProfile']);
 
     });
-    // Rutas de chat y mensajes
+     // Rutas de chat y mensajes
     Route::prefix('chats')->middleware('auth:sanctum')->group(function () {
-        Route::get('/', [ChatController::class, 'index']); // GET /api/v1/chat
-         Route::get('/offers/{offerId}', [ChatController::class, 'showOrCreate']); // GET /api/v1/chat/offers/{offerId}
-         Route::post('/offers/{offerId}/messages', [MessageController::class, 'store']); // POST /api/v1/chat/offers/{offerId}/messages
-         Route::post('/{chat}/messages', [MessageController::class, 'store']);
-     });
+        Route::get('/', [ChatController::class, 'index']);
+        Route::get('/offers/{offerId}', [ChatController::class, 'showOrCreate']);
+        Route::post('/offers/{offerId}/messages', [MessageController::class, 'store']);
+        // Route::post('/{chat}/messages', [MessageController::class, 'store']); // Esta ruta es redundante, puedes eliminarla.
+    });
 });
 
 

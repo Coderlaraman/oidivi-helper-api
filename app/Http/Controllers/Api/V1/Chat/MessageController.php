@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Api\V1\Chat;
 use App\Events\MessageSent;
 use App\Events\NewChatMessageNotification;
 use App\Http\Controllers\Controller;
-use App\Http\Resources\UserMessageResource; // Importante para la consistencia
+use App\Http\Resources\User\UserMessageResource; // Importante para la consistencia
 use App\Models\Chat;
 use App\Models\Message;
 use App\Models\ServiceOffer;

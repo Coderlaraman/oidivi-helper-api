@@ -14,8 +14,6 @@ use Illuminate\Support\Facades\Broadcast;
 |
 */
 
-// Middleware: 'auth:sanctum' es el correcto para una API de Laravel que usa Bearer Tokens.
-Broadcast::routes(['middleware' => ['auth:sanctum']]);
 
 // Canal para notificaciones generales y de chat para un usuario específico.
 // Este canal es crucial para las notificaciones push.
@@ -39,7 +37,7 @@ Broadcast::channel('chat.offer.{offerId}', function ($user, $offerId) {
     return $offer->isParticipant($user);
 });
 
-// Canal privado para seguimiento de ubicación (si lo usas)
+// Canal privado para seguimiento de ubicación
 Broadcast::channel('location-tracking.{userId}', function ($user, $userId) {
     return (int)$user->id === (int)$userId;
 });

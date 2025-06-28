@@ -22,16 +22,31 @@ class MessageSent implements ShouldBroadcast
         $this->message = $message;
     }
 
+    /**
+     * Canal: Se emite al canal privado de la oferta de servicio.
+     */
     public function broadcastOn(): Channel
     {
         $this->message->loadMissing('chat');
         return new PrivateChannel("chat.offer.{$this->message->chat->service_offer_id}");
     }
 
+    /**
+     * Payload: Usamos el resource para asegurar un formato consistente.
+     * Este evento se llama 'MessageSent' por defecto en el frontend.
+     */
     public function broadcastWith(): array
     {
-        // Aseguramos que la relación 'sender' esté cargada antes de pasarla al resource
         $this->message->loadMissing('sender');
         return (new UserMessageResource($this->message))->resolve();
+    }
+
+    /**
+     * Alias del evento: Es una buena práctica definirlo explícitamente.
+     * El frontend lo escuchará como '.message.sent'.
+     */
+    public function broadcastAs(): string
+    {
+        return 'message.sent';
     }
 }
