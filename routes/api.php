@@ -5,48 +5,38 @@ use App\Http\Controllers\Api\V1\Admin\Categories\AdminCategoryController;
 use App\Http\Controllers\Api\V1\Admin\ServiceRequests\AdminServiceRequestController;
 use App\Http\Controllers\Api\V1\Admin\Skills\AdminSkillController;
 use App\Http\Controllers\Api\V1\Admin\Users\AdminUserController;
+use App\Http\Controllers\Api\V1\Chat\ChatController;
+use App\Http\Controllers\Api\V1\Chat\MessageController;
 use App\Http\Controllers\Api\V1\User\Auth\UserAuthController;
 use App\Http\Controllers\Api\V1\User\Auth\UserEmailVerificationController;
 use App\Http\Controllers\Api\V1\User\Categories\UserCategoryController;
+use App\Http\Controllers\Api\V1\User\Contracts\UserContractController;
 use App\Http\Controllers\Api\V1\User\Locations\UserLocationController;
+use App\Http\Controllers\Api\V1\User\Notifications\UserNotificationController;
 use App\Http\Controllers\Api\V1\User\Payments\UserPaymentController;
 use App\Http\Controllers\Api\V1\User\Profiles\UserProfileController;
 use App\Http\Controllers\Api\V1\User\Referrals\UserReferralController;
 use App\Http\Controllers\Api\V1\User\Reports\UserReportController;
 use App\Http\Controllers\Api\V1\User\Reviews\UserReviewController;
+use App\Http\Controllers\Api\V1\User\ServiceOffers\UserServiceOfferController;
 use App\Http\Controllers\Api\V1\User\ServiceRequests\UserServiceRequestController;
 use App\Http\Controllers\Api\V1\User\Skills\UserSkillController;
 use App\Http\Controllers\Api\V1\User\Subscriptions\UserSubscriptionController;
 use App\Http\Controllers\Api\V1\User\Tickets\UserTicketController;
 use App\Http\Controllers\Api\V1\User\Transactions\UserTransactionController;
-use App\Http\Controllers\Api\V1\Chat\ChatController;
-use App\Http\Controllers\Api\V1\Chat\MessageController;
-use App\Http\Controllers\Api\V1\User\Notifications\UserNotificationController;
-use App\Http\Controllers\Api\V1\User\ServiceOffers\UserServiceOfferController;
-use App\Http\Controllers\Api\V1\User\Contracts\UserContractController;
-use Illuminate\Support\Facades\Broadcast;
-use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 
 /*
-|--------------------------------------------------------------------------
-| API Routes - V1
-|--------------------------------------------------------------------------
-|
-| Se definen las rutas para la versión 1 de la API, separadas por dominios.
-|
-*/
-
-// --- REGISTRO MANUAL DE RUTA DE BROADCASTING ---
-// Esta es la corrección clave. Forzamos la ruta de autorización a pasar
-// por el middleware 'auth:sanctum' de la API.
-// Route::post('/broadcasting/auth', function (Illuminate\Http\Request $request) {
-//     return Broadcast::auth($request);
-// })->middleware('auth:sanctum');
-// ----------------------------------------------
+ * |--------------------------------------------------------------------------
+ * | API Routes - V1
+ * |--------------------------------------------------------------------------
+ * |
+ * | Se definen las rutas para la versión 1 de la API, separadas por dominios.
+ * |
+ */
 
 Route::prefix('v1')->middleware('locale')->group(function () {
-
     // Ruta de prueba
     Route::get('test', fn() => response()->json(['message' => 'API is working']));
 
@@ -94,9 +84,8 @@ Route::prefix('v1')->middleware('locale')->group(function () {
 
     // Rutas públicas para los usuarios comunes
     Route::prefix('user')->group(function () {
-
         Route::prefix('categories')->group(function () {
-        Route::get('/', [UserCategoryController::class, 'index']);
+            Route::get('/', [UserCategoryController::class, 'index']);
         });
 
         // Rutas de notificaciones
@@ -121,8 +110,8 @@ Route::prefix('v1')->middleware('locale')->group(function () {
             Route::post('reset-password', [UserAuthController::class, 'resetPassword'])->name('user.auth.reset-password');
 
             // Email verification routes
-            Route::post('email/verification-notification', [UserEmailVerificationController::class,'sendVerificationEmail']);
-            Route::get('email/verify/{id}/{hash}', [UserEmailVerificationController::class,'verify'])
+            Route::post('email/verification-notification', [UserEmailVerificationController::class, 'sendVerificationEmail']);
+            Route::get('email/verify/{id}/{hash}', [UserEmailVerificationController::class, 'verify'])
                 ->name('verification.verify');
         });
 
@@ -142,7 +131,7 @@ Route::prefix('v1')->middleware('locale')->group(function () {
             Route::delete('video', [UserProfileController::class, 'deleteProfileVideo']);
             Route::put('skills', [UserProfileController::class, 'updateSkills']);
             Route::get('dashboard', [UserProfileController::class, 'dashboard']);
-            Route::get('search', [UserProfileController::class, 'search']); // Añadido el endpoint de búsqueda
+            Route::get('search', [UserProfileController::class, 'search']);  // Añadido el endpoint de búsqueda
             Route::post('location/update', [UserLocationController::class, 'updateLocation']);
         });
 
@@ -239,19 +228,19 @@ Route::prefix('v1')->middleware('locale')->group(function () {
             Route::post('{transaction}/complete', [UserTransactionController::class, 'complete']);
         });
 
-
-
         // Rutas públicas de perfiles de usuario
         Route::get('public/profiles/{user}', [UserProfileController::class, 'showPublicProfile']);
-
     });
-     // Rutas de chat y mensajes
+    // Rutas de chat y mensajes
     Route::prefix('chats')->middleware('auth:sanctum')->group(function () {
-        Route::get('/', [ChatController::class, 'index']);
-        Route::get('/offers/{offerId}', [ChatController::class, 'showOrCreate']);
-        Route::post('/offers/{offerId}/messages', [MessageController::class, 'store']);
-        // Route::post('/{chat}/messages', [MessageController::class, 'store']); // Esta ruta es redundante, puedes eliminarla.
+        /**
+         * GET /api/v1/chats
+         * Lista todas las conversaciones (hilos de chat) del usuario autenticado.
+         * Controlador: ChatController@index
+         */
+        Route::get('/', [ChatController::class, 'index'])->name('chats.index');
+        Route::get('/offers/{offerId}', [ChatController::class, 'showOrCreate']);  // GET /api/v1/chat/offers/{offerId}
+        Route::post('/offers/{offerId}/messages', [MessageController::class, 'store']);  // POST /api/v1/chat/offers/{offerId}/messages
+        Route::post('/{chat}/messages', [MessageController::class, 'store']);
     });
 });
-
-
