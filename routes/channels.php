@@ -40,16 +40,6 @@ Broadcast::channel('chat.offer.{offerId}', function ($user, $offerId) {
     return $user->id === $requesterId || $user->id === $offererId;
 });
 
-// Canal para mensajes de un chat específico
-Broadcast::channel('chat.messages.{chatId}', function ($user, $chatId) {
-    $chat = \App\Models\Chat::find($chatId);
-    if (!$chat) {
-        return false;
-    }
-    // Asegurarse de que el usuario autenticado es parte del chat
-    return $chat->requester_id === $user->id || $chat->offerer_id === $user->id;
-});
-
 // Canal privado para seguimiento de ubicación (si lo usas)
 Broadcast::channel('location-tracking.{userId}', function ($user, $userId) {
     return (int) $user->id === (int) $userId;
