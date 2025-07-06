@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\Admin\Skills\AdminSkillController;
 use App\Http\Controllers\Api\V1\Admin\Users\AdminUserController;
 use App\Http\Controllers\Api\V1\Chat\ChatController;
 use App\Http\Controllers\Api\V1\Chat\MessageController;
+use App\Http\Controllers\Api\V1\TermsController;
 use App\Http\Controllers\Api\V1\User\Auth\UserAuthController;
 use App\Http\Controllers\Api\V1\User\Auth\UserEmailVerificationController;
 use App\Http\Controllers\Api\V1\User\Categories\UserCategoryController;
@@ -39,6 +40,9 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('v1')->middleware('locale')->group(function () {
     // Ruta de prueba
     Route::get('test', fn() => response()->json(['message' => 'API is working']));
+
+    // Ruta pública para obtener los términos y condiciones
+    Route::get('terms', [TermsController::class, 'show']);
 
     // Rutas de autenticación para el administrador
     Route::prefix('admin/auth')->group(function () {
