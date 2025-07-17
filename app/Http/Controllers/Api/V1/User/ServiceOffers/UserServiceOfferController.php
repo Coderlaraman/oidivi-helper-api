@@ -6,6 +6,7 @@ use App\Constants\NotificationType;
 use App\Events\NewServiceOfferNotification;
 use App\Events\ServiceOfferStatusUpdatedNotification;
 use App\Http\Controllers\Controller;
+use App\Http\Resources\User\UserOfferResource;
 use App\Models\Contract;
 use App\Models\Notification;
 use App\Models\ServiceOffer;
@@ -262,72 +263,30 @@ class UserServiceOfferController extends Controller
     }
 
     /**
-     * Lista todas las ofertas recibidas en las solicitudes del usuario autenticado.
-     *
-     * @param Request $request
-     * @return JsonResponse
+     * Lista todas las ofertas recibidas en las solicitudes del usuario autenticado (hechas por otros usuarios).
      */
     public function receivedOffers(Request $request): JsonResponse
     {
         try {
-            $query = ServiceOffer::whereHas('serviceRequest', function ($query) {
-                $query->where('user_id', auth()->id());
-            })->with(['user', 'serviceRequest']);
+            $offers = ServiceOffer::whereHas('serviceRequest', function ($query) {
+                    $query->where('user_id', auth()->id());
+                })
+                ->where('user_id', '!=', auth()->id()) // Solo ofertas de otros usuarios
+                ->with(['user', 'serviceRequest'])
+                ->orderBy('created_at', 'desc')
+                ->paginate($request->input('per_page', 10));
 
-            // Filtros
-            if ($request->filled('status')) {
-                $query->whereIn('status', explode(',', $request->status));
-            }
-
-            if ($request->filled('search')) {
-                $searchTerm = $request->search;
-                $query->whereHas('user', function ($q) use ($searchTerm) {
-                    $q->where('name', 'LIKE', "%{$searchTerm}%");
-                })->orWhereHas('serviceRequest', function ($q) use ($searchTerm) {
-                    $q->where('title', 'LIKE', "%{$searchTerm}%");
-                });
-            }
-
-            // Ordenamiento
-            $sortField = $request->input('sort_by', 'created_at');
-            $sortDirection = $request->input('sort_direction', 'desc');
-            $allowedSortFields = ['created_at', 'price_proposed', 'status'];
-
-            if (in_array($sortField, $allowedSortFields)) {
-                $query->orderBy($sortField, $sortDirection);
-            }
-
-            // Paginación
-            $perPage = $request->input('per_page', 10);
-            $offers = $query->paginate($perPage);
-
-            return $this->successResponse(
-                data: [
-                    'items' => $offers,
-                    'meta' => [
-                        'pagination' => [
-                            'current_page' => $offers->currentPage(),
-                            'last_page' => $offers->lastPage(),
-                            'per_page' => $offers->perPage(),
-                            'total' => $offers->total()
-                        ],
-                        'filters' => [
-                            'available_statuses' => [
-                                ServiceOffer::STATUS_PENDING,
-                                ServiceOffer::STATUS_ACCEPTED,
-                                ServiceOffer::STATUS_REJECTED
-                            ],
-                            'applied_filters' => array_filter([
-                                'status' => $request->status,
-                                'search' => $request->search,
-                                'sort_by' => $sortField,
-                                'sort_direction' => $sortDirection
-                            ])
-                        ]
+            return $this->successResponse([
+                'items' => UserOfferResource::collection($offers),
+                'meta' => [
+                    'pagination' => [
+                        'current_page' => $offers->currentPage(),
+                        'last_page' => $offers->lastPage(),
+                        'per_page' => $offers->perPage(),
+                        'total' => $offers->total()
                     ]
-                ],
-                message: 'Received offers retrieved successfully'
-            );
+                ]
+            ]);
         } catch (\Exception $e) {
             return $this->errorResponse(
                 message: 'Error retrieving received offers',
@@ -335,6 +294,29 @@ class UserServiceOfferController extends Controller
                 errors: ['error' => $e->getMessage()]
             );
         }
+    }
+
+    /**
+     * Lista todas las ofertas enviadas por el usuario autenticado.
+     */
+    public function sentOffers(Request $request): JsonResponse
+    {
+        $offers = ServiceOffer::where('user_id', auth()->id())
+            ->with(['serviceRequest'])
+            ->orderBy('created_at', 'desc')
+            ->paginate($request->input('per_page', 10));
+
+        return $this->successResponse([
+            'items' => $offers,
+            'meta' => [
+                'pagination' => [
+                    'current_page' => $offers->currentPage(),
+                    'last_page' => $offers->lastPage(),
+                    'per_page' => $offers->perPage(),
+                    'total' => $offers->total()
+                ]
+            ]
+        ]);
     }
 
     /**
@@ -424,5 +406,31 @@ class UserServiceOfferController extends Controller
                 errors: ['error' => $e->getMessage()]
             );
         }
+    }
+
+    /**
+     * Lista todas las ofertas realizadas por el usuario autenticado.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function myOffers(Request $request): JsonResponse
+    {
+        $offers = ServiceOffer::where('user_id', auth()->id())
+            ->with(['serviceRequest'])
+            ->orderBy('created_at', 'desc')
+            ->paginate($request->input('per_page', 10));
+
+        return $this->successResponse([
+            'items' => $offers,
+            'meta' => [
+                'pagination' => [
+                    'current_page' => $offers->currentPage(),
+                    'last_page' => $offers->lastPage(),
+                    'per_page' => $offers->perPage(),
+                    'total' => $offers->total()
+                ]
+            ]
+        ]);
     }
 }

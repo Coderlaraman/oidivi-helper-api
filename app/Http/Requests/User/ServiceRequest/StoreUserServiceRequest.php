@@ -27,7 +27,7 @@ class StoreUserServiceRequest extends FormRequest
                 'required',
                 'string',
                 'max:255',
-                'regex:/^[a-zA-Z0-9\s\-\_\.\,\&]+$/',
+                'regex:/^[\p{L}0-9\s\-_,.&]+$/u',
                 function ($attribute, $value, $fail) {
                     if (ServiceRequest::titleExistsForOtherUser($value)) {
                         $fail('This title is already in use. Please choose a unique title for your service request.');

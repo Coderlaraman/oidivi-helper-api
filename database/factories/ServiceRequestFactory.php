@@ -30,7 +30,7 @@ class ServiceRequestFactory extends Factory
             'service_type' => $this->faker->randomElement(['one_time', 'recurring']),
             'payment_method' => $this->faker->randomElement(['credit_card', 'bank_transfer', 'paypal']),
             'due_date' => $this->faker->dateTimeBetween('now', '+30 days'),
-            'status' => $this->faker->randomElement(['published', 'in_progress', 'completed', 'cancelled']),
+            'status' => $this->faker->randomElement(['published', 'in_progress', 'completed', 'canceled']),
         ];
     }
 }

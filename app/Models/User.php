@@ -195,11 +195,11 @@ class User extends Authenticatable
     }
 
     /**
-     * Get the number of cancelled service requests for the user.
+     * Get the number of canceled service requests for the user.
      */
-    public function getCancelledServiceRequestsCountAttribute(): int
+    public function getCanceledServiceRequestsCountAttribute(): int
     {
-        return $this->serviceRequests()->where('status', 'cancelled')->count();
+        return $this->serviceRequests()->where('status', 'canceled')->count();
     }
 
     /**

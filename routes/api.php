@@ -160,34 +160,28 @@ Route::prefix('v1')->middleware('locale')->group(function () {
             Route::get('reviews/{userId}', [UserReviewController::class, 'index']);
         });
 
-        // Rutas de solicitudes de servicios (protegidas)
+        // Rutas de solicitudes de servicio propias (protegidas)
+            Route::prefix('my-service-requests')->middleware('auth:sanctum')->group(function () {
+                Route::get('/', [UserServiceRequestController::class, 'myServiceRequests']);
+                Route::get('/trash', [UserServiceRequestController::class, 'trashedRequests']);
+                Route::get('/{id}/offers', [UserServiceOfferController::class, 'requestOffers']);
+                Route::get('/offers/{offer}', [UserServiceOfferController::class, 'showOffer']); // Detalle de oferta recibida
+                Route::put('/{id}', [UserServiceRequestController::class, 'update']);
+                Route::post('/{id}/restore', [UserServiceRequestController::class, 'restore']);
+                Route::patch('/{id}/status', [UserServiceRequestController::class, 'updateStatus']);
+                Route::post('/{id}/offers', [UserServiceOfferController::class, 'store']);
+                Route::patch('/offers/{offer}', [UserServiceOfferController::class, 'update']);
+            });
+
+        // Rutas de solicitudes de servicio (protegidas)
         Route::prefix('service-requests')->middleware('auth:sanctum')->group(function () {
             // Rutas públicas (solicitudes de otros usuarios)
             Route::get('/', [UserServiceRequestController::class, 'index']);
-
-            // Rutas de ofertas específicas
-            Route::get('/my-requests/offers', [UserServiceOfferController::class, 'receivedOffers']);
-            Route::get('/my-requests/offers/{offer}', [UserServiceOfferController::class, 'showOffer']);
-
-            // Rutas de solicitudes propias
-            Route::prefix('my-requests')->group(function () {
-                Route::get('/', [UserServiceRequestController::class, 'myRequests']);
-                Route::get('/trash', [UserServiceRequestController::class, 'trashedRequests']);
-                Route::get('/{id}/offers', [UserServiceOfferController::class, 'requestOffers']);
-                Route::put('/{id}', [UserServiceRequestController::class, 'update']);
-                Route::post('/{id}/restore', [UserServiceRequestController::class, 'restore']);
-            });
-
-            // Rutas generales de solicitudes
             Route::post('/', [UserServiceRequestController::class, 'store']);
             Route::get('/{id}', [UserServiceRequestController::class, 'show']);
             Route::patch('/{id}/status', [UserServiceRequestController::class, 'updateStatus']);
             Route::delete('/{id}', [UserServiceRequestController::class, 'destroy']);
-
-            // Rutas de ofertas
-            Route::post('/{serviceRequest}/offers', [UserServiceOfferController::class, 'store']);
-            Route::patch('/offers/{offer}', [UserServiceOfferController::class, 'update']);
-        });
+           });
 
         // Rutas de habilidades
         Route::prefix('skills')->middleware(['auth:sanctum'])->group(function () {
@@ -231,6 +225,12 @@ Route::prefix('v1')->middleware('locale')->group(function () {
             Route::post('{transaction}/cancel', [UserTransactionController::class, 'cancel']);
             Route::post('{transaction}/complete', [UserTransactionController::class, 'complete']);
         });
+
+        // Rutas de ofertas realizadas por el usuario autenticado
+        Route::get('my-offers', [UserServiceOfferController::class, 'myOffers']);
+        // Rutas de ofertas enviadas y recibidas
+        Route::get('service-offers/received', [UserServiceOfferController::class, 'receivedOffers'])->middleware('auth:sanctum');
+        Route::get('service-offers/sent', [UserServiceOfferController::class, 'sentOffers'])->middleware('auth:sanctum');
 
         // Rutas públicas de perfiles de usuario
         Route::get('public/profiles/{user}', [UserProfileController::class, 'showPublicProfile']);

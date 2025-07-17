@@ -23,7 +23,7 @@ class AdminListServiceRequest extends FormRequest
     {
         return [
             'search' => ['nullable', 'string', 'max:100'],
-            'status' => ['nullable', 'string', 'in:pending,in_progress,completed,cancelled'],
+            'status' => ['nullable', 'string', 'in:pending,in_progress,completed,canceled'],
             'priority' => ['nullable', 'string', 'in:low,medium,high,urgent'],
             'category_id' => ['nullable', 'integer', 'exists:categories,id'],
             'user_id' => ['nullable', 'integer', 'exists:users,id'],

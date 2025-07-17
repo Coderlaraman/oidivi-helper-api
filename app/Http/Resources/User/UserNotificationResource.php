@@ -30,7 +30,7 @@ class UserNotificationResource extends JsonResource
                  $actionUrl = "/service-requests/{$serviceRequest->id}";
             } elseif (($this->type === 'new_offer' || $this->type === 'offer_status_updated') && $serviceOffer) {
                  // Si es una notificación de oferta y tenemos la oferta y la solicitud, construimos la URL de detalle de oferta
-                 $actionUrl = "/service-requests/my/{$serviceRequest->id}/offers/{$serviceOffer->id}";
+                 $actionUrl = "/my-service-requests/{$serviceRequest->id}/offers/{$serviceOffer->id}";
             }
         }
 

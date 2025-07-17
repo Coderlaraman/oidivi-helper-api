@@ -30,7 +30,7 @@ class UpdateUserServiceRequest extends FormRequest
                 'required',
                 'string',
                 'max:255',
-                'regex:/^[a-zA-Z0-9\s\-\_\.\,\&]+$/',
+                'regex:/^[\p{L}0-9\s\-_,.&]+$/u',
                 function ($attribute, $value, $fail) {
                     $serviceRequestId = $this->route('id');
                     if (ServiceRequest::titleExistsForOtherUser($value, $serviceRequestId)) {

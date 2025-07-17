@@ -27,7 +27,7 @@ class UpdateUserServiceStatusRequest extends FormRequest
     {
         $rules = [
             'status' => 'required|in:published,in_progress,completed,canceled',
-            'cancellation_reason' => 'required_if:status,canceled|nullable|string|max:500',
+            'cancellation_reason' => 'nullable|string|max:500',
             'completion_notes' => 'required_if:status,completed|nullable|string|max:1000',
         ];
 

@@ -39,7 +39,8 @@ class UserServiceRequestController extends Controller
 
             // Filtrar solicitudes que NO pertenecen al usuario autenticado
             $query->where('user_id', '!=', auth()->id())
-                  ->where('visibility', 'public');
+                  ->where('visibility', 'public')
+                  ->where('status', '!=', 'canceled'); // Excluir canceladas
 
             // Filtros básicos
             if ($request->filled('status')) {
@@ -194,12 +195,12 @@ class UserServiceRequestController extends Controller
     }
 
     /**
-     * Lista las solicitudes de servicio con filtros avanzados.
+     * Lista las solicitudes de servicio propias del usuario autenticado.
      *
      * @param Request $request
      * @return JsonResponse
      */
-    public function myRequests(Request $request): JsonResponse
+    public function myServiceRequests(Request $request): JsonResponse
     {
         try {
             $query = ServiceRequest::query();
@@ -497,21 +498,21 @@ class UserServiceRequestController extends Controller
     public function updateStatus(UpdateUserServiceStatusRequest $request, $id): JsonResponse
     {
         try {
-            $serviceRequest = ServiceRequest::with(['categories', 'user'])
-                ->find($id);
+            $serviceRequest = ServiceRequest::where('user_id', auth()->id())->find($id);
 
             if (!$serviceRequest) {
-                return $this->notFoundResponse('Service request not found');
-            }
-
-            if ($serviceRequest->user_id !== auth()->id()) {
-                return $this->errorResponse(
-                    message: 'You do not have permission to update the status of this service request',
-                    statusCode: 403
-                );
+                return $this->notFoundResponse('Service request not found or does not belong to you');
             }
 
             $newStatus = $request->input('status');
+
+            // Solo permitir cancelar si está publicada o en progreso
+            if ($newStatus === 'canceled' && $serviceRequest->status !== 'published') {
+                return $this->errorResponse(
+                    message: 'Only published requests can be canceled',
+                    statusCode: 403
+                );
+            }
 
             if (!$serviceRequest->canTransitionTo($newStatus)) {
                 return $this->errorResponse(
@@ -586,9 +587,9 @@ class UserServiceRequestController extends Controller
                 );
             }
 
-            if (!$serviceRequest->isPublished()) {
+            if (!$serviceRequest->isPublished() && !$serviceRequest->isCanceled()) {
                 return $this->errorResponse(
-                    message: 'Only published requests can be deleted',
+                    message: 'Only published or canceled requests can be deleted',
                     statusCode: 403
                 );
             }

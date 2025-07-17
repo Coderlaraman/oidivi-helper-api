@@ -20,7 +20,7 @@ return new class extends Migration {
             $table->integer('estimated_time');
             $table->timestamp('start_date')->nullable();
             $table->timestamp('end_date')->nullable();
-            $table->string('status')->default('pending'); // e.g., pending, in_progress, completed, cancelled
+            $table->string('status')->default('pending'); // e.g., pending, in_progress, completed, canceled
             $table->timestamps();
         });
     }

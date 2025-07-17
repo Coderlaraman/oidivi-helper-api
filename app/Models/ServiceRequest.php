@@ -196,7 +196,7 @@ class ServiceRequest extends Model
             'published' => ['in_progress', 'completed', 'canceled'],
             'in_progress' => ['completed', 'canceled'],
             'completed' => [],
-            'canceled' => [],
+            'canceled' => ['published'], // Permitir restaurar de canceled a published
         ];
 
         return in_array($newStatus, $validTransitions[$this->status] ?? []);

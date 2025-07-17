@@ -194,7 +194,7 @@ class ServiceOffer extends Model
     public static function getNotificationActionUrl($type, $serviceRequestId, $offerId = null)
     {
         if ($type === NotificationType::NEW_OFFER || $type === NotificationType::OFFER_STATUS_UPDATED || $type === NotificationType::OFFER_ACCEPTED) {
-            return "/service-requests/my/{$serviceRequestId}/offers/{$offerId}";
+            return "/my-service-requests/{$serviceRequestId}/offers/{$offerId}";
         }
         // Para solicitudes de servicio
         return "/service-requests/{$serviceRequestId}";

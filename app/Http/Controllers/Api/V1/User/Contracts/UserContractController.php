@@ -50,7 +50,7 @@ class UserContractController extends Controller
                             'total' => $contracts->total()
                         ],
                         'filters' => [
-                            'available_statuses' => ['pending', 'in_progress', 'completed', 'cancelled'],
+                            'available_statuses' => ['pending', 'in_progress', 'completed', 'canceled'],
                             'applied_filters' => array_filter([
                                 'status' => $request->status,
                                 'sort_by' => $sortField,
@@ -187,7 +187,7 @@ class UserContractController extends Controller
             }
 
             $validatedData = $request->validate([
-                'status' => 'required|string|in:pending,in_progress,completed,cancelled',
+                'status' => 'required|string|in:pending,in_progress,completed,canceled',
             ]);
 
             // Implement business logic for status transitions if necessary
@@ -244,10 +244,10 @@ class UserContractController extends Controller
                 );
             }
 
-            // Prevent deletion if contract status is not 'pending' or 'cancelled'
-            if (!in_array($contract->status, ['pending', 'cancelled'])) {
+            // Prevent deletion if contract status is not 'pending' or 'canceled'
+            if (!in_array($contract->status, ['pending', 'canceled'])) {
                 return $this->errorResponse(
-                    message: 'Only pending or cancelled contracts can be deleted.',
+                    message: 'Only pending or canceled contracts can be deleted.',
                     statusCode: 403
                 );
             }
