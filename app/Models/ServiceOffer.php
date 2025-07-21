@@ -8,23 +8,64 @@ use App\Events\ServiceOfferStatusUpdatedNotification;
 use App\Traits\Notifiable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 
+/**
+ * Class ServiceOffer
+ *
+ * Modelo que representa una oferta realizada sobre una solicitud de servicio.
+ *
+ * @property int $id
+ * @property int $service_request_id
+ * @property int $user_id
+ * @property float $price_proposed
+ * @property string $estimated_time
+ * @property string $message
+ * @property string $status
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ *
+ * @property-read ServiceRequest|null $serviceRequest
+ * @property-read User|null $user
+ * @property-read Contract|null $contract
+ * @property-read \Illuminate\Database\Eloquent\Collection|Chat[] $chats
+ *
+ * @method \Illuminate\Database\Eloquent\Relations\HasOne contract()
+ * @method \Illuminate\Database\Eloquent\Relations\BelongsTo serviceRequest()
+ * @method \Illuminate\Database\Eloquent\Relations\BelongsTo user()
+ * @method \Illuminate\Database\Eloquent\Relations\HasMany chats()
+ */
 class ServiceOffer extends Model
 {
     use HasFactory, Notifiable;
 
+    /** Estado: Pendiente */
     public const STATUS_PENDING = 'pending';
+    /** Estado: Aceptada */
     public const STATUS_ACCEPTED = 'accepted';
+    /** Estado: Rechazada */
     public const STATUS_REJECTED = 'rejected';
 
+    /**
+     * Lista de todos los estados válidos para una oferta.
+     *
+     * @var array<int, string>
+     */
     public const STATUSES = [
         self::STATUS_PENDING,
         self::STATUS_ACCEPTED,
         self::STATUS_REJECTED
     ];
 
+    /**
+     * Los atributos que se pueden asignar masivamente.
+     *
+     * @var array<string>
+     */
     protected $fillable = [
         'service_request_id',
         'user_id',
@@ -34,60 +75,79 @@ class ServiceOffer extends Model
         'status'
     ];
 
+    /**
+     * Relación: Solicitud de servicio asociada a la oferta.
+     *
+     * @return BelongsTo
+     */
     public function serviceRequest(): BelongsTo
     {
         return $this->belongsTo(ServiceRequest::class);
     }
 
+    /**
+     * Relación: Usuario que realizó la oferta.
+     *
+     * @return BelongsTo
+     */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    public function contract()
+    /**
+     * Relación: Contrato generado a partir de la oferta (si existe).
+     *
+     * @return HasOne
+     */
+    public function contract(): HasOne
     {
         return $this->hasOne(Contract::class);
     }
 
     /**
-     * Get the chats associated with the service offer.
+     * Relación: Chats asociados a la oferta.
+     *
+     * @return HasMany
      */
-    public function chats()
+    public function chats(): HasMany
     {
         return $this->hasMany(Chat::class);
     }
 
     /**
      * Verifica si un usuario dado es participante del chat asociado a esta oferta.
-     * Un participante es o el que creó la solicitud de servicio (requester) o el que hizo la oferta (offerer).
+     * Un participante es el creador de la solicitud o el ofertante.
      *
      * @param \App\Models\User $user
      * @return bool
      */
     public function isParticipant(User $user): bool
     {
-        // Carga la relación serviceRequest si no ha sido cargada para evitar consultas N+1.
         $this->loadMissing('serviceRequest');
-
-        // Maneja el caso de que la relación serviceRequest sea nula por alguna razón.
         if (!$this->serviceRequest) {
             return false;
         }
-
-        // Compara los IDs de forma segura (haciendo casting a entero).
         return (int) $user->id === (int) $this->serviceRequest->user_id || (int) $user->id === (int) $this->user_id;
     }
 
+    /**
+     * Notifica al usuario ofertante sobre un cambio de estado en la oferta.
+     *
+     * @return void
+     */
     public function notifyStatusUpdate(): void
     {
         try {
+            $title = $this->serviceRequest?->title ?? '';
+            $status = $this->status ?? '';
             $this->createNotification(
                 userIds: [$this->user_id],
                 type: NotificationType::OFFER_STATUS_UPDATED,
                 title: __('notifications.types.offer_status_updated'),
                 message: __('messages.service_offers.notifications.status_update_message', [
-                    'title' => $this->serviceRequest->title,
-                    'status' => $this->status
+                    'title' => $title,
+                    'status' => $status
                 ])
             );
 
@@ -101,17 +161,20 @@ class ServiceOffer extends Model
     }
 
     /**
-     * Notifica al dueño de la solicitud que se ha recibido una nueva oferta.
+     * Notifica al ofertante que su oferta fue aceptada.
+     *
+     * @return void
      */
     public function notifyOfferAccepted(): void
     {
         try {
+            $title = $this->serviceRequest?->title ?? '';
             $this->createNotification(
                 userIds: [$this->user_id],
                 type: NotificationType::OFFER_ACCEPTED,
                 title: __('notifications.types.offer_accepted'),
                 message: __('messages.offer_accepted_message', [
-                    'title' => $this->serviceRequest->title
+                    'title' => $title
                 ])
             );
 
@@ -126,16 +189,19 @@ class ServiceOffer extends Model
 
     /**
      * Notifica al dueño de la solicitud que se ha recibido una nueva oferta.
+     *
+     * @return void
      */
     public function notifyRequestOwner(): void
     {
         try {
+            /** @var \Illuminate\Database\Eloquent\Collection<int, \App\Models\Notification> $notifications */
             $notifications = $this->createNotification(
-                userIds: [$this->serviceRequest->user_id],
+                userIds: [$this->serviceRequest?->user_id],
                 type: NotificationType::NEW_OFFER,
                 title: __('notifications.types.new_offer'),
                 message: __('messages.service_offers.notifications.new_offer_message', [
-                    'title' => $this->serviceRequest->title
+                    'title' => $this->serviceRequest?->title ?? ''
                 ])
             );
 
@@ -152,7 +218,7 @@ class ServiceOffer extends Model
                         'estimated_time' => $this->estimated_time,
                         'message' => $this->message,
                         'status' => $this->status,
-                        'created_at' => $this->created_at->toIso8601String()
+                        'created_at' => $this->created_at?->toIso8601String()
                     ],
                     'notification' => [
                         'title' => $notification->title,
@@ -168,8 +234,7 @@ class ServiceOffer extends Model
                 try {
                     event(new NewServiceOfferNotification(
                         $this,
-                        $notification->user_id,
-                        $notificationData
+                        $notification->user_id
                     ));
                 } catch (\Exception $e) {
                     Log::error('Error sending offer notification event', [
@@ -190,13 +255,17 @@ class ServiceOffer extends Model
 
     /**
      * Genera la URL de acción para notificaciones según el tipo.
+     *
+     * @param string $type Tipo de notificación.
+     * @param int $serviceRequestId ID de la solicitud de servicio.
+     * @param int|null $offerId ID de la oferta (opcional).
+     * @return string
      */
-    public static function getNotificationActionUrl($type, $serviceRequestId, $offerId = null)
+    public static function getNotificationActionUrl(string $type, int $serviceRequestId, ?int $offerId = null): string
     {
         if ($type === NotificationType::NEW_OFFER || $type === NotificationType::OFFER_STATUS_UPDATED || $type === NotificationType::OFFER_ACCEPTED) {
             return "/my-service-requests/{$serviceRequestId}/offers/{$offerId}";
         }
-        // Para solicitudes de servicio
         return "/service-requests/{$serviceRequestId}";
     }
 }

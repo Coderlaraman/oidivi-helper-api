@@ -3,16 +3,20 @@
 namespace App\Http\Resources\User;
 
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Http\Request;
 
+/**
+ * @mixin \App\Models\ServiceOffer
+ */
 class UserOfferResource extends JsonResource
 {
     /**
      * Transforma el recurso en un array.
      *
-     * @param  \Illuminate\Http\Request  $request
+     * @param  Request  $request
      * @return array<string, mixed>
      */
-    public function toArray($request): array
+    public function toArray(Request $request): array
     {
         return [
             'id' => $this->id,
@@ -23,14 +27,16 @@ class UserOfferResource extends JsonResource
             'status' => $this->status,
             'created_at' => $this->created_at,
             'user' => [
-                'id' => $this->user->id ?? null,
-                'name' => $this->user->name ?? null,
-                'profile_photo_url' => $this->user->profile_photo_url ?? null,
+                'id' => $this->user?->id,
+                'name' => $this->user?->name,
+                'profile_photo_url' => $this->user?->profile_photo_url,
             ],
-            'serviceRequest' => $this->serviceRequest ? [
-                'id' => $this->serviceRequest->id,
-                'title' => $this->serviceRequest->title,
-            ] : null,
+            'serviceRequest' => $this->serviceRequest
+                ? [
+                    'id' => $this->serviceRequest->id,
+                    'title' => $this->serviceRequest->title,
+                ]
+                : null,
         ];
     }
 }

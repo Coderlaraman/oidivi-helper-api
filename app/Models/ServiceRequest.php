@@ -4,23 +4,58 @@ namespace App\Models;
 
 use App\Events\NewServiceRequestNotification;
 use App\Traits\Notifiable;
+use Exception;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
-use App\Models\Notification;
 use App\Constants\NotificationType;
 use Illuminate\Support\Facades\Log;
+
+/**
+ * Class ServiceRequest
+ *
+ * Modelo que representa una solicitud de servicio dentro de la plataforma.
+ *
+ * @property int $id
+ * @property int $user_id
+ * @property string $title
+ * @property string $slug
+ * @property string $description
+ * @property string $address
+ * @property string $zip_code
+ * @property float $latitude
+ * @property float $longitude
+ * @property float|null $distance
+ * @property float $budget
+ * @property string $visibility
+ * @property string $status
+ * @property string $payment_method
+ * @property string $service_type
+ * @property string $priority
+ * @property array $metadata
+ * @property Carbon $due_date
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property Carbon|null $deleted_at
+ * @property-read string $status_text
+ * @property-read string $priority_text
+ * @property-read string $visibility_text
+ * @property-read string $payment_method_text
+ * @property-read string $service_type_text
+ */
 
 class ServiceRequest extends Model
 {
     use HasFactory, SoftDeletes, Notifiable;
 
     /**
-     * The attributes that are mass assignable.
+     * Los atributos que se pueden asignar masivamente.
      *
      * @var array<string>
      */
@@ -44,7 +79,7 @@ class ServiceRequest extends Model
     ];
 
     /**
-     * The attributes that should be cast.
+     * Los atributos que deben ser convertidos a tipos nativos.
      *
      * @var array<string, string>
      */
@@ -54,22 +89,33 @@ class ServiceRequest extends Model
         'deleted_at' => 'datetime',
     ];
 
+    // --- ESTADOS DE LA SOLICITUD ---
+
+    /** Estado: Publicada */
+    public const STATUS_PUBLISHED = 'published';
+    /** Estado: En progreso */
+    public const STATUS_IN_PROGRESS = 'in_progress';
+    /** Estado: Cancelada */
+    public const STATUS_CANCELED = 'canceled';
+    /** Estado: Completada */
+    public const STATUS_COMPLETED = 'completed';
+
     /**
-     * The possible status values for a service request.
+     * Lista de todos los estados válidos para una solicitud de servicio.
      *
-     * @var array<string>
+     * @var array<int, string>
      */
     public const STATUSES = [
-        'published' => 'Published',
-        'in_progress' => 'In Progress',
-        'completed' => 'Completed',
-        'canceled' => 'Canceled',
+        self::STATUS_PUBLISHED,
+        self::STATUS_IN_PROGRESS,
+        self::STATUS_CANCELED,
+        self::STATUS_COMPLETED,
     ];
 
     /**
-     * The possible priority values for a service request.
+     * Valores posibles de prioridad para una solicitud de servicio.
      *
-     * @var array<string>
+     * @var array<string, string>
      */
     public const PRIORITIES = [
         'low' => 'Low',
@@ -78,26 +124,43 @@ class ServiceRequest extends Model
         'urgent' => 'Urgent',
     ];
 
+    /**
+     * Tipos de visibilidad posibles.
+     *
+     * @var array<string, string>
+     */
     public const VISIBILITY = [
         'public' => 'Public',
         'private' => 'Private',
     ];
 
+    /**
+     * Métodos de pago disponibles.
+     *
+     * @var array<string, string>
+     */
     public const PAYMENT_METHODS = [
         'paypal' => 'PayPal',
         'credit_card' => 'Credit Card',
         'bank_transfer' => 'Bank Transfer',
     ];
 
+    /**
+     * Tipos de servicio posibles.
+     *
+     * @var array<string, string>
+     */
     public const SERVICE_TYPES = [
         'one_time' => 'One Time',
         'recurring' => 'Recurring',
     ];
 
     /**
-     * Boot the model.
+     * Inicializa el modelo y define eventos para la generación de slug.
+     *
+     * @return void
      */
-    protected static function boot()
+    protected static function boot(): void
     {
         parent::boot();
 
@@ -115,7 +178,9 @@ class ServiceRequest extends Model
     }
 
     /**
-     * Genera un slug único basado en el título.
+     * Genera un slug único basado en el título de la solicitud.
+     *
+     * @return void
      */
     public function generateUniqueSlug(): void
     {
@@ -123,9 +188,11 @@ class ServiceRequest extends Model
         $originalSlug = $slug;
         $count = 1;
 
-        while (static::where('slug', $slug)
-            ->where('id', '!=', $this->id ?? 0)
-            ->exists()) {
+        while (
+            static::where('slug', $slug)
+                ->where('id', '!=', $this->id ?? 0)
+                ->exists()
+        ) {
             $slug = $originalSlug . '-' . $count++;
         }
 
@@ -133,7 +200,9 @@ class ServiceRequest extends Model
     }
 
     /**
-     * Obtener la URL amigable de la solicitud de servicio.
+     * Devuelve el nombre de la clave de ruta para la vinculación de modelos.
+     *
+     * @return string
      */
     public function getRouteKeyName(): string
     {
@@ -141,12 +210,16 @@ class ServiceRequest extends Model
     }
 
     /**
-     * Verificar si el título ya existe para otro usuario.
+     * Verifica si el título ya existe para otro usuario.
+     *
+     * @param string $title
+     * @param int|null $excludeId
+     * @return bool
      */
     public static function titleExistsForOtherUser(string $title, ?int $excludeId = null): bool
     {
         $query = static::where('title', $title);
-        
+
         if ($excludeId) {
             $query->where('id', '!=', $excludeId);
         }
@@ -155,7 +228,9 @@ class ServiceRequest extends Model
     }
 
     /**
-     * Get the user that owns the service request.
+     * Relación: Usuario que creó la solicitud de servicio.
+     *
+     * @return BelongsTo
      */
     public function user(): BelongsTo
     {
@@ -163,47 +238,65 @@ class ServiceRequest extends Model
     }
 
     /**
-     * Get the status text.
+     * Obtiene el texto descriptivo del estado actual.
+     *
+     * @return string
      */
     public function getStatusTextAttribute(): string
     {
-        return self::STATUSES[$this->status] ?? 'Unknown';
+        $map = [
+            self::STATUS_PUBLISHED => __('messages.service_requests.status.published'),
+            self::STATUS_IN_PROGRESS => __('messages.service_requests.status.in_progress'),
+            self::STATUS_CANCELED => __('messages.service_requests.status.canceled'),
+            self::STATUS_COMPLETED => __('messages.service_requests.status.completed'),
+        ];
+        return $map[$this->status] ?? __('messages.common.unknown');
     }
 
     /**
-     * Get the priority text.
+     * Obtiene el texto descriptivo de la prioridad.
+     *
+     * @return string
      */
     public function getPriorityTextAttribute(): string
     {
-        return self::PRIORITIES[$this->priority] ?? 'Unknown';
+        return self::PRIORITIES[$this->priority] ?? __('messages.common.unknown');
     }
 
     /**
-     * Check if the service request is overdue.
+     * Verifica si la solicitud está vencida.
+     *
+     * @return bool
      */
     public function isOverdue(): bool
     {
-        return $this->due_date && $this->due_date->isPast() && 
-               !in_array($this->status, ['completed', 'canceled']);
+        return $this->due_date && $this->due_date->isPast() &&
+            !in_array($this->status, [self::STATUS_COMPLETED, self::STATUS_CANCELED]);
     }
 
     /**
-     * Check if the service request can transition to a new status.
+     * Verifica si la solicitud puede cambiar a un nuevo estado.
+     *
+     * @param string $newStatus
+     * @return bool
      */
     public function canTransitionTo(string $newStatus): bool
     {
         $validTransitions = [
-            'published' => ['in_progress', 'completed', 'canceled'],
-            'in_progress' => ['completed', 'canceled'],
-            'completed' => [],
-            'canceled' => ['published'], // Permitir restaurar de canceled a published
+            self::STATUS_PUBLISHED => [self::STATUS_IN_PROGRESS, self::STATUS_COMPLETED, self::STATUS_CANCELED],
+            self::STATUS_IN_PROGRESS => [self::STATUS_COMPLETED, self::STATUS_CANCELED],
+            self::STATUS_COMPLETED => [],
+            self::STATUS_CANCELED => [self::STATUS_PUBLISHED], // Restaurar de cancelado a publicado
         ];
 
         return in_array($newStatus, $validTransitions[$this->status] ?? []);
     }
 
     /**
-     * Attach categories to the service request.
+     * Asocia categorías a la solicitud de servicio.
+     *
+     * @param array $categoryIds
+     * @return void
      */
     public function attachCategories(array $categoryIds): void
     {
@@ -211,7 +304,10 @@ class ServiceRequest extends Model
     }
 
     /**
-     * Detach categories from the service request.
+     * Desasocia categorías de la solicitud de servicio.
+     *
+     * @param array $categoryIds
+     * @return void
      */
     public function detachCategories(array $categoryIds): void
     {
@@ -219,7 +315,10 @@ class ServiceRequest extends Model
     }
 
     /**
-     * Sync categories for the service request.
+     * Sincroniza las categorías de la solicitud de servicio.
+     *
+     * @param array $categoryIds
+     * @return void
      */
     public function syncCategories(array $categoryIds): void
     {
@@ -227,97 +326,157 @@ class ServiceRequest extends Model
     }
 
     /**
-     * Check if the service request is published.
+     * Verifica si la solicitud está publicada.
+     *
+     * @return bool
      */
     public function isPublished(): bool
     {
-        return $this->status === 'published';
+        return $this->status === self::STATUS_PUBLISHED;
     }
 
     /**
-     * Check if the service request is in progress.
+     * Verifica si la solicitud está en progreso.
+     *
+     * @return bool
      */
     public function isInProgress(): bool
     {
-        return $this->status === 'in_progress';
+        return $this->status === self::STATUS_IN_PROGRESS;
     }
 
     /**
-     * Check if the service request is completed.
+     * Verifica si la solicitud está completada.
+     *
+     * @return bool
      */
     public function isCompleted(): bool
     {
-        return $this->status === 'completed';
+        return $this->status === self::STATUS_COMPLETED;
     }
 
     /**
-     * Check if the service request is canceled.
+     * Verifica si la solicitud está cancelada.
+     *
+     * @return bool
      */
     public function isCanceled(): bool
     {
-        return $this->status === 'canceled';
+        return $this->status === self::STATUS_CANCELED;
     }
 
     /**
-     * Check if the service request is urgent.
+     * Verifica si la solicitud es urgente.
+     *
+     * @return bool
      */
     public function isUrgent(): bool
     {
         return $this->priority === 'urgent';
     }
 
+    /**
+     * Marca la solicitud como "en progreso".
+     *
+     * @return void
+     */
     public function markInProgress(): void
-{
-    $this->status = array_search('In Progress', self::STATUSES, true);
-    $this->save();
-}
+    {
+        $this->status = self::STATUS_IN_PROGRESS;
+        $this->save();
+    }
 
+    /**
+     * Relación: Categorías asociadas a la solicitud.
+     *
+     * @return MorphToMany
+     */
     public function categories(): MorphToMany
     {
         return $this->morphToMany(Category::class, 'categorizable')
             ->withTimestamps();
     }
 
+    /**
+     * Relación: Ofertas asociadas a la solicitud.
+     *
+     * @return HasMany
+     */
     public function offers(): HasMany
     {
         return $this->hasMany(ServiceOffer::class);
     }
 
+    /**
+     * Relación: Contratos asociados a la solicitud.
+     *
+     * @return HasMany
+     */
     public function contract(): HasMany
     {
         return $this->hasMany(Contract::class);
     }
 
+    /**
+     * Relación: Reseñas asociadas a la solicitud.
+     *
+     * @return HasMany
+     */
     public function reviews(): HasMany
     {
         return $this->hasMany(Review::class);
     }
 
+    /**
+     * Relación: Transacciones asociadas a la solicitud.
+     *
+     * @return HasMany
+     */
     public function transactions(): HasMany
     {
         return $this->hasMany(Transaction::class);
     }
 
+    /**
+     * Obtiene el texto descriptivo de la visibilidad.
+     *
+     * @return string
+     */
     public function getVisibilityTextAttribute(): string
     {
-        return self::VISIBILITY[$this->visibility] ?? 'Unknown';
+        return self::VISIBILITY[$this->visibility] ?? __('messages.common.unknown');
     }
 
+    /**
+     * Obtiene el texto descriptivo del método de pago.
+     *
+     * @return string
+     */
     public function getPaymentMethodTextAttribute(): string
     {
-        return self::PAYMENT_METHODS[$this->payment_method] ?? 'Not specified';
+        return self::PAYMENT_METHODS[$this->payment_method] ?? __('messages.common.not_specified');
     }
 
+    /**
+     * Obtiene el texto descriptivo del tipo de servicio.
+     *
+     * @return string
+     */
     public function getServiceTypeTextAttribute(): string
     {
-        return self::SERVICE_TYPES[$this->service_type] ?? 'Unknown';
+        return self::SERVICE_TYPES[$this->service_type] ?? __('messages.common.unknown');
     }
 
+    /**
+     * Notifica a los usuarios que coinciden con la solicitud de servicio.
+     *
+     * @return void
+     */
     public function notifyMatchingUsers(): void
     {
         try {
             $matchingUsers = $this->getMatchingUsers();
-            
+
             if ($matchingUsers->isEmpty()) {
                 Log::info('No matching users found for service request', [
                     'service_request_id' => $this->id
@@ -358,26 +517,26 @@ class ServiceRequest extends Model
                     'notification' => [
                         'title' => $notification->title,
                         'message' => $notification->message,
-                        'action_url' => \App\Models\ServiceOffer::getNotificationActionUrl(
-                            \App\Constants\NotificationType::NEW_SERVICE_REQUEST,
+                        'action_url' => ServiceOffer::getNotificationActionUrl(
+                            NotificationType::NEW_SERVICE_REQUEST,
                             $this->id
                         )
                     ]
                 ];
 
                 try {
-                event(new NewServiceRequestNotification(
-                    $this, 
-                    [$notification->user_id],
-                    $notificationData
-                ));
+                    event(new NewServiceRequestNotification(
+                        $this,
+                        [$notification->user_id],
+                        $notificationData
+                    ));
 
                     Log::info('Service request notification sent', [
                         'notification_id' => $notification->id,
                         'user_id' => $notification->user_id,
                         'service_request_id' => $this->id
                     ]);
-                } catch (\Exception $e) {
+                } catch (Exception $e) {
                     Log::error('Error sending notification event', [
                         'error' => $e->getMessage(),
                         'notification_id' => $notification->id,
@@ -386,7 +545,7 @@ class ServiceRequest extends Model
                     ]);
                 }
             }
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error notifying matching users', [
                 'error' => $e->getMessage(),
                 'service_request_id' => $this->id
@@ -394,7 +553,12 @@ class ServiceRequest extends Model
         }
     }
 
-    public function getMatchingUsers()
+    /**
+     * Obtiene los usuarios que coinciden con las categorías de la solicitud.
+     *
+     * @return Collection
+     */
+    public function getMatchingUsers(): Collection
     {
         return User::whereHas('skills.categories', function ($query) {
             $query->whereIn('categories.id', function ($subQuery) {
@@ -404,6 +568,6 @@ class ServiceRequest extends Model
                     ->where('categorizable_id', $this->id);
             });
         })->where('id', '!=', $this->user_id)
-          ->get();
+            ->get();
     }
 }

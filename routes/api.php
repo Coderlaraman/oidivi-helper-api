@@ -38,213 +38,259 @@ use Illuminate\Support\Facades\Route;
  */
 
 Route::prefix('v1')->middleware('locale')->group(function () {
+    /**
+     * Rutas generales públicas de la API.
+     */
     // Ruta de prueba
     Route::get('test', fn() => response()->json(['message' => 'API is working']));
-
     // Ruta pública para obtener los términos y condiciones
     Route::get('terms', [TermsController::class, 'show']);
 
-    // Rutas de autenticación para el administrador
+    /**
+     * Rutas de autenticación para el administrador.
+     */
     Route::prefix('admin/auth')->group(function () {
         Route::post('login', [AdminAuthController::class, 'login']);
     });
 
-    // Rutas protegidas para el administrador
+    /**
+     * Rutas protegidas para el administrador (gestión de usuarios, categorías, skills y solicitudes de servicio).
+     */
     Route::prefix('admin')
         ->middleware(['auth:sanctum', 'role:admin'])
         ->group(function () {
             // Autenticación del administrador
-            Route::post('auth/logout', [AdminAuthController::class, 'logout']);
             Route::get('auth/me', [AdminAuthController::class, 'me']);
+            Route::post('auth/logout', [AdminAuthController::class, 'logout']);
 
-            // Rutas de gestión de usuarios
-            Route::prefix('users')->group(function () {
-                Route::get('/', [AdminUserController::class, 'index'])->name('admin.users.index');
-                Route::post('/', [AdminUserController::class, 'store'])->name('admin.users.store');
-                Route::get('/{user}', [AdminUserController::class, 'show'])->name('admin.users.show');
-                Route::put('/{user}', [AdminUserController::class, 'update'])->name('admin.users.update');
-                Route::delete('/{user}', [AdminUserController::class, 'destroy'])->name('admin.users.destroy');
-                Route::post('/{user}/restore', [AdminUserController::class, 'restore'])->name('admin.users.restore');
-                Route::delete('/{user}/force', [AdminUserController::class, 'forceDelete'])->name('admin.users.forceDelete');
-                Route::patch('/{user}/toggle-active', [AdminUserController::class, 'toggleActive'])->name('admin.users.toggleActive');
-            });
-
-            // Rutas de categorías (definición manual)
+            /**
+             * Gestión de categorías de la plataforma.
+             */
             Route::prefix('categories')->group(function () {
+                Route::delete('/{category}', [AdminCategoryController::class, 'destroy'])->name('admin.categories.destroy');
                 Route::get('/', [AdminCategoryController::class, 'index'])->name('admin.categories.index');
                 Route::get('/{category}', [AdminCategoryController::class, 'show'])->name('admin.categories.show');
                 Route::post('/', [AdminCategoryController::class, 'store'])->name('admin.categories.store');
-                Route::put('/{category}', [AdminCategoryController::class, 'update'])->name('admin.categories.update');
-                Route::delete('/{category}', [AdminCategoryController::class, 'destroy'])->name('admin.categories.destroy');
                 Route::post('/{id}/restore', [AdminCategoryController::class, 'restore'])->name('admin.categories.restore');
+                Route::put('/{category}', [AdminCategoryController::class, 'update'])->name('admin.categories.update');
             });
 
+            /**
+             * Gestión de solicitudes de servicio (service-requests) para el administrador.
+             */
+            Route::apiResource('service-requests', AdminServiceRequestController::class)->except(['store']);
+            Route::post('service-requests/{serviceRequest}/restore', [AdminServiceRequestController::class, 'restore'])->name('admin.serviceRequests.restore');
+
+            /**
+             * Gestión de skills para el administrador.
+             */
             Route::apiResource('skills', AdminSkillController::class);
             Route::post('skills/{skill}/restore', [AdminSkillController::class, 'restore'])->name('admin.skills.restore');
 
-            Route::apiResource('service-requests', AdminServiceRequestController::class)->except(['store']);
-            Route::post('service-requests/{serviceRequest}/restore', [AdminServiceRequestController::class, 'restore'])->name('admin.serviceRequests.restore');
+            /**
+             * Gestión de usuarios para el administrador.
+             */
+            Route::prefix('users')->group(function () {
+                Route::delete('/{user}', [AdminUserController::class, 'destroy'])->name('admin.users.destroy');
+                Route::delete('/{user}/force', [AdminUserController::class, 'forceDelete'])->name('admin.users.forceDelete');
+                Route::get('/', [AdminUserController::class, 'index'])->name('admin.users.index');
+                Route::get('/{user}', [AdminUserController::class, 'show'])->name('admin.users.show');
+                Route::patch('/{user}/toggle-active', [AdminUserController::class, 'toggleActive'])->name('admin.users.toggleActive');
+                Route::post('/', [AdminUserController::class, 'store'])->name('admin.users.store');
+                Route::post('/{user}/restore', [AdminUserController::class, 'restore'])->name('admin.users.restore');
+                Route::put('/{user}', [AdminUserController::class, 'update'])->name('admin.users.update');
+            });
         });
 
-    // Rutas públicas para los usuarios comunes
+    /**
+     * Rutas públicas y protegidas para usuarios comunes (clientes y proveedores).
+     */
     Route::prefix('user')->group(function () {
+        /**
+         * Rutas de categorías disponibles para usuarios.
+         */
         Route::prefix('categories')->group(function () {
             Route::get('/', [UserCategoryController::class, 'index']);
         });
 
-        // Rutas de notificaciones
+        /**
+         * Rutas de notificaciones del usuario autenticado.
+         */
         Route::prefix('notifications')->middleware('auth:sanctum')->group(function () {
+            Route::delete('{notification}', [UserNotificationController::class, 'destroy']);
             Route::get('/', [UserNotificationController::class, 'index']);
             Route::get('/unread-count', [UserNotificationController::class, 'getUnreadCount']);
             Route::patch('{notification}/read', [UserNotificationController::class, 'markAsRead']);
             Route::patch('/read-all', [UserNotificationController::class, 'markAllAsRead']);
-            Route::delete('{notification}', [UserNotificationController::class, 'destroy']);
         });
 
-        // Rutas de autenticación del usuario común
-        Route::prefix('auth')->group(function () {  // Changed from 'user/auth' to just 'auth'
-            Route::post('register', [UserAuthController::class, 'register'])->name('user.auth.register');
-            Route::post('login', [UserAuthController::class, 'login'])->name('user.auth.login');
-            Route::post('logout', [UserAuthController::class, 'logout'])
-                ->name('user.auth.logout')
-                ->middleware('auth:sanctum');
-
-            // Password reset routes
-            Route::post('forgot-password', [UserAuthController::class, 'forgotPassword'])->name('user.auth.forgot-password');
-            Route::post('reset-password', [UserAuthController::class, 'resetPassword'])->name('user.auth.reset-password');
-
-            // Email verification routes
+        /**
+         * Rutas de autenticación y verificación de usuario común.
+         */
+        Route::prefix('auth')->group(function () {
             Route::post('email/verification-notification', [UserEmailVerificationController::class, 'sendVerificationEmail']);
-            Route::get('email/verify/{id}/{hash}', [UserEmailVerificationController::class, 'verify'])
-                ->name('verification.verify');
+            Route::get('email/verify/{id}/{hash}', [UserEmailVerificationController::class, 'verify'])->name('verification.verify');
+            Route::post('forgot-password', [UserAuthController::class, 'forgotPassword'])->name('user.auth.forgot-password');
+            Route::post('login', [UserAuthController::class, 'login'])->name('user.auth.login');
+            Route::post('logout', [UserAuthController::class, 'logout'])->name('user.auth.logout')->middleware('auth:sanctum');
+            Route::post('register', [UserAuthController::class, 'register'])->name('user.auth.register');
+            Route::post('reset-password', [UserAuthController::class, 'resetPassword'])->name('user.auth.reset-password');
         });
 
-        // Rutas de pagos
+        /**
+         * Rutas de pagos del usuario.
+         */
         Route::prefix('payments')->group(function () {
-            Route::post('payment/process', [UserPaymentController::class, 'processPayment']);
             Route::post('payment/confirm', [UserPaymentController::class, 'confirmPayment']);
+            Route::post('payment/process', [UserPaymentController::class, 'processPayment']);
         });
 
-        // Rutas de perfil (protegidas y con verificación)
+        /**
+         * Rutas de perfil del usuario autenticado (protegidas y con verificación).
+         */
         Route::prefix('profile')->middleware(['auth:sanctum', 'verified'])->group(function () {
-            Route::get('me', [UserProfileController::class, 'showProfile']);
-            Route::put('update', [UserProfileController::class, 'updateProfile']);
-            Route::post('photo', [UserProfileController::class, 'uploadProfilePhoto']);
             Route::delete('photo', [UserProfileController::class, 'deleteProfilePhoto']);
-            Route::post('video', [UserProfileController::class, 'uploadProfileVideo']);
             Route::delete('video', [UserProfileController::class, 'deleteProfileVideo']);
-            Route::put('skills', [UserProfileController::class, 'updateSkills']);
             Route::get('dashboard', [UserProfileController::class, 'dashboard']);
-            Route::get('search', [UserProfileController::class, 'search']);  // Añadido el endpoint de búsqueda
+            Route::get('me', [UserProfileController::class, 'showProfile']);
+            Route::get('search', [UserProfileController::class, 'search']);
             Route::post('location/update', [UserLocationController::class, 'updateLocation']);
+            Route::post('photo', [UserProfileController::class, 'uploadProfilePhoto']);
+            Route::post('video', [UserProfileController::class, 'uploadProfileVideo']);
+            Route::put('skills', [UserProfileController::class, 'updateSkills']);
+            Route::put('update', [UserProfileController::class, 'updateProfile']);
         });
 
-        // Rutas de referrals
+        /**
+         * Rutas de referrals (referidos) del usuario.
+         */
         Route::prefix('referrals')->group(function () {
+            Route::delete('{referral}', [UserReferralController::class, 'destroy']);
             Route::get('/', [UserReferralController::class, 'index']);
+            Route::get('{referral}', [UserReferralController::class, 'show']);
             Route::post('/', [UserReferralController::class, 'store']);
             Route::put('{referral}', [UserReferralController::class, 'update']);
-            Route::delete('{referral}', [UserReferralController::class, 'destroy']);
-            Route::get('{referral}', [UserReferralController::class, 'show']);
         });
 
-        // Rutas de reportes
+        /**
+         * Rutas de reportes del usuario.
+         */
         Route::prefix('reports')->group(function () {
-            Route::post('reports', [UserReportController::class, 'store']);
             Route::get('reports', [UserReportController::class, 'index']);
+            Route::post('reports', [UserReportController::class, 'store']);
         });
 
-        // Rutas de reseñas
+        /**
+         * Rutas de reseñas del usuario.
+         */
         Route::prefix('reviews')->group(function () {
-            Route::post('reviews', [UserReviewController::class, 'store']);
             Route::get('reviews/{userId}', [UserReviewController::class, 'index']);
+            Route::post('reviews', [UserReviewController::class, 'store']);
         });
 
-        // Rutas de solicitudes de servicio propias (protegidas)
-            Route::prefix('my-service-requests')->middleware('auth:sanctum')->group(function () {
-                Route::get('/', [UserServiceRequestController::class, 'myServiceRequests']);
-                Route::get('/trash', [UserServiceRequestController::class, 'trashedRequests']);
-                Route::get('/{id}/offers', [UserServiceOfferController::class, 'requestOffers']);
-                Route::get('/offers/{offer}', [UserServiceOfferController::class, 'showOffer']); // Detalle de oferta recibida
-                Route::put('/{id}', [UserServiceRequestController::class, 'update']);
-                Route::post('/{id}/restore', [UserServiceRequestController::class, 'restore']);
-                Route::patch('/{id}/status', [UserServiceRequestController::class, 'updateStatus']);
-                Route::post('/{id}/offers', [UserServiceOfferController::class, 'store']);
-                Route::patch('/offers/{offer}', [UserServiceOfferController::class, 'update']);
-            });
+        /**
+         * Rutas de solicitudes de servicio propias del usuario autenticado.
+         */
+        Route::prefix('my-service-requests')->middleware('auth:sanctum')->group(function () {
+            Route::get('/', [UserServiceRequestController::class, 'myServiceRequests']);
+            Route::get('/offers/{offer}', [UserServiceOfferController::class, 'showOffer']); // Detalle de oferta recibida
+            Route::get('/trash', [UserServiceRequestController::class, 'trashedRequests']);
+            Route::get('/{id}/offers', [UserServiceOfferController::class, 'requestOffers']);
+            Route::patch('/{id}/status', [UserServiceRequestController::class, 'updateStatus']);
+            Route::patch('/offers/{offer}', [UserServiceOfferController::class, 'update']);
+            Route::post('/{id}/offers', [UserServiceOfferController::class, 'store']);
+            Route::post('/{id}/restore', [UserServiceRequestController::class, 'restore']);
+            Route::put('/{id}', [UserServiceRequestController::class, 'update']);
+        });
 
-        // Rutas de solicitudes de servicio (protegidas)
+        /**
+         * Rutas de solicitudes de servicio de otros usuarios (protegidas).
+         */
         Route::prefix('service-requests')->middleware('auth:sanctum')->group(function () {
-            // Rutas públicas (solicitudes de otros usuarios)
+            Route::delete('/{id}', [UserServiceRequestController::class, 'destroy']);
             Route::get('/', [UserServiceRequestController::class, 'index']);
-            Route::post('/', [UserServiceRequestController::class, 'store']);
             Route::get('/{id}', [UserServiceRequestController::class, 'show']);
             Route::patch('/{id}/status', [UserServiceRequestController::class, 'updateStatus']);
-            Route::delete('/{id}', [UserServiceRequestController::class, 'destroy']);
-           });
+            Route::post('/', [UserServiceRequestController::class, 'store']);
+            Route::post('/{id}/offers', [UserServiceOfferController::class, 'store']);
+        });
 
-        // Rutas de habilidades
+        /**
+         * Rutas de habilidades del usuario autenticado.
+         */
         Route::prefix('skills')->middleware(['auth:sanctum'])->group(function () {
+            Route::delete('/{skill}', [UserSkillController::class, 'destroy']);
             Route::get('/', [UserSkillController::class, 'index']);
             Route::get('/available', [UserSkillController::class, 'available']);
             Route::post('/', [UserSkillController::class, 'store']);
-            Route::delete('/{skill}', [UserSkillController::class, 'destroy']);
         });
 
-        // Rutas de suscripciones
+        /**
+         * Rutas de suscripciones del usuario.
+         */
         Route::prefix('subscriptions')->group(function () {
+            Route::delete('{subscription}', [UserSubscriptionController::class, 'destroy']);
             Route::get('/', [UserSubscriptionController::class, 'index']);
+            Route::get('{subscription}', [UserSubscriptionController::class, 'show']);
             Route::post('/', [UserSubscriptionController::class, 'store']);
             Route::put('{subscription}', [UserSubscriptionController::class, 'update']);
-            Route::delete('{subscription}', [UserSubscriptionController::class, 'destroy']);
-            Route::get('{subscription}', [UserSubscriptionController::class, 'show']);
         });
 
-        // Rutas de tickets
+        /**
+         * Rutas de tickets de soporte del usuario.
+         */
         Route::prefix('tickets')->group(function () {
-            Route::post('tickets', [UserTicketController::class, 'store']);
             Route::get('tickets', [UserTicketController::class, 'index']);
             Route::get('tickets/{ticket}', [UserTicketController::class, 'show']);
+            Route::post('tickets', [UserTicketController::class, 'store']);
             Route::post('tickets/{ticket}/reply', [UserTicketController::class, 'reply']);
         });
 
-        // Rutas de contratos
+        /**
+         * Rutas de contratos del usuario autenticado.
+         */
         Route::prefix('contracts')->middleware(['auth:sanctum', 'verified'])->group(function () {
-            Route::get('/', [UserContractController::class, 'index']);
-            Route::post('/', [UserContractController::class, 'store']);
-            Route::get('/{contract}', [UserContractController::class, 'show']);
-            Route::put('/{contract}', [UserContractController::class, 'update']);
             Route::delete('/{contract}', [UserContractController::class, 'destroy']);
+            Route::get('/', [UserContractController::class, 'index']);
+            Route::get('/{contract}', [UserContractController::class, 'show']);
+            Route::post('/', [UserContractController::class, 'store']);
+            Route::put('/{contract}', [UserContractController::class, 'update']);
         });
 
-        // Rutas de transacciones
+        /**
+         * Rutas de transacciones del usuario.
+         */
         Route::prefix('transactions')->group(function () {
             Route::get('/', [UserTransactionController::class, 'index']);
             Route::get('/{transaction}', [UserTransactionController::class, 'show']);
-            Route::post('{transaction}/refund', [UserTransactionController::class, 'refund']);
             Route::post('{transaction}/cancel', [UserTransactionController::class, 'cancel']);
             Route::post('{transaction}/complete', [UserTransactionController::class, 'complete']);
+            Route::post('{transaction}/refund', [UserTransactionController::class, 'refund']);
         });
 
-        // Rutas de ofertas realizadas por el usuario autenticado
+        /**
+         * Rutas de ofertas realizadas por el usuario autenticado.
+         */
         Route::get('my-offers', [UserServiceOfferController::class, 'myOffers']);
-        // Rutas de ofertas enviadas y recibidas
+
+        /**
+         * Rutas de ofertas recibidas y enviadas por el usuario autenticado.
+         */
         Route::get('service-offers/received', [UserServiceOfferController::class, 'receivedOffers'])->middleware('auth:sanctum');
         Route::get('service-offers/sent', [UserServiceOfferController::class, 'sentOffers'])->middleware('auth:sanctum');
 
-        // Rutas públicas de perfiles de usuario
+        /**
+         * Rutas públicas de perfiles de usuario.
+         */
         Route::get('public/profiles/{user}', [UserProfileController::class, 'showPublicProfile']);
     });
-    // Rutas de chat y mensajes
+    /**
+     * Rutas de chat y mensajes entre usuarios autenticados.
+     */
     Route::prefix('chats')->middleware('auth:sanctum')->group(function () {
-        /**
-         * GET /api/v1/chats
-         * Lista todas las conversaciones (hilos de chat) del usuario autenticado.
-         * Controlador: ChatController@index
-         */
         Route::get('/', [ChatController::class, 'index'])->name('chats.index');
-        Route::get('/offers/{offerId}', [ChatController::class, 'showOrCreate']);  // GET /api/v1/chat/offers/{offerId}
-        Route::post('/offers/{offerId}/messages', [MessageController::class, 'store']);  // POST /api/v1/chat/offers/{offerId}/messages
+        Route::get('/offers/{offerId}', [ChatController::class, 'showOrCreate']);
+        Route::post('/offers/{offerId}/messages', [MessageController::class, 'store']);
         Route::post('/{chat}/messages', [MessageController::class, 'store']);
     });
 });

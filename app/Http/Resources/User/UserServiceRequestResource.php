@@ -2,11 +2,14 @@
 
 namespace App\Http\Resources\User;
 
-use App\Http\Resources\Admin\AdminCategoryResource;
 use App\Http\Resources\User\UserProfileResource;
+use App\Models\ServiceRequest;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Http\Request;
 
+/**
+ * @mixin ServiceRequest
+ */
 class UserServiceRequestResource extends JsonResource
 {
     /**

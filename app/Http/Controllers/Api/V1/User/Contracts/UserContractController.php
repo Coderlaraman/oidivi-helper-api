@@ -5,8 +5,14 @@ namespace App\Http\Controllers\Api\V1\User\Contracts;
 use App\Http\Controllers\Controller;
 use App\Models\Contract;
 use App\Traits\ApiResponseTrait;
+use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use App\Http\Resources\User\UserContractResource;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Support\Facades\DB;
+use App\Models\ServiceOffer;
+use Illuminate\Validation\ValidationException;
 
 class UserContractController extends Controller
 {
@@ -23,7 +29,7 @@ class UserContractController extends Controller
 
             // Filtering by status
             if ($request->filled('status')) {
-                $query->where('status', $request->status);
+                $query->where('status', $request->input());
             }
 
             // Sorting
@@ -52,18 +58,18 @@ class UserContractController extends Controller
                         'filters' => [
                             'available_statuses' => ['pending', 'in_progress', 'completed', 'canceled'],
                             'applied_filters' => array_filter([
-                                'status' => $request->status,
+                                'status' => $request->input('status'),
                                 'sort_by' => $sortField,
                                 'sort_direction' => $sortDirection
                             ])
                         ]
                     ]
                 ],
-                message: 'Contracts retrieved successfully'
+                message: __('messages.contracts.success.retrieved')
             );
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return $this->errorResponse(
-                message: 'Error retrieving contracts',
+                message: __('messages.contracts.errors.retrieving'),
                 statusCode: 500,
                 errors: ['error' => $e->getMessage()]
             );
@@ -77,7 +83,7 @@ class UserContractController extends Controller
 
             if ($contract->client_id !== $user->id && $contract->provider_id !== $user->id) {
                 return $this->errorResponse(
-                    message: 'Unauthorized to view this contract',
+                    message: __('messages.contracts.errors.unauthorized'),
                     statusCode: 403
                 );
             }
@@ -86,11 +92,11 @@ class UserContractController extends Controller
 
             return $this->successResponse(
                 data: $contract,
-                message: 'Contract retrieved successfully'
+                message: __('messages.contracts.success.retrieved')
             );
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return $this->errorResponse(
-                message: 'Error retrieving contract',
+                message: __('messages.contracts.errors.retrieving'),
                 statusCode: 500,
                 errors: ['error' => $e->getMessage()]
             );
@@ -110,7 +116,7 @@ class UserContractController extends Controller
             // Ensure the authenticated user is the owner of the service request
             if ($serviceOffer->serviceRequest->user_id !== $user->id) {
                 return $this->errorResponse(
-                    message: 'Unauthorized to create a contract for this service offer',
+                    message: __('messages.contracts.errors.unauthorized'),
                     statusCode: 403
                 );
             }
@@ -118,15 +124,14 @@ class UserContractController extends Controller
             // Ensure the service offer is in 'accepted' status
             if ($serviceOffer->status !== 'accepted') {
                 return $this->errorResponse(
-                    message: 'Only accepted service offers can be converted to contracts',
-                    statusCode: 400
+                    message: __('messages.service_offers.errors.must_be_accepted_for_contract')
                 );
             }
 
             // Check if a contract already exists for this service offer
             if ($serviceOffer->contract()->exists()) {
                 return $this->errorResponse(
-                    message: 'A contract already exists for this service offer',
+                    message: __('messages.contracts.errors.already_exists'),
                     statusCode: 409
                 );
             }
@@ -150,21 +155,21 @@ class UserContractController extends Controller
 
             return $this->successResponse(
                 data: $contract->load(['serviceOffer.serviceRequest', 'provider', 'client']),
-                message: 'Contract created successfully',
+                message: __('messages.contracts.success.created'),
                 statusCode: 201
             );
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             return $this->errorResponse(
-                message: 'Validation failed',
+                message: __('messages.contracts.errors.validation_failed'),
                 statusCode: 422,
                 errors: $e->errors()
             );
         } catch (ModelNotFoundException $e) {
             return $this->errorResponse(
-                message: 'Service offer not found',
+                message: 'Service offer not found' . $e->getMessage(),
                 statusCode: 404
             );
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             return $this->errorResponse(
                 message: 'Error creating contract',
@@ -181,41 +186,38 @@ class UserContractController extends Controller
 
             if ($contract->client_id !== $user->id && $contract->provider_id !== $user->id) {
                 return $this->errorResponse(
-                    message: 'Unauthorized to update this contract',
+                    message: __('messages.contracts.errors.unauthorized'),
                     statusCode: 403
                 );
             }
 
             $validatedData = $request->validate([
-                'status' => 'required|string|in:pending,in_progress,completed,canceled',
+                'status' => 'required|string|in:' . implode(',', Contract::STATUSES),
             ]);
 
-            // Implement business logic for status transitions if necessary
-            // For example, prevent changing from 'completed' to 'pending'
-            // if ($contract->status === 'completed' && $validatedData['status'] !== 'completed') {
-            //     return $this->errorResponse(
-            //         message: 'Cannot change status of a completed contract',
-            //         statusCode: 400
-            //     );
-            // }
+            $newStatus = $validatedData['status'];
+            if (!in_array($newStatus, Contract::STATUSES)) {
+                return $this->errorResponse(
+                    message: __('messages.contracts.errors.invalid_status')
+                );
+            }
 
-            $contract->update($validatedData);
-
+            $contract->update(['status' => $newStatus]);
             $contract->load(['serviceOffer.serviceRequest', 'provider', 'client']);
 
             return $this->successResponse(
-                data: $contract,
-                message: 'Contract updated successfully'
+                data: new UserContractResource($contract),
+                message: __('messages.contracts.success.updated')
             );
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             return $this->errorResponse(
-                message: 'Validation failed',
+                message: __('messages.contracts.errors.validation_failed'),
                 statusCode: 422,
                 errors: $e->errors()
             );
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return $this->errorResponse(
-                message: 'Error updating contract',
+                message: __('messages.contracts.errors.update_failed'),
                 statusCode: 500,
                 errors: ['error' => $e->getMessage()]
             );
@@ -229,7 +231,7 @@ class UserContractController extends Controller
 
             if ($contract->client_id !== $user->id && $contract->provider_id !== $user->id) {
                 return $this->errorResponse(
-                    message: 'Unauthorized to delete this contract',
+                    message: __('messages.contracts.errors.unauthorized'),
                     statusCode: 403
                 );
             }
@@ -239,7 +241,7 @@ class UserContractController extends Controller
             $deletionAllowedHours = 24;
             if ($contract->created_at->addHours($deletionAllowedHours)->isPast()) {
                 return $this->errorResponse(
-                    message: 'Contract cannot be deleted after ' . $deletionAllowedHours . ' hours from creation.',
+                    message: __('messages.contracts.errors.deletion_time_exceeded', ['hours' => $deletionAllowedHours]),
                     statusCode: 403
                 );
             }
@@ -247,7 +249,7 @@ class UserContractController extends Controller
             // Prevent deletion if contract status is not 'pending' or 'canceled'
             if (!in_array($contract->status, ['pending', 'canceled'])) {
                 return $this->errorResponse(
-                    message: 'Only pending or canceled contracts can be deleted.',
+                    message: __('messages.contracts.errors.invalid_status'),
                     statusCode: 403
                 );
             }
@@ -255,12 +257,12 @@ class UserContractController extends Controller
             $contract->delete();
 
             return $this->successResponse(
-                message: 'Contract deleted successfully',
+                message: __('messages.contracts.success.deleted'),
                 statusCode: 204
             );
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return $this->errorResponse(
-                message: 'Error deleting contract',
+                message: __('messages.contracts.errors.delete_failed'),
                 statusCode: 500,
                 errors: ['error' => $e->getMessage()]
             );

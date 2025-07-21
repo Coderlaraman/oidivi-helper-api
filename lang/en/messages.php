@@ -59,10 +59,38 @@ return [
 
     // Contracts
     'contracts' => [
+        // Se eliminan las claves redundantes de nivel superior 
+        // como 'created' y 'updated'. Se mantienen 'canceled' y 'completed'
+        // si se usan como mensajes de estado simples y no como respuesta de una acción.
         'canceled' => 'Contract canceled.',
         'completed' => 'Contract marked as completed.',
-        'created' => 'Contract generated successfully.',
-        'updated' => 'Contract updated.',
+
+        'success' => [
+            'retrieved' => 'Contracts retrieved successfully.',
+            'show' => 'Contract retrieved successfully.',
+            'created' => 'Contract created successfully.', // Unificado
+            'updated' => 'Contract updated successfully.', // Unificado
+            'deleted' => 'Contract deleted successfully.',
+        ],
+
+        'errors' => [
+            'not_found' => 'Contract not found.', // ¡Corregido!
+            'service_offer_not_found' => 'Service offer not found for this contract.', // Clave más específica
+            'retrieval_failed' => 'Error retrieving contracts.',
+            'show_failed' => 'Error retrieving contract.',
+            'create_failed' => 'Error creating contract.',
+            'update_failed' => 'Error updating contract.',
+            'delete_failed' => 'Error deleting contract.',
+            'validation_failed' => 'Validation failed.',
+            'invalid_status' => 'Invalid contract status.',
+            'already_exists' => 'A contract already exists for this service offer.',
+            'must_be_accepted' => 'The service offer must be accepted before creating a contract.',
+            'unauthorized' => 'Unauthorized to perform this action.',
+            'create_unauthorized' => 'Unauthorized to create a contract for this service offer.',
+            'delete_unauthorized' => 'Unauthorized to delete this contract.',
+            'delete_time_expired' => 'Contract cannot be deleted after :hours hours from creation.',
+            'delete_status_invalid' => 'Only pending or canceled contracts can be deleted.',
+        ],
     ],
 
     // Dashboard

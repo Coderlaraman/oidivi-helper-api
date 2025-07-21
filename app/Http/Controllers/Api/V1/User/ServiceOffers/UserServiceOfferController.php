@@ -7,25 +7,39 @@ use App\Events\NewServiceOfferNotification;
 use App\Events\ServiceOfferStatusUpdatedNotification;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\User\UserOfferResource;
+use App\Http\Resources\User\UserContractResource;
 use App\Models\Contract;
 use App\Models\Notification;
 use App\Models\ServiceOffer;
 use App\Models\ServiceRequest;
 use App\Traits\ApiResponseTrait;
+use Exception;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
+/**
+ * @method \Illuminate\Database\Eloquent\Relations\HasOne contract()
+ * @method \Illuminate\Database\Eloquent\Relations\HasMany offers()
+ * @method \Illuminate\Database\Eloquent\Relations\BelongsTo serviceRequest()
+ */
 class UserServiceOfferController extends Controller
 {
     use ApiResponseTrait;
 
-    public function store(Request $request, $serviceRequest): JsonResponse
+    /**
+     * Crea una nueva oferta para una solicitud de servicio.
+     *
+     * @param Request $request
+     * @param int|string $serviceRequest
+     * @return JsonResponse
+     */
+    public function store(Request $request, int|string $serviceRequest): JsonResponse
     {
         try {
-            // Buscar la solicitud de servicio con sus categorías
+            /** @var ServiceRequest $serviceRequest */
             $serviceRequest = ServiceRequest::with(['categories', 'offers'])->findOrFail($serviceRequest);
 
             Log::info('Starting offer creation process', [
@@ -79,7 +93,6 @@ class UserServiceOfferController extends Controller
             $userSkillCategoryIds = $userSkillCategories->pluck('id')->unique()->toArray();
             $matchingCategories = array_intersect($requestCategoryIds, $userSkillCategoryIds);
 
-            // Log detallado de la verificación de categorías
             Log::info('Shared categories verification', [
                 'user_id' => $user->id,
                 'user_skills' => $user->skills->pluck('name'),
@@ -122,7 +135,7 @@ class UserServiceOfferController extends Controller
 
             DB::beginTransaction();
             try {
-                // Crear la oferta
+                /** @var ServiceOffer $offer */
                 $offer = ServiceOffer::create([
                     'service_request_id' => $serviceRequest->id,
                     'user_id' => $user->id,
@@ -138,7 +151,6 @@ class UserServiceOfferController extends Controller
                     'matching_categories' => array_values($matchingCategories)
                 ]);
 
-                // Notificar al dueño de la solicitud siguiendo el patrón ServiceRequest
                 $offer->notifyRequestOwner();
 
                 DB::commit();
@@ -175,9 +187,16 @@ class UserServiceOfferController extends Controller
         }
     }
 
+    /**
+     * Actualiza el estado de una oferta.
+     *
+     * @param Request $request
+     * @param ServiceOffer $offer
+     * @return JsonResponse
+     */
     public function update(Request $request, ServiceOffer $offer): JsonResponse
     {
-        if ($offer->serviceRequest->user_id !== auth()->id()) {
+        if (!$offer->serviceRequest || $offer->serviceRequest->user_id !== auth()->id()) {
             return $this->errorResponse(
                 message: __('messages.service_offers.errors.unauthorized'),
                 statusCode: 403
@@ -190,60 +209,56 @@ class UserServiceOfferController extends Controller
             $oldStatus = $offer->status;
             $newStatus = $request->input('status');
 
-            $offer->update(['status' => $newStatus]);
+            if (!in_array($newStatus, ServiceOffer::STATUSES, true)) {
+                return $this->errorResponse(
+                    message: __('messages.service_offers.errors.invalid_status'),
+                    statusCode: 400
+                );
+            }
 
-            if ($newStatus === ServiceOffer::STATUS_ACCEPTED) {
-                $offer->serviceRequest->markInProgress();
+            if ($newStatus === ServiceOffer::STATUS_ACCEPTED && $offer->status === ServiceOffer::STATUS_PENDING) {
+                // Crear el contrato si no existe
+                if (!$offer->contract()->exists()) {
+                    /** @var Contract $contract */
+                    $contract = Contract::create([
+                        'service_offer_id' => $offer->id,
+                        'service_request_id' => $offer->service_request_id,
+                        'provider_id' => $offer->user_id,
+                        'client_id' => $offer->serviceRequest?->user_id,
+                        'price' => $offer->price_proposed,
+                        'estimated_time' => $offer->estimated_time,
+                        'status' => Contract::STATUS_IN_PROGRESS,
+                    ]);
+                } else {
+                    $contract = $offer->contract;
+                }
 
-                $offer->notifyOfferAccepted();
+                $offer->update(['status' => $newStatus]);
+                $offer->serviceRequest?->markInProgress();
+                $contract?->update(['status' => Contract::STATUS_IN_PROGRESS]);
 
-                $offer
-                    ->serviceRequest
-                    ->offers()
+                $offer->serviceRequest?->offers()
                     ->where('id', '!=', $offer->id)
                     ->update(['status' => ServiceOffer::STATUS_REJECTED]);
-                foreach (
-                    $offer->serviceRequest->offers()->where('id', '!=', $offer->id)->get() as $declinedOffer
-                ) {
+
+                foreach ($offer->serviceRequest?->offers()->where('id', '!=', $offer->id)->get() ?? [] as $declinedOffer) {
                     if ($declinedOffer->user) {
                         $declinedOffer->notifyStatusUpdate();
                     }
                 }
 
-                $offer
-                    ->serviceRequest
-                    ->offers()
-                    ->where('id', '!=', $offer->id)
-                    ->where('status', '!=', ServiceOffer::STATUS_ACCEPTED)
-                    ->update(['status' => ServiceOffer::STATUS_REJECTED]);
-
-                $otherOffers = $offer
-                    ->serviceRequest
-                    ->offers()
-                    ->where('id', '!=', $offer->id)
-                    ->get();
-
-                foreach ($otherOffers as $otherOffer) {
-                    if ($otherOffer->status === ServiceOffer::STATUS_REJECTED) {
-                        // Notifica usando el método del modelo
-                        $otherOffer->notifyStatusUpdate();
-                    }
-                }
+                $offer->notifyOfferAccepted();
             } else {
+                $offer->update(['status' => $newStatus]);
                 $offer->notifyStatusUpdate();
             }
 
             DB::commit();
 
-            Log::info('Offer status updated', [
-                'offer_id' => $offer->id,
-                'old_status' => $oldStatus,
-                'new_status' => $newStatus,
-                'updated_by' => auth()->id()
-            ]);
+            $offer->load(['user', 'serviceRequest', 'contract']);
 
             return $this->successResponse(
-                data: $offer->load(['user', 'serviceRequest']),
+                data: $offer,
                 message: __('messages.service_offers.success.updated')
             );
         } catch (\Exception $e) {
@@ -264,14 +279,18 @@ class UserServiceOfferController extends Controller
 
     /**
      * Lista todas las ofertas recibidas en las solicitudes del usuario autenticado (hechas por otros usuarios).
+     *
+     * @param Request $request
+     * @return JsonResponse
      */
     public function receivedOffers(Request $request): JsonResponse
     {
         try {
+            /** @var \Illuminate\Pagination\LengthAwarePaginator $offers */
             $offers = ServiceOffer::whereHas('serviceRequest', function ($query) {
-                    $query->where('user_id', auth()->id());
-                })
-                ->where('user_id', '!=', auth()->id()) // Solo ofertas de otros usuarios
+                $query->where('user_id', auth()->id());
+            })
+                ->where('user_id', '!=', auth()->id())
                 ->with(['user', 'serviceRequest'])
                 ->orderBy('created_at', 'desc')
                 ->paginate($request->input('per_page', 10));
@@ -298,16 +317,27 @@ class UserServiceOfferController extends Controller
 
     /**
      * Lista todas las ofertas enviadas por el usuario autenticado.
+     *
+     * @param Request $request
+     * @return JsonResponse
      */
     public function sentOffers(Request $request): JsonResponse
     {
+        /** @var \Illuminate\Pagination\LengthAwarePaginator $offers */
         $offers = ServiceOffer::where('user_id', auth()->id())
-            ->with(['serviceRequest'])
+            ->with(['serviceRequest', 'user'])
             ->orderBy('created_at', 'desc')
             ->paginate($request->input('per_page', 10));
 
+        Log::info('DEBUG - Ofertas enviadas encontradas', [
+            'user_id' => auth()->id(),
+            'count' => $offers->total(),
+            'ids' => $offers->pluck('id'),
+            'data' => $offers->toArray(),
+        ]);
+
         return $this->successResponse([
-            'items' => $offers,
+            'items' => UserOfferResource::collection($offers),
             'meta' => [
                 'pagination' => [
                     'current_page' => $offers->currentPage(),
@@ -328,8 +358,7 @@ class UserServiceOfferController extends Controller
     public function showOffer(ServiceOffer $offer): JsonResponse
     {
         try {
-            // Verificar que la oferta pertenezca a una solicitud del usuario autenticado
-            if ($offer->serviceRequest->user_id !== auth()->id()) {
+            if (!$offer->serviceRequest || $offer->serviceRequest->user_id !== auth()->id()) {
                 return $this->errorResponse(
                     message: 'You do not have permission to view this offer',
                     statusCode: 403
@@ -355,12 +384,13 @@ class UserServiceOfferController extends Controller
      * Lista las ofertas de una solicitud específica.
      *
      * @param Request $request
-     * @param int $id ID de la solicitud
+     * @param int|string $id ID de la solicitud
      * @return JsonResponse
      */
-    public function requestOffers(Request $request, $id): JsonResponse
+    public function requestOffers(Request $request, int|string $id): JsonResponse
     {
         try {
+            /** @var ServiceRequest $serviceRequest */
             $serviceRequest = ServiceRequest::where('user_id', auth()->id())
                 ->findOrFail($id);
 
@@ -368,7 +398,7 @@ class UserServiceOfferController extends Controller
 
             // Filtros
             if ($request->filled('status')) {
-                $query->whereIn('status', explode(',', $request->status));
+                $query->whereIn('status', explode(',', $request->input('status')));
             }
 
             // Ordenamiento
@@ -376,12 +406,13 @@ class UserServiceOfferController extends Controller
             $sortDirection = $request->input('sort_direction', 'desc');
             $allowedSortFields = ['created_at', 'price_proposed', 'status'];
 
-            if (in_array($sortField, $allowedSortFields)) {
+            if (in_array($sortField, $allowedSortFields, true)) {
                 $query->orderBy($sortField, $sortDirection);
             }
 
             // Paginación
             $perPage = $request->input('per_page', 10);
+            /** @var \Illuminate\Pagination\LengthAwarePaginator $offers */
             $offers = $query->paginate($perPage);
 
             return $this->successResponse(
@@ -399,7 +430,7 @@ class UserServiceOfferController extends Controller
                 ],
                 message: 'Request offers retrieved successfully'
             );
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return $this->errorResponse(
                 message: 'Error retrieving request offers',
                 statusCode: 500,
@@ -416,6 +447,7 @@ class UserServiceOfferController extends Controller
      */
     public function myOffers(Request $request): JsonResponse
     {
+        /** @var \Illuminate\Pagination\LengthAwarePaginator $offers */
         $offers = ServiceOffer::where('user_id', auth()->id())
             ->with(['serviceRequest'])
             ->orderBy('created_at', 'desc')
