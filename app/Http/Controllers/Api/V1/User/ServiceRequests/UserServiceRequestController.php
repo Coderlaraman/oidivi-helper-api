@@ -311,36 +311,44 @@ class UserServiceRequestController extends Controller
     public function store(StoreUserServiceRequest $request): JsonResponse
     {
         try {
-            /** @var User $user */
             $user = auth()->user();
 
-            if ($user?->needsSkillSetup()) {
+            if ($user->needsSkillSetup()) {
                 return $this->errorResponse(
-                    message: 'User needs to set up skills before creating a service request.',
-                    statusCode: 400
+                    message: 'You need to add at least one skill before publishing a service request.',
+                    statusCode: 403
                 );
             }
 
             DB::beginTransaction();
             try {
-                // Lógica de creación de la solicitud de servicio aquí...
-                // $serviceRequest = ServiceRequest::create([...]);
-                // $serviceRequest->attachCategories([...]);
-                // $serviceRequest->notifyMatchingUsers();
+                $validated = $request->validated();
+                $validated['user_id'] = $user->id;
+
+                $serviceRequest = ServiceRequest::create($validated);
+
+                if (isset($validated['category_ids'])) {
+                    $serviceRequest->attachCategories($validated['category_ids']);
+                }
+
+                // Notificar a usuarios coincidentes
+                $serviceRequest->notifyMatchingUsers();
 
                 DB::commit();
 
-                // return $this->successResponse([...]);
                 return $this->successResponse(
-                    data: [],
-                    message: 'Service request created successfully'
+                    data: $serviceRequest->load(['categories', 'user']),
+                    message: 'Service request created successfully',
+                    statusCode: 201
                 );
-            } catch (Exception $e) {
+
+            } catch (\Exception $e) {
                 DB::rollBack();
                 throw $e;
             }
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             Log::error('Error creating service request', [
+                'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
             return $this->errorResponse(
@@ -417,7 +425,15 @@ class UserServiceRequestController extends Controller
                 );
             }
 
-            if (!in_array($serviceRequest->status, ['published', 'in_progress'], true)) {
+            // Impide edición si hay contrato activo
+            if ($serviceRequest->contract()->exists()) {
+                return $this->errorResponse(
+                    message: 'Cannot edit service request with active contract. Contact support.',
+                    statusCode: 403
+                );
+            }
+
+            if ($serviceRequest->status !== 'published') {
                 return $this->errorResponse(
                     message: 'Cannot update service request in its current status',
                     statusCode: 400
@@ -426,9 +442,18 @@ class UserServiceRequestController extends Controller
 
             DB::beginTransaction();
             try {
-                // Lógica de actualización aquí...
-                // $serviceRequest->update([...]);
-                // $serviceRequest->syncCategories([...]);
+                // Si tiene ofertas asociadas, eliminarlas y notificar a los ofertantes
+                if ($serviceRequest->offers()->exists()) {
+                    $offers = $serviceRequest->offers;
+                    foreach ($offers as $offer) {
+                        // Notificar al ofertante
+                        event(new \App\Events\ServiceOfferStatusUpdatedNotification($offer, $offer->user_id));
+                    }
+                    $serviceRequest->offers()->delete();
+                }
+
+                // Actualizar la solicitud
+                $serviceRequest->update($request->validated());
 
                 DB::commit();
 
@@ -526,7 +551,7 @@ class UserServiceRequestController extends Controller
     {
         try {
             /** @var ServiceRequest|null $serviceRequest */
-            $serviceRequest = ServiceRequest::with(['categories', 'offers'])->find($id);
+            $serviceRequest = ServiceRequest::with(['categories', 'offers', 'contract'])->find($id);
 
             if (!$serviceRequest) {
                 return $this->errorResponse(
@@ -542,6 +567,14 @@ class UserServiceRequestController extends Controller
                 );
             }
 
+            // Impide cancelación si hay contrato activo
+            if ($serviceRequest->contract()->exists()) {
+                return $this->errorResponse(
+                    message: 'Cannot cancel service request with active contract. Contact support.',
+                    statusCode: 403
+                );
+            }
+
             if (!$serviceRequest->isPublished() && !$serviceRequest->isCanceled()) {
                 return $this->errorResponse(
                     message: 'Only published or canceled service requests can be deleted',
@@ -549,17 +582,17 @@ class UserServiceRequestController extends Controller
                 );
             }
 
-            if ($serviceRequest->offers?->isNotEmpty()) {
-                return $this->errorResponse(
-                    message: 'Cannot delete service request with offers',
-                    statusCode: 400
-                );
-            }
-
             DB::beginTransaction();
             try {
-                // Lógica de eliminación aquí...
-                // $serviceRequest->delete();
+                // Si tiene ofertas, marcarlas como rejected y notificar
+                if ($serviceRequest->offers()->exists()) {
+                    foreach ($serviceRequest->offers as $offer) {
+                        $offer->update(['status' => \App\Models\ServiceOffer::STATUS_REJECTED]);
+                        event(new \App\Events\ServiceOfferStatusUpdatedNotification($offer, $offer->user_id));
+                    }
+                }
+
+                $serviceRequest->delete();
 
                 DB::commit();
 

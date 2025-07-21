@@ -48,6 +48,7 @@ use Illuminate\Support\Facades\Log;
  * @property-read string $visibility_text
  * @property-read string $payment_method_text
  * @property-read string $service_type_text
+ * @property bool $initial_payment_confirmed
  */
 
 class ServiceRequest extends Model
@@ -76,6 +77,7 @@ class ServiceRequest extends Model
         'priority',
         'due_date',
         'metadata',
+        'initial_payment_confirmed',
     ];
 
     /**
@@ -87,6 +89,7 @@ class ServiceRequest extends Model
         'due_date' => 'datetime',
         'metadata' => 'array',
         'deleted_at' => 'datetime',
+        'initial_payment_confirmed' => 'boolean',
     ];
 
     // --- ESTADOS DE LA SOLICITUD ---

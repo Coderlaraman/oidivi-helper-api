@@ -24,11 +24,12 @@ return new class extends Migration {
             $table->enum('visibility', ['public', 'private'])->default('public');
             $table->enum('status', ['published', 'in_progress', 'completed', 'canceled'])->default('published');
             $table->enum('payment_method', ['paypal', 'credit_card', 'bank_transfer'])->nullable();
+            $table->boolean('initial_payment_confirmed')->default(false);
             $table->enum('service_type', ['one_time', 'recurring'])->default('one_time');
-            $table->enum('priority', ['low', 'medium', 'high', 'urgent'])->default('medium'); 
-            $table->dateTime('due_date')->nullable(); 
-            $table->json('metadata')->nullable(); 
-            $table->softDeletes(); 
+            $table->enum('priority', ['low', 'medium', 'high', 'urgent'])->default('medium');
+            $table->dateTime('due_date')->nullable();
+            $table->json('metadata')->nullable();
+            $table->softDeletes();
             $table->timestamps();
 
             // Índices compuestos para búsquedas eficientes

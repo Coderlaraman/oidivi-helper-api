@@ -30,6 +30,45 @@ class UserServiceOfferController extends Controller
     use ApiResponseTrait;
 
     /**
+     * Marca el pago inicial como confirmado para una solicitud de servicio.
+     *
+     * @param Request $request
+     * @param int|string $serviceRequestId
+     * @return JsonResponse
+     */
+    public function confirmInitialPayment(Request $request, int|string $serviceRequestId): JsonResponse
+    {
+        try {
+            /** @var ServiceRequest|null $serviceRequest */
+            $serviceRequest = ServiceRequest::find($serviceRequestId);
+            if (!$serviceRequest) {
+                return $this->errorResponse(
+                    message: __('messages.service_requests.errors.not_found'),
+                    statusCode: 404
+                );
+            }
+            if ($serviceRequest->initial_payment_confirmed) {
+                return $this->errorResponse(
+                    message: __('messages.service_requests.errors.payment_already_confirmed'),
+                    statusCode: 400
+                );
+            }
+            $serviceRequest->initial_payment_confirmed = true;
+            $serviceRequest->save();
+            return $this->successResponse(
+                data: ['service_request_id' => $serviceRequest->id],
+                message: __('messages.service_requests.success.payment_confirmed')
+            );
+        } catch (Exception $e) {
+            return $this->errorResponse(
+                message: __('messages.service_requests.errors.payment_confirm_failed'),
+                statusCode: 500,
+                errors: ['error' => $e->getMessage()]
+            );
+        }
+    }
+
+    /**
      * Crea una nueva oferta para una solicitud de servicio.
      *
      * @param Request $request
@@ -217,6 +256,18 @@ class UserServiceOfferController extends Controller
             }
 
             if ($newStatus === ServiceOffer::STATUS_ACCEPTED && $offer->status === ServiceOffer::STATUS_PENDING) {
+                $serviceRequest = $offer->serviceRequest;
+
+                // Iniciar proceso de pago
+                if (!$serviceRequest?->initial_payment_confirmed) {
+                    // Aquí deberías redirigir al flujo de pago o retornar un mensaje de pago pendiente
+                    DB::rollBack();
+                    return $this->errorResponse(
+                        message: __('messages.service_offers.errors.payment_required'),
+                        statusCode: 400
+                    );
+                }
+
                 // Crear el contrato si no existe
                 if (!$offer->contract()->exists()) {
                     /** @var Contract $contract */
@@ -224,24 +275,24 @@ class UserServiceOfferController extends Controller
                         'service_offer_id' => $offer->id,
                         'service_request_id' => $offer->service_request_id,
                         'provider_id' => $offer->user_id,
-                        'client_id' => $offer->serviceRequest?->user_id,
+                        'client_id' => $serviceRequest->user_id,
                         'price' => $offer->price_proposed,
                         'estimated_time' => $offer->estimated_time,
-                        'status' => Contract::STATUS_IN_PROGRESS,
+                        'status' => Contract::STATUS_PENDING,
                     ]);
                 } else {
                     $contract = $offer->contract;
                 }
 
-                $offer->update(['status' => $newStatus]);
-                $offer->serviceRequest?->markInProgress();
-                $contract?->update(['status' => Contract::STATUS_IN_PROGRESS]);
+                $offer->update(['status' => ServiceOffer::STATUS_ACCEPTED]);
+                $serviceRequest->update(['status' => 'in_progress']);
+                $contract?->update(['status' => Contract::STATUS_PENDING]);
 
-                $offer->serviceRequest?->offers()
+                $serviceRequest->offers()
                     ->where('id', '!=', $offer->id)
                     ->update(['status' => ServiceOffer::STATUS_REJECTED]);
 
-                foreach ($offer->serviceRequest?->offers()->where('id', '!=', $offer->id)->get() ?? [] as $declinedOffer) {
+                foreach ($serviceRequest->offers()->where('id', '!=', $offer->id)->get() ?? [] as $declinedOffer) {
                     if ($declinedOffer->user) {
                         $declinedOffer->notifyStatusUpdate();
                     }

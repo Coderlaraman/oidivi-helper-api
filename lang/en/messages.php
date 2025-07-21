@@ -185,6 +185,12 @@ return [
         'not_found' => 'Service request not found.',
         'status_updated' => 'Service request status updated.',
         'updated' => 'Service request updated.',
+        'status' => [
+            'published' => 'Published',
+            'in_progress' => 'In progress',
+            'completed' => 'Completed',
+            'canceled' => 'Canceled',
+        ],
     ],
 
     // Subscriptions

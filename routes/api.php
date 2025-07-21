@@ -46,6 +46,10 @@ Route::prefix('v1')->middleware('locale')->group(function () {
     // Ruta pública para obtener los términos y condiciones
     Route::get('terms', [TermsController::class, 'show']);
 
+    // Ruta pública Webhook para recibir eventos de Stripe (confirmación de pago).
+    Route::post('stripe/webhook', [UserPaymentController::class, 'handleStripeWebhook']);
+
+
     /**
      * Rutas de autenticación para el administrador.
      */
@@ -140,9 +144,9 @@ Route::prefix('v1')->middleware('locale')->group(function () {
         /**
          * Rutas de pagos del usuario.
          */
-        Route::prefix('payments')->group(function () {
-            Route::post('payment/confirm', [UserPaymentController::class, 'confirmPayment']);
-            Route::post('payment/process', [UserPaymentController::class, 'processPayment']);
+
+        Route::prefix('payments')->middleware('auth:sanctum')->group(function () {
+            Route::post('initiate', [UserPaymentController::class, 'initiatePayment']);
         });
 
         /**
