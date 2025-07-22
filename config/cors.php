@@ -13,7 +13,14 @@ return [
      * | To learn more: https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS
      * |
      */
-    'paths' => ['api/*', 'sanctum/csrf-cookie', 'admin/*', 'broadcasting/auth'],
+    'paths' => [
+        'api/*',
+        'v1/*', // <--- agrega esto
+        'sanctum/csrf-cookie',
+        'admin/*',
+        'broadcasting/auth',
+        'payments/*',
+    ],
     'allowed_methods' => ['*'],
     'allowed_origins' => ['http://localhost:3000', 'http://oidivi-helper-web.test'],
     'allowed_origins_patterns' => [],

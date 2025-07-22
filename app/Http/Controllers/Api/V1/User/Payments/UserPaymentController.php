@@ -35,7 +35,7 @@ class UserPaymentController extends Controller
 
         Stripe::setApiKey(config('services.stripe.secret'));
         $paymentIntent = PaymentIntent::create([
-            'amount' => $offer->amount * 100,
+            'amount' => intval(floatval($offer->price_proposed) * 100),
             'currency' => 'usd',
             'metadata' => [
                 'service_offer_id' => $offer->id,
