@@ -313,13 +313,6 @@ class UserServiceRequestController extends Controller
         try {
             $user = auth()->user();
 
-            if ($user->needsSkillSetup()) {
-                return $this->errorResponse(
-                    message: 'You need to add at least one skill before publishing a service request.',
-                    statusCode: 403
-                );
-            }
-
             DB::beginTransaction();
             try {
                 $validated = $request->validated();

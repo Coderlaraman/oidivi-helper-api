@@ -6,19 +6,19 @@ use App\Constants\NotificationType;
 use App\Events\NewServiceOfferNotification;
 use App\Events\ServiceOfferStatusUpdatedNotification;
 use App\Http\Controllers\Controller;
-use App\Http\Resources\User\UserOfferResource;
 use App\Http\Resources\User\UserContractResource;
+use App\Http\Resources\User\UserOfferResource;
 use App\Models\Contract;
 use App\Models\Notification;
 use App\Models\ServiceOffer;
 use App\Models\ServiceRequest;
 use App\Traits\ApiResponseTrait;
-use Exception;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Exception;
 
 /**
  * @method \Illuminate\Database\Eloquent\Relations\HasOne contract()
@@ -288,7 +288,8 @@ class UserServiceOfferController extends Controller
                 $serviceRequest->update(['status' => 'in_progress']);
                 $contract?->update(['status' => Contract::STATUS_PENDING]);
 
-                $serviceRequest->offers()
+                $serviceRequest
+                    ->offers()
                     ->where('id', '!=', $offer->id)
                     ->update(['status' => ServiceOffer::STATUS_REJECTED]);
 
@@ -515,5 +516,36 @@ class UserServiceOfferController extends Controller
                 ]
             ]
         ]);
+    }
+
+    /**
+     * Obtiene el contrato asociado a una oferta específica.
+     *
+     * @param ServiceOffer $offer
+     * @return JsonResponse
+     */
+    public function getContractByOffer(ServiceOffer $offer): JsonResponse
+    {
+        try {
+            $contract = $offer->contract()->first();
+
+            if (!$contract) {
+                return $this->errorResponse(
+                    message: 'Contrato no encontrado para esta oferta.',
+                    statusCode: 404
+                );
+            }
+
+            return $this->successResponse(
+                data: new UserContractResource($contract),
+                message: 'Contrato obtenido exitosamente.'
+            );
+        } catch (Exception $e) {
+            return $this->errorResponse(
+                message: 'Error al obtener el contrato.',
+                statusCode: 500,
+                errors: ['error' => $e->getMessage()]
+            );
+        }
     }
 }
