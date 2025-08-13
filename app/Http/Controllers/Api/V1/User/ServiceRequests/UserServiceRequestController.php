@@ -733,4 +733,104 @@ class UserServiceRequestController extends Controller
             );
         }
     }
+
+    /**
+     * Obtiene el resumen de solicitudes de servicio para gráficos.
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getServiceRequestSummary(): JsonResponse
+    {
+        try {
+            Log::info('getServiceRequestSummary called');
+            $totalPublished = ServiceRequest::totalPublished();
+            $totalAttended = ServiceRequest::totalAttended();
+            $attendedPercentage = ServiceRequest::attendedPercentage();
+
+            $data = [
+                'total_published' => $totalPublished,
+                'total_attended' => $totalAttended,
+                'attended_percentage' => $attendedPercentage,
+            ];
+
+            Log::info('getServiceRequestSummary data', $data);
+
+            return $this->successResponse(
+                data: $data,
+                message: 'Service request summary data retrieved successfully'
+            );
+        } catch (\Exception $e) {
+            Log::error('Error in getServiceRequestSummary', ['error' => $e->getMessage()]);
+            return $this->errorResponse('Failed to get summary', 500);
+        }
+    }
+
+    /**
+     * Obtiene tendencias de solicitudes de servicio publicadas y atendidas por mes en el último año.
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getServiceRequestTrends(): JsonResponse
+    {
+        try {
+            Log::info('getServiceRequestTrends called');
+            $startDate = now()->subYear()->startOfMonth();
+            $endDate = now()->endOfMonth();
+
+            // Publicadas por mes
+            $published = ServiceRequest::where('status', ServiceRequest::STATUS_PUBLISHED)
+                ->whereBetween('created_at', [$startDate, $endDate])
+                ->selectRaw('DATE_FORMAT(created_at, "%Y-%m") as month, COUNT(*) as count')
+                ->groupBy('month')
+                ->orderBy('month')
+                ->pluck('count', 'month')
+                ->toArray();
+
+            // Atendidas por mes (en progreso o completadas)
+            $attended = ServiceRequest::whereIn('status', [ServiceRequest::STATUS_IN_PROGRESS, ServiceRequest::STATUS_COMPLETED])
+                ->whereBetween('created_at', [$startDate, $endDate])
+                ->selectRaw('DATE_FORMAT(created_at, "%Y-%m") as month, COUNT(*) as count')
+                ->groupBy('month')
+                ->orderBy('month')
+                ->pluck('count', 'month')
+                ->toArray();
+
+            // Generar arreglo de meses para el último año
+            $months = [];
+            $current = $startDate->copy();
+            while ($current <= $endDate) {
+                $months[] = $current->format('Y-m');
+                $current->addMonth();
+            }
+
+            // Preparar datos para gráfico (rellenar ceros si no hay datos)
+            $publishedData = [];
+            $attendedData = [];
+            foreach ($months as $month) {
+                $publishedData[] = [
+                    'month' => $month,
+                    'count' => (int)($published[$month] ?? 0)
+                ];
+                $attendedData[] = [
+                    'month' => $month,
+                    'count' => (int)($attended[$month] ?? 0)
+                ];
+            }
+
+            $data = [
+                'published' => $publishedData,
+                'attended' => $attendedData,
+            ];
+
+            Log::info('getServiceRequestTrends data', $data);
+
+            return $this->successResponse(
+                data: $data,
+                message: 'Service request trends data retrieved successfully'
+            );
+        } catch (\Exception $e) {
+            Log::error('Error in getServiceRequestTrends', ['error' => $e->getMessage()]);
+            return $this->errorResponse('Failed to get trends', 500);
+        }
+    }
 }

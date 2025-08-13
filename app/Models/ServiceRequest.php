@@ -378,6 +378,41 @@ class ServiceRequest extends Model
         return $this->priority === 'urgent';
     }
 
+        /**
+         * Obtiene la cantidad total de solicitudes de servicio publicadas.
+         *
+         * @return int
+         */
+        public static function totalPublished(): int
+        {
+            return static::where('status', self::STATUS_PUBLISHED)->count();
+        }
+
+        /**
+         * Obtiene la cantidad total de solicitudes atendidas (en progreso o completadas).
+         *
+         * @return int
+         */
+        public static function totalAttended(): int
+        {
+            return static::whereIn('status', [self::STATUS_IN_PROGRESS, self::STATUS_COMPLETED])->count();
+        }
+
+        /**
+         * Calcula el porcentaje de solicitudes atendidas respecto al total de publicadas.
+         *
+         * @return float
+         */
+        public static function attendedPercentage(): float
+        {
+            $totalPublished = static::totalPublished();
+            if ($totalPublished === 0) {
+                return 0.0;
+            }
+            $totalAttended = static::totalAttended();
+            return round(($totalAttended / $totalPublished) * 100, 2);
+        }
+
     /**
      * Marca la solicitud como "en progreso".
      *

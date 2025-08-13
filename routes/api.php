@@ -49,6 +49,9 @@ Route::prefix('v1')->middleware('locale')->group(function () {
     // Ruta pública Webhook para recibir eventos de Stripe (confirmación de pago).
     Route::post('stripe/webhook', [UserPaymentController::class, 'handleStripeWebhook']);
 
+    Route::get('user/service-requests/summary', [UserServiceRequestController::class, 'getServiceRequestSummary']);
+    Route::get('user/service-requests/trends', [UserServiceRequestController::class, 'getServiceRequestTrends']);
+            
 
     /**
      * Rutas de autenticación para el administrador.
@@ -211,6 +214,7 @@ Route::prefix('v1')->middleware('locale')->group(function () {
          * Rutas de solicitudes de servicio de otros usuarios (protegidas).
          */
         Route::prefix('service-requests')->middleware('auth:sanctum')->group(function () {
+            // Rutas para datos agregados y tendencias de solicitudes de servicio
             Route::delete('/{id}', [UserServiceRequestController::class, 'destroy']);
             Route::get('/', [UserServiceRequestController::class, 'index']);
             Route::get('/{id}', [UserServiceRequestController::class, 'show']);
