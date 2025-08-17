@@ -20,7 +20,7 @@ return new class extends Migration {
             $table->decimal('final_amount', 10, 2); // Monto recibido por el helper después de la comisión
             $table->enum('status', ['pending', 'completed', 'failed', 'refunded'])->default('pending');
            
-            $table->foreignId('payment_method_id')->constrained('payment_methods')->onDelete('cascade');
+            $table->foreignId('payment_id')->constrained('payments')->onDelete('cascade');
             $table->string('transaction_id')->nullable(); // ID de la pasarela de pago
             $table->timestamps();
         });

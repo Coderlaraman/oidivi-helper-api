@@ -299,6 +299,5 @@ Route::prefix('v1')->middleware('locale')->group(function () {
         Route::get('/', [ChatController::class, 'index'])->name('chats.index');
         Route::get('/offers/{offerId}', [ChatController::class, 'showOrCreate']);
         Route::post('/offers/{offerId}/messages', [MessageController::class, 'store']);
-        Route::post('/{chat}/messages', [MessageController::class, 'store']);
     });
 });
