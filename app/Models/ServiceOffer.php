@@ -7,10 +7,11 @@ use App\Events\NewServiceOfferNotification;
 use App\Events\ServiceOfferStatusUpdatedNotification;
 use App\Traits\Notifiable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasOne;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 
@@ -28,13 +29,11 @@ use Illuminate\Support\Facades\Log;
  * @property string $status
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
- *
  * @property-read ServiceRequest|null $serviceRequest
  * @property-read User|null $user
- * @property-read Contract|null $contract
+ * @property-read Payment|null $payment
  * @property-read \Illuminate\Database\Eloquent\Collection|Chat[] $chats
- *
- * @method \Illuminate\Database\Eloquent\Relations\HasOne contract()
+ * @method \Illuminate\Database\Eloquent\Relations\HasOne payment()
  * @method \Illuminate\Database\Eloquent\Relations\BelongsTo serviceRequest()
  * @method \Illuminate\Database\Eloquent\Relations\BelongsTo user()
  * @method \Illuminate\Database\Eloquent\Relations\HasMany chats()
@@ -95,15 +94,6 @@ class ServiceOffer extends Model
         return $this->belongsTo(User::class);
     }
 
-    /**
-     * Relación: Contrato generado a partir de la oferta (si existe).
-     *
-     * @return HasOne
-     */
-    public function contract(): HasOne
-    {
-        return $this->hasOne(Contract::class);
-    }
 
     /**
      * Relación: Chats asociados a la oferta.
@@ -251,6 +241,16 @@ class ServiceOffer extends Model
                 'service_offer_id' => $this->id
             ]);
         }
+    }
+
+    /**
+     * Relación: Pago asociado a esta oferta.
+     *
+     * @return HasOne
+     */
+    public function payment(): HasOne
+    {
+        return $this->hasOne(Payment::class);
     }
 
     /**

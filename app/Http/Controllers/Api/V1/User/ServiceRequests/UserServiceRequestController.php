@@ -362,7 +362,7 @@ class UserServiceRequestController extends Controller
     {
         try {
             /** @var ServiceRequest|null $serviceRequest */
-            $serviceRequest = ServiceRequest::with(['categories', 'user', 'offers', 'contract'])->find($id);
+            $serviceRequest = ServiceRequest::with(['categories', 'user', 'offers'])->find($id);
 
             if (!$serviceRequest) {
                 return $this->errorResponse(
@@ -415,14 +415,6 @@ class UserServiceRequestController extends Controller
                 return $this->errorResponse(
                     message: 'Service request not found',
                     statusCode: 404
-                );
-            }
-
-            // Impide edición si hay contrato activo
-            if ($serviceRequest->contract()->exists()) {
-                return $this->errorResponse(
-                    message: 'Cannot edit service request with active contract. Contact support.',
-                    statusCode: 403
                 );
             }
 
@@ -544,7 +536,7 @@ class UserServiceRequestController extends Controller
     {
         try {
             /** @var ServiceRequest|null $serviceRequest */
-            $serviceRequest = ServiceRequest::with(['categories', 'offers', 'contract'])->find($id);
+            $serviceRequest = ServiceRequest::with(['categories', 'offers'])->find($id);
 
             if (!$serviceRequest) {
                 return $this->errorResponse(
@@ -556,14 +548,6 @@ class UserServiceRequestController extends Controller
             if ($serviceRequest->user_id !== auth()->id()) {
                 return $this->errorResponse(
                     message: 'Unauthorized to delete this service request',
-                    statusCode: 403
-                );
-            }
-
-            // Impide cancelación si hay contrato activo
-            if ($serviceRequest->contract()->exists()) {
-                return $this->errorResponse(
-                    message: 'Cannot cancel service request with active contract. Contact support.',
                     statusCode: 403
                 );
             }

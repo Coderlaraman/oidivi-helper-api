@@ -6,9 +6,7 @@ use App\Constants\NotificationType;
 use App\Events\NewServiceOfferNotification;
 use App\Events\ServiceOfferStatusUpdatedNotification;
 use App\Http\Controllers\Controller;
-use App\Http\Resources\User\UserContractResource;
 use App\Http\Resources\User\UserOfferResource;
-use App\Models\Contract;
 use App\Models\Notification;
 use App\Models\ServiceOffer;
 use App\Models\ServiceRequest;
@@ -21,7 +19,6 @@ use Illuminate\Support\Facades\Log;
 use Exception;
 
 /**
- * @method \Illuminate\Database\Eloquent\Relations\HasOne contract()
  * @method \Illuminate\Database\Eloquent\Relations\HasMany offers()
  * @method \Illuminate\Database\Eloquent\Relations\BelongsTo serviceRequest()
  */
@@ -256,50 +253,17 @@ class UserServiceOfferController extends Controller
             }
 
             if ($newStatus === ServiceOffer::STATUS_ACCEPTED && $offer->status === ServiceOffer::STATUS_PENDING) {
-                $serviceRequest = $offer->serviceRequest;
-
-                // Iniciar proceso de pago
-                if (!$serviceRequest?->initial_payment_confirmed) {
-                    // Aquí deberías redirigir al flujo de pago o retornar un mensaje de pago pendiente
-                    DB::rollBack();
-                    return $this->errorResponse(
-                        message: __('messages.service_offers.errors.payment_required'),
-                        statusCode: 400
-                    );
-                }
-
-                // Crear el contrato si no existe
-                if (!$offer->contract()->exists()) {
-                    /** @var Contract $contract */
-                    $contract = Contract::create([
-                        'service_offer_id' => $offer->id,
-                        'service_request_id' => $offer->service_request_id,
-                        'provider_id' => $offer->user_id,
-                        'client_id' => $serviceRequest->user_id,
-                        'price' => $offer->price_proposed,
-                        'estimated_time' => $offer->estimated_time,
-                        'status' => Contract::STATUS_PENDING,
-                    ]);
-                } else {
-                    $contract = $offer->contract;
-                }
-
-                $offer->update(['status' => ServiceOffer::STATUS_ACCEPTED]);
-                $serviceRequest->update(['status' => 'in_progress']);
-                $contract?->update(['status' => Contract::STATUS_PENDING]);
-
-                $serviceRequest
-                    ->offers()
-                    ->where('id', '!=', $offer->id)
-                    ->update(['status' => ServiceOffer::STATUS_REJECTED]);
-
-                foreach ($serviceRequest->offers()->where('id', '!=', $offer->id)->get() ?? [] as $declinedOffer) {
-                    if ($declinedOffer->user) {
-                        $declinedOffer->notifyStatusUpdate();
-                    }
-                }
-
-                $offer->notifyOfferAccepted();
+                // En lugar de actualizar directamente los estados, redirigir al flujo de pago
+                DB::commit();
+                
+                return $this->successResponse(
+                    data: [
+                        'offer' => $offer->load(['user', 'serviceRequest']),
+                        'requires_payment' => true,
+                        'payment_url' => '/api/v1/user/payments/create-session/' . $offer->id,
+                    ],
+                    message: 'Oferta lista para pago. Serás redirigido al proceso de pago.'
+                );
             } else {
                 $offer->update(['status' => $newStatus]);
                 $offer->notifyStatusUpdate();
@@ -307,7 +271,7 @@ class UserServiceOfferController extends Controller
 
             DB::commit();
 
-            $offer->load(['user', 'serviceRequest', 'contract']);
+            $offer->load(['user', 'serviceRequest']);
 
             return $this->successResponse(
                 data: $offer,
@@ -519,30 +483,105 @@ class UserServiceOfferController extends Controller
     }
 
     /**
-     * Obtiene el contrato asociado a una oferta específica.
+     * Acepta una oferta e inicia el proceso de pago.
      *
      * @param ServiceOffer $offer
      * @return JsonResponse
      */
-    public function getContractByOffer(ServiceOffer $offer): JsonResponse
+    public function acceptWithPayment(ServiceOffer $offer): JsonResponse
     {
         try {
-            $contract = $offer->contract()->first();
-
-            if (!$contract) {
+            // Verificar que el usuario autenticado es el dueño de la solicitud
+            if (!$offer->serviceRequest || $offer->serviceRequest->user_id !== auth()->id()) {
                 return $this->errorResponse(
-                    message: 'Contrato no encontrado para esta oferta.',
-                    statusCode: 404
+                    message: 'No tienes permisos para aceptar esta oferta',
+                    statusCode: 403
                 );
             }
 
-            return $this->successResponse(
-                data: new UserContractResource($contract),
-                message: 'Contrato obtenido exitosamente.'
-            );
+            // Verificar que la oferta está en estado pendiente
+            if ($offer->status !== ServiceOffer::STATUS_PENDING) {
+                return $this->errorResponse(
+                    message: 'Esta oferta ya no está disponible',
+                    statusCode: 400
+                );
+            }
+
+            // Redirigir al controlador de pagos para crear la sesión
+            $paymentController = new \App\Http\Controllers\Api\V1\User\Payments\UserPaymentController();
+            return $paymentController->createPaymentSession(request(), $offer);
+
         } catch (Exception $e) {
+            Log::error('Error accepting offer with payment', [
+                'error' => $e->getMessage(),
+                'offer_id' => $offer->id,
+                'user_id' => auth()->id(),
+            ]);
+
             return $this->errorResponse(
-                message: 'Error al obtener el contrato.',
+                message: 'Error al procesar la aceptación de la oferta',
+                statusCode: 500,
+                errors: ['error' => $e->getMessage()]
+            );
+        }
+    }
+
+    /**
+     * Rechaza una oferta.
+     *
+     * @param ServiceOffer $offer
+     * @return JsonResponse
+     */
+    public function rejectOffer(ServiceOffer $offer): JsonResponse
+    {
+        try {
+            // Verificar que el usuario autenticado es el dueño de la solicitud
+            if (!$offer->serviceRequest || $offer->serviceRequest->user_id !== auth()->id()) {
+                return $this->errorResponse(
+                    message: 'No tienes permisos para rechazar esta oferta',
+                    statusCode: 403
+                );
+            }
+
+            // Verificar que la oferta está en estado pendiente
+            if ($offer->status !== ServiceOffer::STATUS_PENDING) {
+                return $this->errorResponse(
+                    message: 'Esta oferta ya no puede ser rechazada',
+                    statusCode: 400
+                );
+            }
+
+            DB::beginTransaction();
+
+            // Actualizar el estado de la oferta
+            $offer->update(['status' => ServiceOffer::STATUS_REJECTED]);
+
+            // Notificar al proveedor
+            $offer->notifyStatusUpdate();
+
+            DB::commit();
+
+            Log::info('Offer rejected successfully', [
+                'offer_id' => $offer->id,
+                'user_id' => auth()->id(),
+            ]);
+
+            return $this->successResponse(
+                data: $offer->load(['user', 'serviceRequest']),
+                message: 'Oferta rechazada exitosamente'
+            );
+
+        } catch (Exception $e) {
+            DB::rollBack();
+            
+            Log::error('Error rejecting offer', [
+                'error' => $e->getMessage(),
+                'offer_id' => $offer->id,
+                'user_id' => auth()->id(),
+            ]);
+
+            return $this->errorResponse(
+                message: 'Error al rechazar la oferta',
                 statusCode: 500,
                 errors: ['error' => $e->getMessage()]
             );

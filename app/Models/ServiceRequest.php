@@ -446,16 +446,6 @@ class ServiceRequest extends Model
     }
 
     /**
-     * Relación: Contratos asociados a la solicitud.
-     *
-     * @return HasMany
-     */
-    public function contract(): HasMany
-    {
-        return $this->hasMany(Contract::class);
-    }
-
-    /**
      * Relación: Reseñas asociadas a la solicitud.
      *
      * @return HasMany
@@ -466,13 +456,13 @@ class ServiceRequest extends Model
     }
 
     /**
-     * Relación: Transacciones asociadas a la solicitud.
+     * Relación: Pagos asociados a la solicitud.
      *
      * @return HasMany
      */
-    public function transactions(): HasMany
+    public function payments(): HasMany
     {
-        return $this->hasMany(Transaction::class);
+        return $this->hasMany(Payment::class);
     }
 
     /**

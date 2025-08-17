@@ -102,9 +102,6 @@ class UserServiceRequestResource extends JsonResource
                 'offers_count' => $this->whenLoaded('offers', function () {
                     return $this->offers->count();
                 }),
-                'has_contract' => $this->whenLoaded('contract', function () {
-                    return $this->contract->isNotEmpty();
-                }),
             ],
             'permissions' => [
                 'can_edit' => auth()->id() === $this->user_id &&

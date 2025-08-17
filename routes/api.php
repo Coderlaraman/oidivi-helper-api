@@ -11,7 +11,6 @@ use App\Http\Controllers\Api\V1\TermsController;
 use App\Http\Controllers\Api\V1\User\Auth\UserAuthController;
 use App\Http\Controllers\Api\V1\User\Auth\UserEmailVerificationController;
 use App\Http\Controllers\Api\V1\User\Categories\UserCategoryController;
-use App\Http\Controllers\Api\V1\User\Contracts\UserContractController;
 use App\Http\Controllers\Api\V1\User\Locations\UserLocationController;
 use App\Http\Controllers\Api\V1\User\Notifications\UserNotificationController;
 use App\Http\Controllers\Api\V1\User\Payments\UserPaymentController;
@@ -23,8 +22,7 @@ use App\Http\Controllers\Api\V1\User\ServiceOffers\UserServiceOfferController;
 use App\Http\Controllers\Api\V1\User\ServiceRequests\UserServiceRequestController;
 use App\Http\Controllers\Api\V1\User\Skills\UserSkillController;
 use App\Http\Controllers\Api\V1\User\Subscriptions\UserSubscriptionController;
-use App\Http\Controllers\Api\V1\User\Tickets\UserTicketController;
-use App\Http\Controllers\Api\V1\User\Transactions\UserTransactionController;
+// use App\Http\Controllers\Api\V1\User\Tickets\UserTicketController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -150,6 +148,9 @@ Route::prefix('v1')->middleware('locale')->group(function () {
 
         Route::prefix('payments')->middleware('auth:sanctum')->group(function () {
             Route::post('initiate', [UserPaymentController::class, 'initiatePayment']);
+            Route::post('create-session/{offer}', [UserPaymentController::class, 'createPaymentSession']);
+            Route::get('confirm/{payment}', [UserPaymentController::class, 'confirmPayment']);
+            Route::post('cancel/{payment}', [UserPaymentController::class, 'cancelPayment']);
         });
 
         /**
@@ -177,14 +178,6 @@ Route::prefix('v1')->middleware('locale')->group(function () {
             Route::get('{referral}', [UserReferralController::class, 'show']);
             Route::post('/', [UserReferralController::class, 'store']);
             Route::put('{referral}', [UserReferralController::class, 'update']);
-        });
-
-        /**
-         * Rutas de reportes del usuario.
-         */
-        Route::prefix('reports')->group(function () {
-            Route::get('reports', [UserReportController::class, 'index']);
-            Route::post('reports', [UserReportController::class, 'store']);
         });
 
         /**
@@ -248,32 +241,10 @@ Route::prefix('v1')->middleware('locale')->group(function () {
          * Rutas de tickets de soporte del usuario.
          */
         Route::prefix('tickets')->group(function () {
-            Route::get('tickets', [UserTicketController::class, 'index']);
-            Route::get('tickets/{ticket}', [UserTicketController::class, 'show']);
-            Route::post('tickets', [UserTicketController::class, 'store']);
-            Route::post('tickets/{ticket}/reply', [UserTicketController::class, 'reply']);
-        });
-
-        /**
-         * Rutas de contratos del usuario autenticado.
-         */
-        Route::prefix('contracts')->middleware(['auth:sanctum', 'verified'])->group(function () {
-            Route::delete('/{contract}', [UserContractController::class, 'destroy']);
-            Route::get('/', [UserContractController::class, 'index']);
-            Route::get('/{contract}', [UserContractController::class, 'show']);
-            Route::post('/', [UserContractController::class, 'store']);
-            Route::put('/{contract}', [UserContractController::class, 'update']);
-        });
-
-        /**
-         * Rutas de transacciones del usuario.
-         */
-        Route::prefix('transactions')->group(function () {
-            Route::get('/', [UserTransactionController::class, 'index']);
-            Route::get('/{transaction}', [UserTransactionController::class, 'show']);
-            Route::post('{transaction}/cancel', [UserTransactionController::class, 'cancel']);
-            Route::post('{transaction}/complete', [UserTransactionController::class, 'complete']);
-            Route::post('{transaction}/refund', [UserTransactionController::class, 'refund']);
+            // Route::get('tickets', [UserTicketController::class, 'index']);
+            // Route::get('tickets/{ticket}', [UserTicketController::class, 'show']);
+            // Route::post('tickets', [UserTicketController::class, 'store']);
+            // Route::post('tickets/{ticket}/reply', [UserTicketController::class, 'reply']);
         });
 
         /**
@@ -286,6 +257,14 @@ Route::prefix('v1')->middleware('locale')->group(function () {
          */
         Route::get('service-offers/received', [UserServiceOfferController::class, 'receivedOffers'])->middleware('auth:sanctum');
         Route::get('service-offers/sent', [UserServiceOfferController::class, 'sentOffers'])->middleware('auth:sanctum');
+
+        /**
+         * Rutas específicas para ofertas de servicio.
+         */
+        Route::prefix('service-offers')->middleware('auth:sanctum')->group(function () {
+            Route::post('/{offer}/accept-with-payment', [UserServiceOfferController::class, 'acceptWithPayment']);
+            Route::post('/{offer}/reject', [UserServiceOfferController::class, 'rejectOffer']);
+        });
 
         /**
          * Rutas públicas de perfiles de usuario.
