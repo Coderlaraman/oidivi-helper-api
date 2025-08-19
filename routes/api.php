@@ -151,6 +151,9 @@ Route::prefix('v1')->middleware('locale')->group(function () {
             Route::post('create-session/{offer}', [UserPaymentController::class, 'createPaymentSession']);
             Route::get('confirm/{payment}', [UserPaymentController::class, 'confirmPayment']);
             Route::post('cancel/{payment}', [UserPaymentController::class, 'cancelPayment']);
+            // Nuevos endpoints para listar y obtener pagos
+            Route::get('/', [UserPaymentController::class, 'index']);
+            Route::get('/{payment}', [UserPaymentController::class, 'show']);
         });
 
         /**

@@ -271,6 +271,93 @@ class UserPaymentController extends Controller
     }
 
     /**
+     * Lista los pagos del usuario autenticado (como pagador o receptor).
+     */
+    public function index(Request $request): JsonResponse
+    {
+        try {
+            $userId = auth()->id();
+
+            $query = Payment::query()
+                ->where(function ($q) use ($userId) {
+                    $q->where('payer_user_id', $userId)
+                      ->orWhere('payee_user_id', $userId);
+                })
+                ->with(['serviceRequest', 'serviceOffer.user', 'payer', 'payee']);
+
+            // Filtro por estado
+            if ($request->filled('status')) {
+                $query->where('status', $request->query('status'));
+            }
+
+            // Ordenamiento
+            $sortBy = $request->query('sort_by', 'created_at');
+            $sortDirection = strtolower($request->query('sort_direction', 'desc'));
+            $allowedSort = ['created_at', 'amount'];
+            if (!in_array($sortBy, $allowedSort, true)) {
+                $sortBy = 'created_at';
+            }
+            if (!in_array($sortDirection, ['asc', 'desc'], true)) {
+                $sortDirection = 'desc';
+            }
+            $query->orderBy($sortBy, $sortDirection);
+
+            // Paginación opcional (el frontend espera un array en data)
+            $perPage = (int) $request->query('per_page', 0);
+            if ($perPage > 0) {
+                $paginator = $query->simplePaginate($perPage);
+                $items = collect($paginator->items());
+            } else {
+                $items = $query->get();
+            }
+
+            return $this->successResponse($items->toArray(), 'Pagos obtenidos correctamente');
+        } catch (Exception $e) {
+            Log::error('Error listing payments', [
+                'error' => $e->getMessage(),
+                'user_id' => auth()->id(),
+            ]);
+
+            return $this->errorResponse(
+                message: 'Error al obtener los pagos',
+                statusCode: 500,
+                errors: ['error' => $e->getMessage()]
+            );
+        }
+    }
+
+    /**
+     * Muestra un pago específico del usuario autenticado.
+     */
+    public function show(Request $request, Payment $payment): JsonResponse
+    {
+        try {
+            $userId = auth()->id();
+            if ($payment->payer_user_id !== $userId && $payment->payee_user_id !== $userId) {
+                return $this->errorResponse(
+                    message: 'No tienes permisos para ver este pago',
+                    statusCode: 403
+                );
+            }
+
+            $payment->load(['serviceRequest', 'serviceOffer.user', 'payer', 'payee']);
+
+            return $this->successResponse($payment->toArray(), 'Pago obtenido correctamente');
+        } catch (Exception $e) {
+            Log::error('Error getting payment', [
+                'error' => $e->getMessage(),
+                'payment_id' => $payment->id ?? null,
+            ]);
+
+            return $this->errorResponse(
+                message: 'Error al obtener el pago',
+                statusCode: 500,
+                errors: ['error' => $e->getMessage()]
+            );
+        }
+    }
+
+    /**
      * Respuesta de error estandarizada.
      */
     private function errorResponse(string $message, int $statusCode, array $errors = []): JsonResponse
