@@ -195,7 +195,9 @@ class UserPaymentController extends Controller
                 ]);
 
                 return $this->successResponse([
-                    'payment' => $payment->load(['serviceRequest', 'serviceOffer']),
+                    'payment' => $payment->load(['serviceRequest', 'serviceOffer.user']),
+                    'service_request' => $serviceRequest,
+                    'service_offer' => $offer->load('user'),
                     'redirect_url' => '/service-requests/' . $serviceRequest->id,
                 ], 'Pago confirmado exitosamente');
             } else {
