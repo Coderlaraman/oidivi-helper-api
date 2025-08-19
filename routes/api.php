@@ -22,7 +22,7 @@ use App\Http\Controllers\Api\V1\User\ServiceOffers\UserServiceOfferController;
 use App\Http\Controllers\Api\V1\User\ServiceRequests\UserServiceRequestController;
 use App\Http\Controllers\Api\V1\User\Skills\UserSkillController;
 use App\Http\Controllers\Api\V1\User\Subscriptions\UserSubscriptionController;
-// use App\Http\Controllers\Api\V1\User\Tickets\UserTicketController;
+use App\Http\Controllers\Api\V1\User\Tickets\UserTicketController; // added
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -183,9 +183,14 @@ Route::prefix('v1')->middleware('locale')->group(function () {
         /**
          * Rutas de reseñas del usuario.
          */
-        Route::prefix('reviews')->group(function () {
-            Route::get('reviews/{userId}', [UserReviewController::class, 'index']);
-            Route::post('reviews', [UserReviewController::class, 'store']);
+        Route::prefix('reviews')->middleware('auth:sanctum')->group(function () {
+            Route::get('/', [UserReviewController::class, 'index']); // Reseñas recibidas
+            Route::get('/given', [UserReviewController::class, 'given']); // Reseñas dadas
+            Route::get('/stats/{userId?}', [UserReviewController::class, 'stats']); // Estadísticas
+            Route::post('/', [UserReviewController::class, 'store']); // Crear reseña
+            Route::get('/{review}', [UserReviewController::class, 'show']); // Ver reseña específica
+            Route::put('/{review}', [UserReviewController::class, 'update']); // Actualizar reseña
+            Route::delete('/{review}', [UserReviewController::class, 'destroy']); // Eliminar reseña
         });
 
         /**
@@ -240,11 +245,13 @@ Route::prefix('v1')->middleware('locale')->group(function () {
         /**
          * Rutas de tickets de soporte del usuario.
          */
-        Route::prefix('tickets')->group(function () {
-            // Route::get('tickets', [UserTicketController::class, 'index']);
-            // Route::get('tickets/{ticket}', [UserTicketController::class, 'show']);
-            // Route::post('tickets', [UserTicketController::class, 'store']);
-            // Route::post('tickets/{ticket}/reply', [UserTicketController::class, 'reply']);
+        Route::prefix('tickets')->middleware('auth:sanctum')->group(function () {
+            Route::get('/', [UserTicketController::class, 'index']);
+            Route::get('/{ticket}', [UserTicketController::class, 'show']);
+            Route::post('/', [UserTicketController::class, 'store']);
+            Route::put('/{ticket}', [UserTicketController::class, 'update']);
+            Route::delete('/{ticket}', [UserTicketController::class, 'destroy']);
+            Route::post('/{ticket}/reply', [UserTicketController::class, 'reply']);
         });
 
         /**

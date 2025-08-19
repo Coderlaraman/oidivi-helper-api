@@ -153,6 +153,14 @@ class User extends Authenticatable
         return $this->hasMany(ServiceRequest::class);
     }
 
+    /**
+     * Get the tickets for the user.
+     */
+    public function tickets(): HasMany
+    {
+        return $this->hasMany(Ticket::class);
+    }
+
 
     /**
      * Check if the user is active.
