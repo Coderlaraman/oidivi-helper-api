@@ -23,6 +23,7 @@ use App\Http\Controllers\Api\V1\User\ServiceRequests\UserServiceRequestControlle
 use App\Http\Controllers\Api\V1\User\Skills\UserSkillController;
 use App\Http\Controllers\Api\V1\User\Subscriptions\UserSubscriptionController;
 use App\Http\Controllers\Api\V1\User\Tickets\UserTicketController; // added
+use App\Http\Controllers\Api\V1\Search\SearchController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -171,6 +172,18 @@ Route::prefix('v1')->middleware('locale')->group(function () {
             Route::put('skills', [UserProfileController::class, 'updateSkills']);
             Route::put('update', [UserProfileController::class, 'updateProfile']);
             Route::post('change-password', [UserProfileController::class, 'changePassword']);
+        });
+
+        /**
+         * Rutas de búsqueda global y específica.
+         */
+        Route::prefix('search')->group(function () {
+            Route::get('global', [SearchController::class, 'global']);
+            Route::get('users', [SearchController::class, 'users']);
+            Route::get('service-requests', [SearchController::class, 'serviceRequests']);
+            Route::get('service-offers', [SearchController::class, 'serviceOffers']);
+            Route::get('suggestions', [SearchController::class, 'suggestions']);
+            Route::get('filters', [SearchController::class, 'filters']);
         });
 
         /**
