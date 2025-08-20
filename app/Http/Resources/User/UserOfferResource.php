@@ -4,6 +4,7 @@ namespace App\Http\Resources\User;
 
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * @mixin \App\Models\ServiceOffer
@@ -29,7 +30,7 @@ class UserOfferResource extends JsonResource
             'user' => [
                 'id' => $this->user?->id,
                 'name' => $this->user?->name,
-                'profile_photo_url' => $this->user?->profile_photo_url,
+                'profile_photo_url' => $this->user?->profile_photo_url ? Storage::url($this->user->profile_photo_url) : null,
             ],
             'serviceRequest' => $this->serviceRequest
                 ? [

@@ -170,6 +170,7 @@ Route::prefix('v1')->middleware('locale')->group(function () {
             Route::post('video', [UserProfileController::class, 'uploadProfileVideo']);
             Route::put('skills', [UserProfileController::class, 'updateSkills']);
             Route::put('update', [UserProfileController::class, 'updateProfile']);
+            Route::post('change-password', [UserProfileController::class, 'changePassword']);
         });
 
         /**

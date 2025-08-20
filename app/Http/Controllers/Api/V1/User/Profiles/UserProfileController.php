@@ -13,6 +13,7 @@ use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
@@ -75,7 +76,7 @@ class UserProfileController extends Controller
             'profile_photo_url',
             'profile_photos',
             __('messages.profile.photo_updated'),
-            ['required', 'image', 'mimes:jpeg,png,jpg,gif', 'max:5120', 'dimensions:min_width=200,min_height=200,max_width=2000,max_height=2000']
+            ['required', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:10240', 'dimensions:min_width=100,min_height=100,max_width=4000,max_height=4000']
         );
     }
 
@@ -113,7 +114,7 @@ class UserProfileController extends Controller
             'profile_video_url',
             'profile_videos',
             __('messages.profile.video_updated'),
-            ['required', 'mimetypes:video/mp4,video/quicktime,video/x-msvideo,video/x-ms-wmv', 'max:51200']
+            ['required', 'file', 'mimes:mp4,mov,avi,wmv', 'max:51200']
         );
     }
 
@@ -192,6 +193,31 @@ public function deleteProfileVideo(): JsonResponse
         $user = $request->user();
         $user->skills()->sync($request->input('skills'));
         return $this->successResponse($user->skills, __('messages.profile.skills_updated'));
+    }
+
+    /**
+     * Change the authenticated user's password.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function changePassword(Request $request): JsonResponse
+    {
+        $request->validate([
+            'current_password' => 'required',
+            'password' => 'required|min:8|confirmed',
+        ]);
+
+        $user = Auth::user();
+
+        if (!Hash::check($request->current_password, $user->password)) {
+            return $this->errorResponse(__('messages.profile.invalid_password'), 422);
+        }
+
+        $user->password = Hash::make($request->password);
+        $user->save();
+
+        return $this->successResponse([], __('messages.profile.password_updated'));
     }
 
     /**
