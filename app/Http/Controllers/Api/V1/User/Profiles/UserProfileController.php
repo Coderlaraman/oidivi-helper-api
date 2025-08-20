@@ -71,9 +71,11 @@ class UserProfileController extends Controller
     {
         return $this->handleFileUpload(
             $request,
+            'photo',
             'profile_photo_url',
             'profile_photos',
-            __('messages.profile.photo_updated')
+            __('messages.profile.photo_updated'),
+            ['required', 'image', 'mimes:jpeg,png,jpg,gif', 'max:5120', 'dimensions:min_width=200,min_height=200,max_width=2000,max_height=2000']
         );
     }
 
@@ -91,7 +93,7 @@ class UserProfileController extends Controller
                 $user->profile_photo_url = null;
                 $user->save();
             }
-            return $this->successResponse([], __('messages.profile.photo_deleted'));
+            return $this->successResponse(new UserAuthResource($user), __('messages.profile.photo_deleted'));
         } catch (Exception $e) {
             return $this->errorResponse(__('messages.general_error'), 500, ['error' => $e->getMessage()]);
         }
@@ -107,10 +109,11 @@ class UserProfileController extends Controller
     {
         return $this->handleFileUpload(
             $request,
+            'video',
             'profile_video_url',
             'profile_videos',
             __('messages.profile.video_updated'),
-            ['mimes:mp4,mov,avi,wmv', 'max:10240']
+            ['required', 'mimetypes:video/mp4,video/quicktime,video/x-msvideo,video/x-ms-wmv', 'max:51200']
         );
     }
 
@@ -120,69 +123,53 @@ class UserProfileController extends Controller
  * @return JsonResponse
  */
 public function deleteProfileVideo(): JsonResponse
-{
-    try {
-        $user = Auth::user();
-        if ($user->profile_video_url) {
-            Storage::disk('public')->delete($user->profile_video_url);
-            $user->profile_video_url = null;
-            $user->save();
+    {
+        try {
+            $user = Auth::user();
+            if ($user->profile_video_url) {
+                Storage::disk('public')->delete($user->profile_video_url);
+                $user->profile_video_url = null;
+                $user->save();
+            }
+            return $this->successResponse(new UserAuthResource($user), __('messages.profile.video_deleted'));
+        } catch (Exception $e) {
+            return $this->errorResponse(__('messages.general_error'), 500, ['error' => $e->getMessage()]);
         }
-        return $this->successResponse([], __('messages.profile.video_deleted'));
-    } catch (Exception $e) {
-        return $this->errorResponse(__('messages.general_error'), 500, ['error' => $e->getMessage()]);
     }
-}
 
     /**
      * Handle file upload for profile media.
      *
      * @param Request $request
-     * @param string $fieldName
+     * @param string $requestFieldName
+     * @param string $dbColumnName
      * @param string $directory
      * @param string $successMessage
      * @param array $rules
      * @return JsonResponse
      */
-    protected function handleFileUpload(Request $request, string $fieldName, string $directory, string $successMessage, array $rules = [
-        'image',
-        'mimes:jpeg,png,jpg,gif',
-        'max:2048',
-        'dimensions:min_width=200,min_height=200,max_width=2000,max_height=2000'
-    ]): JsonResponse
+    protected function handleFileUpload(Request $request, string $requestFieldName, string $dbColumnName, string $directory, string $successMessage, array $rules): JsonResponse
     {
         try {
-            $request->validate([
-                $fieldName => 'required|' . implode('|', $rules),
-            ]);
+            $request->validate([$requestFieldName => $rules]);
+
             $user = Auth::user();
-            if ($request->hasFile($fieldName)) {
-                $file = $request->file($fieldName);
-                // Validación MIME real
-                $mime = mime_content_type($file->getPathname());
-                $allowedImageMimes = ['image/jpeg', 'image/png', 'image/gif'];
-                $allowedVideoMimes = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/x-ms-wmv'];
+            if ($request->hasFile($requestFieldName)) {
+                $file = $request->file($requestFieldName);
 
-                $isImage = in_array('image', $rules);
-                $isVideo = in_array('mimes:mp4,mov,avi,wmv', $rules); // o define por contexto
-
-                if (($isImage && !in_array($mime, $allowedImageMimes)) || ($isVideo && !in_array($mime, $allowedVideoMimes))) {
-                    return $this->errorResponse(__('messages.invalid_file_type'), 422);
-}
+                // Delete old file if exists
+                if ($user->{$dbColumnName}) {
+                    Storage::disk('public')->delete($user->{$dbColumnName});
+                }
 
                 $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
                 $filePath = $file->storeAs($directory, $filename, 'public');
-                // Delete old file if exists
-                if ($user->{$fieldName}) {
-                    Storage::disk('public')->delete($user->{$fieldName});
-                }
-                $user->{$fieldName} = $filePath;
+
+                $user->{$dbColumnName} = $filePath;
                 $user->save();
-                return $this->successResponse([
-                    $fieldName => asset('storage/' . $filePath)
-                ], $successMessage);
+                return $this->successResponse(new UserAuthResource($user), $successMessage);
             }
-            return $this->errorResponse(__('messages.profile_photo.invalid'), 400);
+            return $this->errorResponse(__('messages.file_not_provided'), 400);
         } catch (ValidationException $e) {
             return $this->errorResponse(__('messages.validation_error'), 422, $e->errors());
         } catch (Exception $e) {
