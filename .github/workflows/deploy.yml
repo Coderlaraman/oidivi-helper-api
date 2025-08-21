@@ -3,15 +3,15 @@ name: Deploy to Amazon Lightsail
 on:
   push:
     branches:
-      - master
+      - master   # cámbialo a main si esa es tu rama
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: SSH into Amazon Lightsail and pull latest code
-        uses: appleboy/ssh-action@master
+      - name: SSH into Amazon Lightsail and deploy API
+        uses: appleboy/ssh-action@v0.1.7
         with:
           host: ${{ secrets.OIDIVI_API_LIGHTSAIL_HOST }}
           username: ${{ secrets.OIDIVI_API_LIGHTSAIL_USER }}
@@ -19,25 +19,28 @@ jobs:
           script: |
             cd /var/www/oidivi-helper-api
 
-            # Configurar el directorio seguro para Git (opcional, pero recomendado)
+            # Configurar el directorio seguro para Git
             git config --global --add safe.directory /var/www/oidivi-helper-api
 
-            # Resetear el repositorio y traer los últimos cambios de la rama master
+            # Resetear y traer últimos cambios
             git reset --hard
             git pull origin master
 
-            # Restaurar los permisos adecuados (si es necesario, descomentar estas líneas)
-            # sudo chown -R www-data:www-data storage bootstrap/cache
-            # sudo chmod -R 775 storage bootstrap/cache
+            # Instalar dependencias de Laravel
+            composer install --no-interaction --prefer-dist --optimize-autoloader
 
-            # Reiniciar Nginx, limpiar caché y ejecutar migraciones
-            sudo systemctl restart nginx
-            php artisan cache:clear
-            php artisan config:clear
-            php artisan view:clear
-            php artisan route:clear
-
+            # Aplicar migraciones en producción
             php artisan migrate --force
 
-            # Reiniciar Nginx nuevamente si es necesario
-            sudo systemctl restart nginx
+            # Limpiar y regenerar cachés
+            php artisan cache:clear
+            php artisan config:clear
+            php artisan route:clear
+            php artisan view:clear
+
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
+
+            # Recargar PHP-FPM (no es necesario reiniciar Nginx siempre)
+            sudo systemctl reload php8.2-fpm

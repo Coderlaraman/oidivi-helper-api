@@ -15,6 +15,7 @@ use App\Models\Skill;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 
 class SearchController extends Controller
 {
@@ -158,13 +159,13 @@ class SearchController extends Controller
 
             if ($type === 'all' || $type === 'categories') {
                 $categories = Category::where('name', 'LIKE', "%{$query}%")
-                    ->where('is_active', true)
+                    ->where('status', 'active')
                     ->limit($limit)
                     ->get(['id', 'name', 'slug'])
                     ->map(function ($category) {
                         return [
                             'id' => $category->id,
-                            'text' => $category->name,
+                            'title' => $category->name,
                             'type' => 'category',
                             'slug' => $category->slug
                         ];
@@ -176,13 +177,12 @@ class SearchController extends Controller
                 $skills = Skill::where('name', 'LIKE', "%{$query}%")
                     ->where('is_active', true)
                     ->limit($limit)
-                    ->get(['id', 'name', 'slug'])
+                    ->get(['id', 'name'])
                     ->map(function ($skill) {
                         return [
                             'id' => $skill->id,
-                            'text' => $skill->name,
-                            'type' => 'skill',
-                            'slug' => $skill->slug
+                            'title' => $skill->name,
+                            'type' => 'skill'
                         ];
                     });
                 $suggestions = array_merge($suggestions, $skills->toArray());
@@ -190,15 +190,15 @@ class SearchController extends Controller
 
             if ($type === 'all' || $type === 'users') {
                 $users = User::where('name', 'LIKE', "%{$query}%")
-                    ->where('status', 'active')
+                    ->where('is_active', true)
                     ->limit($limit)
-                    ->get(['id', 'name', 'professional_title'])
+                    ->get(['id', 'name', 'email'])
                     ->map(function ($user) {
                         return [
                             'id' => $user->id,
-                            'text' => $user->name,
+                            'title' => $user->name,
                             'type' => 'user',
-                            'subtitle' => $user->professional_title
+                            'subtitle' => $user->email
                         ];
                     });
                 $suggestions = array_merge($suggestions, $users->toArray());
@@ -210,7 +210,7 @@ class SearchController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Suggestions retrieved successfully',
-                'data' => $suggestions
+                'suggestions' => $suggestions
             ]);
 
         } catch (\Exception $e) {
@@ -229,12 +229,12 @@ class SearchController extends Controller
     {
         try {
             $filters = [
-                'categories' => Category::where('is_active', true)
+                'categories' => Category::where('status', 'active')
                     ->orderBy('name')
                     ->get(['id', 'name', 'slug']),
                 'skills' => Skill::where('is_active', true)
                     ->orderBy('name')
-                    ->get(['id', 'name', 'slug']),
+                    ->get(['id', 'name']),
                 'service_request_statuses' => [
                     ['value' => 'pending', 'label' => 'Pendiente'],
                     ['value' => 'published', 'label' => 'Publicado'],
@@ -278,7 +278,7 @@ class SearchController extends Controller
     {
         $query = User::query()
             ->with(['skills', 'userStats'])
-            ->where('status', 'active');
+            ->where('is_active', true);
 
         // Búsqueda por texto
         if (!empty($params['query'])) {
@@ -286,7 +286,6 @@ class SearchController extends Controller
             $query->where(function ($q) use ($searchTerm) {
                 $q->where('name', 'LIKE', "%{$searchTerm}%")
                   ->orWhere('email', 'LIKE', "%{$searchTerm}%")
-                  ->orWhere('professional_title', 'LIKE', "%{$searchTerm}%")
                   ->orWhere('biography', 'LIKE', "%{$searchTerm}%");
             });
         }
@@ -305,10 +304,15 @@ class SearchController extends Controller
             });
         }
 
-        // Filtro por calificación mínima
-        if (!empty($params['rating_min'])) {
+        // Filtro por calificación
+        if (!empty($params['min_rating'])) {
             $query->whereHas('userStats', function ($q) use ($params) {
-                $q->where('rating', '>=', $params['rating_min']);
+                $q->where('rating', '>=', $params['min_rating']);
+            });
+        }
+        if (!empty($params['max_rating'])) {
+            $query->whereHas('userStats', function ($q) use ($params) {
+                $q->where('rating', '<=', $params['max_rating']);
             });
         }
 
@@ -379,11 +383,11 @@ class SearchController extends Controller
         }
 
         // Filtro por presupuesto
-        if (!empty($params['budget_min'])) {
-            $query->where('budget', '>=', $params['budget_min']);
+        if (!empty($params['min_budget'])) {
+            $query->where('budget', '>=', $params['min_budget']);
         }
-        if (!empty($params['budget_max'])) {
-            $query->where('budget', '<=', $params['budget_max']);
+        if (!empty($params['max_budget'])) {
+            $query->where('budget', '<=', $params['max_budget']);
         }
 
         // Filtro por estado
@@ -421,6 +425,7 @@ class SearchController extends Controller
         $sortOrder = $params['sort_order'] ?? 'desc';
 
         switch ($sortBy) {
+            case 'price': // alias para el frontend
             case 'budget':
                 $query->orderBy('budget', $sortOrder);
                 break;
@@ -456,12 +461,14 @@ class SearchController extends Controller
             $query->where('message', 'LIKE', "%{$searchTerm}%");
         }
 
-        // Filtro por precio
-        if (!empty($params['price_min'])) {
-            $query->where('price_proposed', '>=', $params['price_min']);
+        // Filtro por precio (acepta price_*, o min/max_budget desde búsqueda global)
+        $minPrice = $params['price_min'] ?? $params['min_budget'] ?? null;
+        if (!empty($minPrice)) {
+            $query->where('price_proposed', '>=', $minPrice);
         }
-        if (!empty($params['price_max'])) {
-            $query->where('price_proposed', '<=', $params['price_max']);
+        $maxPrice = $params['price_max'] ?? $params['max_budget'] ?? null;
+        if (!empty($maxPrice)) {
+            $query->where('price_proposed', '<=', $maxPrice);
         }
 
         // Filtro por estado
@@ -482,6 +489,7 @@ class SearchController extends Controller
         $sortOrder = $params['sort_order'] ?? 'desc';
 
         switch ($sortBy) {
+            case 'price': // alias para el frontend
             case 'price_proposed':
                 $query->orderBy('price_proposed', $sortOrder);
                 break;
