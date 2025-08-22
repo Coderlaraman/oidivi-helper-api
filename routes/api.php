@@ -23,7 +23,7 @@ use App\Http\Controllers\Api\V1\User\ServiceRequests\UserServiceRequestControlle
 use App\Http\Controllers\Api\V1\User\Skills\UserSkillController;
 use App\Http\Controllers\Api\V1\User\Subscriptions\UserSubscriptionController;
 use App\Http\Controllers\Api\V1\User\Tickets\UserTicketController; // added
-use App\Http\Controllers\Api\V1\Search\SearchController;
+use App\Http\Controllers\Api\V1\User\Search\UserSearchController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -175,18 +175,6 @@ Route::prefix('v1')->middleware('locale')->group(function () {
         });
 
         /**
-         * Rutas de búsqueda global y específica.
-         */
-        Route::prefix('search')->group(function () {
-            Route::get('global', [SearchController::class, 'global']);
-            Route::get('users', [SearchController::class, 'users']);
-            Route::get('service-requests', [SearchController::class, 'serviceRequests']);
-            Route::get('service-offers', [SearchController::class, 'serviceOffers']);
-            Route::get('suggestions', [SearchController::class, 'suggestions']);
-            Route::get('filters', [SearchController::class, 'filters']);
-        });
-
-        /**
          * Rutas de referrals (referidos) del usuario.
          */
         Route::prefix('referrals')->group(function () {
@@ -288,6 +276,14 @@ Route::prefix('v1')->middleware('locale')->group(function () {
         Route::prefix('service-offers')->middleware('auth:sanctum')->group(function () {
             Route::post('/{offer}/accept-with-payment', [UserServiceOfferController::class, 'acceptWithPayment']);
             Route::post('/{offer}/reject', [UserServiceOfferController::class, 'rejectOffer']);
+        });
+
+        /**
+         * Rutas de búsqueda (usuarios y solicitudes) con filtros avanzados.
+         */
+        Route::prefix('search')->middleware(['auth:sanctum', 'verified'])->group(function () {
+            Route::get('users', [UserSearchController::class, 'searchUsers']);
+            Route::get('service-requests', [UserSearchController::class, 'searchServiceRequests']);
         });
 
         /**
