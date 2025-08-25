@@ -52,6 +52,10 @@ class ChatController extends Controller
                 'service_offer_id' => $chat->service_offer_id,
                 'created_at'       => $chat->created_at->toDateTimeString(),
                 'updated_at'       => $chat->updated_at->toDateTimeString(),
+                'service_request' => [
+                    'id'    => $chat->serviceOffer->serviceRequest->id,
+                    'title' => $chat->serviceOffer->serviceRequest->title,
+                ],
                 'other_participant' => [
                     'id'                => $otherUser->id,
                     'name'              => $otherUser->name,
