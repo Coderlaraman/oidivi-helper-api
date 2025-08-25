@@ -50,8 +50,8 @@ class ChatController extends Controller
             return [
                 'id'               => $chat->id,
                 'service_offer_id' => $chat->service_offer_id,
-                'created_at'       => $chat->created_at->toDateTimeString(),
-                'updated_at'       => $chat->updated_at->toDateTimeString(),
+                'created_at'       => $chat->created_at->toIso8601String(),
+                'updated_at'       => $chat->updated_at->toIso8601String(),
                 'service_request' => [
                     'id'    => $chat->serviceOffer->serviceRequest->id,
                     'title' => $chat->serviceOffer->serviceRequest->title,
@@ -66,7 +66,7 @@ class ChatController extends Controller
                     'type'       => $lastMessage->type,
                     'message'    => $lastMessage->message,
                     'media_url'  => $lastMessage->media_url,
-                    'created_at' => $lastMessage->created_at->toDateTimeString(),
+                    'created_at' => $lastMessage->created_at->toIso8601String(),
                 ] : null,
             ];
         });
@@ -108,8 +108,8 @@ class ChatController extends Controller
             'chat' => [
                 'id'               => $chat->id,
                 'service_offer_id' => $chat->service_offer_id,
-                'created_at'       => $chat->created_at->toDateTimeString(),
-                'updated_at'       => $chat->updated_at->toDateTimeString(),
+                'created_at'       => $chat->created_at->toIso8601String(),
+                'updated_at'       => $chat->updated_at->toIso8601String(),
                 'requester'        => [
                     'id'   => $chat->serviceOffer->serviceRequest->user->id,
                     'name' => $chat->serviceOffer->serviceRequest->user->name,
@@ -130,8 +130,8 @@ class ChatController extends Controller
                     'media_type'  => $msg->media_type,
                     'media_name'  => $msg->media_name,
                     'metadata'    => $msg->metadata,
-                    'seen_at'     => $msg->seen_at?->toDateTimeString(),
-                    'created_at'  => $msg->created_at->toDateTimeString(),
+                    'seen_at'     => $msg->seen_at?->toIso8601String(),
+                    'created_at'  => $msg->created_at->toIso8601String(),
                 ];
             })->all(),
         ];
