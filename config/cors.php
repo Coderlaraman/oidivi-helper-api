@@ -22,7 +22,7 @@ return [
         'payments/*',
     ],
     'allowed_methods' => ['*'],
-    'allowed_origins' => ['http://localhost:3000', 'http://oidivi-helper-web.test'],
+    'allowed_origins' => ['http://localhost:3000', 'http://localhost:3001', 'http://oidivi-helper-web.test'],
     'allowed_origins_patterns' => [],
     'allowed_headers' => ['*'],
     'exposed_headers' => [],

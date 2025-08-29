@@ -211,6 +211,11 @@ Route::prefix('v1')->middleware('locale')->group(function () {
             Route::post('/{id}/offers', [UserServiceOfferController::class, 'store']);
             Route::post('/{id}/restore', [UserServiceRequestController::class, 'restore']);
             Route::put('/{id}', [UserServiceRequestController::class, 'update']);
+            // Nuevos endpoints de flujo de trabajo
+            Route::post('/{id}/submit-completion', [UserServiceRequestController::class, 'submitCompletion']);
+            Route::post('/{id}/upload-deliverable', [UserServiceRequestController::class, 'uploadDeliverable']);
+            Route::post('/{id}/confirm-completion', [UserServiceRequestController::class, 'confirmCompletion']);
+            Route::post('/{id}/request-changes', [UserServiceRequestController::class, 'requestChanges']);
         });
 
         /**

@@ -16,18 +16,12 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Http\Requests\User\ServiceRequest\SubmitCompletionRequest;
+use App\Http\Requests\User\ServiceRequest\ConfirmCompletionRequest;
+use App\Http\Requests\User\ServiceRequest\RequestChangesRequest;
+use Illuminate\Support\Facades\Storage;
+use App\Models\Review;
 
-/**
- * @property int $user_id
- * @property string $status
- * @property ?array $metadata
- * @property Collection $categories
- * @property Collection $offers
- * @method void attachCategories(array $categoryIds)
- * @method void syncCategories(array $categoryIds)
- * @method void notifyMatchingUsers()
- * @method bool canTransitionTo(string $newStatus)
- */
 class UserServiceRequestController extends Controller
 {
     use ApiResponseTrait;
@@ -230,10 +224,10 @@ class UserServiceRequestController extends Controller
 
             // Filtro por fecha de vencimiento
             if ($request->filled('due_date_start')) {
-                $query->where('due_date', '>=', $request->input('due_date_start'));
+                $query->where('due_date', '>=', $request->input('due_date_start') . ' 00:00:00');
             }
             if ($request->filled('due_date_end')) {
-                $query->where('due_date', '<=', $request->input('due_date_end'));
+                $query->where('due_date', '<=', $request->input('due_date_end') . ' 23:59:59');
             }
 
             // Búsqueda por texto en título y descripción
@@ -265,6 +259,10 @@ class UserServiceRequestController extends Controller
             $sortDirection = $request->input('sort_direction', 'desc');
             $allowedSortFields = [
                 'created_at',
+                'due_date',
+                'budget',
+                'priority',
+                'status'
             ];
 
             if (in_array($sortField, $allowedSortFields, true)) {
@@ -278,6 +276,11 @@ class UserServiceRequestController extends Controller
 
             // Metadatos para la respuesta
             $metadata = [
+                'filters' => [
+                    'available_statuses' => ServiceRequest::STATUS, // alias con etiquetas
+                    'available_priorities' => ServiceRequest::PRIORITY, // alias con etiquetas
+                    'available_service_types' => ServiceRequest::SERVICE_TYPE, // alias con etiquetas
+                ],
                 'pagination' => [
                     'has_more_pages' => $serviceRequests->hasMorePages(),
                 ],
@@ -817,4 +820,224 @@ class UserServiceRequestController extends Controller
             return $this->errorResponse('Failed to get trends', 500);
         }
     }
+
+    /**
+     * Upload a single deliverable file (evidence) by the assigned helper while in progress.
+     */
+    public function uploadDeliverable(Request $request, int|string $id): JsonResponse
+    {
+        try {
+            /** @var ServiceRequest|null $serviceRequest */
+            $serviceRequest = ServiceRequest::find($id);
+            if (!$serviceRequest) {
+                return $this->errorResponse('Service request not found', 404);
+            }
+
+            if ((int)($serviceRequest->assigned_helper_id) !== (int)auth()->id()) {
+                return $this->errorResponse('Unauthorized: Only the assigned helper can upload deliverables', 403);
+            }
+
+            if (!$serviceRequest->isInProgress()) {
+                return $this->errorResponse('Deliverables can only be uploaded while the request is in progress', 400);
+            }
+
+            $validated = $request->validate([
+                'file' => ['required', 'file', 'mimes:jpeg,png,pdf', 'max:5120'],
+            ]);
+
+            $file = $request->file('file');
+            $storedPaths = $this->storeEvidenceFiles($serviceRequest, [$file]);
+
+            $metadata = $serviceRequest->metadata ?? [];
+            $metadata['completion_evidence'] = array_values(array_merge($metadata['completion_evidence'] ?? [], $storedPaths));
+            $serviceRequest->metadata = $metadata;
+            $serviceRequest->save();
+
+            return $this->successResponse(
+                data: new UserServiceRequestResource($serviceRequest->fresh(['categories','user','offers'])),
+                message: 'Deliverable uploaded successfully'
+            );
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return $this->errorResponse(__('messages.validation_error') ?: 'Validation error', 422, $e->errors());
+        } catch (Exception $e) {
+            Log::error('Error uploading deliverable', ['error' => $e->getMessage()]);
+            return $this->errorResponse('Error uploading deliverable', 500, ['error' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Helper submits completion with notes and optional evidence files.
+     */
+    public function submitCompletion(SubmitCompletionRequest $request, int|string $id): JsonResponse
+    {
+        try {
+            /** @var ServiceRequest|null $serviceRequest */
+            $serviceRequest = ServiceRequest::find($id);
+            if (!$serviceRequest) {
+                return $this->errorResponse('Service request not found', 404);
+            }
+
+            // Authorization already validated by FormRequest authorize(), but double-check state
+            if (!$serviceRequest->isInProgress()) {
+                return $this->errorResponse('You can only submit completion for requests that are in progress', 400);
+            }
+
+            DB::beginTransaction();
+            try {
+                $metadata = $serviceRequest->metadata ?? [];
+                $metadata['completion_notes'] = $request->input('completion_notes');
+
+                $evidencePaths = [];
+                if ($request->hasFile('completion_evidence')) {
+                    $files = $request->file('completion_evidence');
+                    if (!is_array($files)) { $files = [$files]; }
+                    $evidencePaths = $this->storeEvidenceFiles($serviceRequest, $files);
+                }
+                $metadata['completion_evidence'] = array_values(array_merge($metadata['completion_evidence'] ?? [], $evidencePaths));
+
+                $serviceRequest->metadata = $metadata;
+                $serviceRequest->submitted_at = now();
+                // Keep status as in_progress; finalization occurs on client confirmation
+                $serviceRequest->save();
+
+                DB::commit();
+
+                return $this->successResponse(
+                    data: new UserServiceRequestResource($serviceRequest->fresh(['categories','user','offers'])),
+                    message: 'Completion submitted successfully'
+                );
+            } catch (Exception $e) {
+                DB::rollBack();
+                throw $e;
+            }
+        } catch (Exception $e) {
+            Log::error('Error submitting completion', ['error' => $e->getMessage()]);
+            return $this->errorResponse('Error submitting completion', 500, ['error' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Client confirms completion; optionally creates a review for the helper.
+     */
+    public function confirmCompletion(ConfirmCompletionRequest $request, int|string $id): JsonResponse
+    {
+        try {
+            /** @var ServiceRequest|null $serviceRequest */
+            $serviceRequest = ServiceRequest::find($id);
+            if (!$serviceRequest) {
+                return $this->errorResponse('Service request not found', 404);
+            }
+
+            // authorize validated by FormRequest; validate state
+            if (!$serviceRequest->isInProgress() || !$serviceRequest->submitted_at) {
+                return $this->errorResponse('Service request is not ready to be confirmed', 400);
+            }
+
+            DB::beginTransaction();
+            try {
+                $metadata = $serviceRequest->metadata ?? [];
+                if ($request->filled('completion_notes')) {
+                    // allow client to append final notes
+                    $metadata['client_completion_notes'] = $request->input('completion_notes');
+                }
+                $serviceRequest->metadata = $metadata;
+
+                $serviceRequest->client_confirmed_at = now();
+                $serviceRequest->completed_at = now();
+                $serviceRequest->status = ServiceRequest::STATUS_COMPLETED;
+                $serviceRequest->save();
+
+                // Optional review
+                $rating = $request->input('rating');
+                $reviewText = $request->input('review');
+                if ($rating !== null || $reviewText) {
+                    Review::create([
+                        'reviewer_id' => auth()->id(),
+                        'reviewed_id' => $serviceRequest->assigned_helper_id,
+                        'service_request_id' => $serviceRequest->id,
+                        'rating' => $rating ?? 5,
+                        'comment' => $reviewText,
+                        'would_recommend' => $rating !== null ? ((int)$rating >= 4) : true,
+                    ]);
+                }
+
+                DB::commit();
+
+                return $this->successResponse(
+                    data: new UserServiceRequestResource($serviceRequest->fresh(['categories','user','offers'])),
+                    message: 'Service request confirmed as completed'
+                );
+            } catch (Exception $e) {
+                DB::rollBack();
+                throw $e;
+            }
+        } catch (Exception $e) {
+            Log::error('Error confirming completion', ['error' => $e->getMessage()]);
+            return $this->errorResponse('Error confirming completion', 500, ['error' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Client requests changes, reverting submission state while keeping status in progress.
+     */
+    public function requestChanges(RequestChangesRequest $request, int|string $id): JsonResponse
+    {
+        try {
+            /** @var ServiceRequest|null $serviceRequest */
+            $serviceRequest = ServiceRequest::find($id);
+            if (!$serviceRequest) {
+                return $this->errorResponse('Service request not found', 404);
+            }
+
+            if (!$serviceRequest->isInProgress() || !$serviceRequest->submitted_at) {
+                return $this->errorResponse('You can only request changes after a submission while in progress', 400);
+            }
+
+            DB::beginTransaction();
+            try {
+                $metadata = $serviceRequest->metadata ?? [];
+                $metadata['change_reason'] = $request->input('change_reason');
+                $serviceRequest->metadata = $metadata;
+
+                // Reopen submission for helper to resubmit
+                $serviceRequest->submitted_at = null;
+                $serviceRequest->save();
+
+                DB::commit();
+
+                return $this->successResponse(
+                    data: new UserServiceRequestResource($serviceRequest->fresh(['categories','user','offers'])),
+                    message: 'Change request submitted successfully'
+                );
+            } catch (Exception $e) {
+                DB::rollBack();
+                throw $e;
+            }
+        } catch (Exception $e) {
+            Log::error('Error requesting changes', ['error' => $e->getMessage()]);
+            return $this->errorResponse('Error requesting changes', 500, ['error' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Store evidence files to public storage and return their relative paths.
+     *
+     * @param ServiceRequest $serviceRequest
+     * @param array<int, \Illuminate\Http\UploadedFile> $files
+     * @return array<int, string>
+     */
+    protected function storeEvidenceFiles(ServiceRequest $serviceRequest, array $files): array
+    {
+        $stored = [];
+        $directory = 'service_requests/' . $serviceRequest->id . '/evidence';
+        foreach ($files as $file) {
+            if (!$file) { continue; }
+            $filename = time() . '_' . uniqid('', true) . '.' . $file->getClientOriginalExtension();
+            $path = $file->storeAs($directory, $filename, 'public');
+            $stored[] = $path;
+        }
+        return $stored;
+    }
+
+    // ... existing code ...
 }

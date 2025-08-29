@@ -6,6 +6,7 @@ use App\Http\Resources\User\UserProfileResource;
 use App\Models\ServiceRequest;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * @mixin ServiceRequest
@@ -63,6 +64,9 @@ class UserServiceRequestResource extends JsonResource
                 'created_at' => $this->created_at->format('Y-m-d H:i:s'),
                 'updated_at' => $this->updated_at->format('Y-m-d H:i:s'),
                 'deleted_at' => $this->deleted_at?->format('Y-m-d H:i:s'),
+                'submitted_at' => $this->submitted_at?->format('Y-m-d H:i:s'),
+                'client_confirmed_at' => $this->client_confirmed_at?->format('Y-m-d H:i:s'),
+                'completed_at' => $this->completed_at?->format('Y-m-d H:i:s'),
             ],
             'flags' => [
                 'is_overdue' => $this->isOverdue(),
@@ -75,13 +79,14 @@ class UserServiceRequestResource extends JsonResource
             ],
             'metadata' => [
                 'completion_notes' => $this->metadata['completion_notes'] ?? null,
-                'completion_evidence' => $this->metadata['completion_evidence'] ?? [],
+                'client_completion_notes' => $this->metadata['client_completion_notes'] ?? null,
+                'change_reason' => $this->metadata['change_reason'] ?? null,
+                'completion_evidence' => collect($this->metadata['completion_evidence'] ?? [])->map(function ($path) {
+                    return Storage::url($path);
+                })->toArray(),
                 'cancellation_reason' => $this->metadata['cancellation_reason'] ?? null,
-                'completed_at' => isset($this->metadata['completed_at'])
-                    ? date('Y-m-d H:i:s', strtotime($this->metadata['completed_at']))
-                    : null,
                 'additional_data' => collect($this->metadata)
-                    ->except(['completion_notes', 'completion_evidence', 'cancellation_reason', 'completed_at'])
+                    ->except(['completion_notes', 'client_completion_notes', 'change_reason', 'completion_evidence', 'cancellation_reason'])
                     ->toArray(),
             ],
             'relationships' => [
@@ -113,6 +118,11 @@ class UserServiceRequestResource extends JsonResource
                     $this->status === 'published',
                 'can_cancel' => auth()->id() === $this->user_id &&
                     !in_array($this->status, ['completed', 'canceled']),
+                // workflow permissions
+                'can_submit_completion' => auth()->id() === $this->assigned_helper_id && $this->isInProgress() && !$this->submitted_at,
+                'can_upload_deliverable' => auth()->id() === $this->assigned_helper_id && $this->isInProgress(),
+                'can_confirm_completion' => auth()->id() === $this->user_id && $this->isInProgress() && (bool) $this->submitted_at,
+                'can_request_changes' => auth()->id() === $this->user_id && $this->isInProgress() && (bool) $this->submitted_at,
             ],
         ];
     }

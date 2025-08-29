@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Stripe\Stripe;
 use Stripe\Checkout\Session as StripeSession;
+use Stripe\Webhook as StripeWebhook;
 use Exception;
 
 class UserPaymentController extends Controller
@@ -82,6 +83,17 @@ class UserPaymentController extends Controller
                     'payment_id' => $payment->id,
                     'service_request_id' => $offer->service_request_id,
                     'service_offer_id' => $offer->id,
+                    'payer_user_id' => auth()->id(),
+                    'payee_user_id' => $offer->user_id,
+                ],
+                'payment_intent_data' => [
+                    'metadata' => [
+                        'payment_id' => $payment->id,
+                        'service_request_id' => $offer->service_request_id,
+                        'service_offer_id' => $offer->id,
+                        'payer_user_id' => auth()->id(),
+                        'payee_user_id' => $offer->user_id,
+                    ],
                 ],
             ]);
 
@@ -152,42 +164,30 @@ class UserPaymentController extends Controller
                 );
             }
 
+            // Atajo de desarrollo: permitir forzar confirmación en entornos local/testing
+            if ((app()->environment(['local', 'testing']) || config('app.debug')) && $request->boolean('dev_force')) {
+                $result = $this->finalizeSuccessfulPayment($payment, null, $sessionId);
+
+                Log::warning('Payment confirmed via dev_force (development shortcut)', [
+                    'payment_id' => $payment->id,
+                    'stripe_session_id' => $sessionId,
+                    'user_id' => auth()->id(),
+                ]);
+
+                return $this->successResponse([
+                    'payment' => $result['payment']->load(['serviceRequest', 'serviceOffer.user']),
+                    'service_request' => $result['service_request'],
+                    'service_offer' => $result['offer']->load('user'),
+                    'redirect_url' => '/service-requests/' . $result['service_request']->id,
+                ], 'Pago confirmado en modo desarrollo');
+            }
+
             // Verificar el estado del pago en Stripe
             $session = StripeSession::retrieve($sessionId);
 
             if ($session->payment_status === 'paid') {
-                DB::beginTransaction();
-
-                // Actualizar el pago como completado
-                $payment->update([
-                    'status' => Payment::STATUS_COMPLETED,
-                    'stripe_payment_intent_id' => $session->payment_intent,
-                    'paid_at' => now(),
-                ]);
-
-                // Actualizar los estados de la oferta y solicitud
-                $offer = $payment->serviceOffer;
-                $serviceRequest = $payment->serviceRequest;
-
-                $offer->update(['status' => ServiceOffer::STATUS_ACCEPTED]);
-                $serviceRequest->update(['status' => ServiceRequest::STATUS_IN_PROGRESS]);
-
-                // Rechazar las demás ofertas
-                $serviceRequest
-                    ->offers()
-                    ->where('id', '!=', $offer->id)
-                    ->update(['status' => ServiceOffer::STATUS_REJECTED]);
-
-                // Notificar a los usuarios correspondientes
-                $offer->notifyOfferAccepted();
-                
-                foreach ($serviceRequest->offers()->where('id', '!=', $offer->id)->get() as $declinedOffer) {
-                    if ($declinedOffer->user) {
-                        $declinedOffer->notifyStatusUpdate();
-                    }
-                }
-
-                DB::commit();
+                // Finalizar pago de forma segura e idempotente
+                $result = $this->finalizeSuccessfulPayment($payment, $session->payment_intent, $sessionId);
 
                 Log::info('Payment confirmed successfully', [
                     'payment_id' => $payment->id,
@@ -195,10 +195,10 @@ class UserPaymentController extends Controller
                 ]);
 
                 return $this->successResponse([
-                    'payment' => $payment->load(['serviceRequest', 'serviceOffer.user']),
-                    'service_request' => $serviceRequest,
-                    'service_offer' => $offer->load('user'),
-                    'redirect_url' => '/service-requests/' . $serviceRequest->id,
+                    'payment' => $result['payment']->load(['serviceRequest', 'serviceOffer.user']),
+                    'service_request' => $result['service_request'],
+                    'service_offer' => $result['offer']->load('user'),
+                    'redirect_url' => '/service-requests/' . $result['service_request']->id,
                 ], 'Pago confirmado exitosamente');
             } else {
                 return $this->errorResponse(
@@ -208,10 +208,6 @@ class UserPaymentController extends Controller
             }
 
         } catch (Exception $e) {
-            if (isset($payment)) {
-                DB::rollBack();
-            }
-            
             Log::error('Error confirming payment', [
                 'error' => $e->getMessage(),
                 'session_id' => $sessionId ?? null,
@@ -224,6 +220,137 @@ class UserPaymentController extends Controller
                 errors: ['error' => $e->getMessage()]
             );
         }
+    }
+
+    /**
+     * Webhook público para eventos de Stripe.
+     */
+    public function handleStripeWebhook(Request $request): JsonResponse
+    {
+        $payload = $request->getContent();
+        $sigHeader = $request->header('Stripe-Signature');
+        $endpointSecret = config('services.stripe.webhook_secret');
+
+        if (!$endpointSecret) {
+            Log::error('Stripe webhook secret no configurado');
+            return response()->json(['success' => false, 'message' => 'Config error'], 500);
+        }
+
+        try {
+            $event = StripeWebhook::constructEvent(
+                $payload,
+                $sigHeader,
+                $endpointSecret
+            );
+        } catch (\UnexpectedValueException $e) {
+            // Invalid payload
+            Log::warning('Stripe webhook payload inválido', ['error' => $e->getMessage()]);
+            return response()->json(['success' => false, 'message' => 'Invalid payload'], 400);
+        } catch (\Stripe\Exception\SignatureVerificationException $e) {
+            // Invalid signature
+            Log::warning('Stripe webhook firma inválida', ['error' => $e->getMessage()]);
+            return response()->json(['success' => false, 'message' => 'Invalid signature'], 400);
+        }
+
+        $type = $event['type'] ?? null;
+        $dataObject = $event['data']['object'] ?? null;
+
+        try {
+            switch ($type) {
+                case 'checkout.session.completed':
+                    $session = $dataObject; // \Stripe\Checkout\Session
+                    $paymentId = $session['metadata']['payment_id'] ?? null;
+                    $stripeSessionId = $session['id'] ?? null;
+                    $paymentIntentId = $session['payment_intent'] ?? null;
+
+                    if (!$paymentId && !$stripeSessionId) {
+                        Log::warning('checkout.session.completed sin identificadores');
+                        break;
+                    }
+
+                    $payment = null;
+                    if ($paymentId) {
+                        $payment = Payment::query()->where('id', $paymentId)->first();
+                    }
+                    if (!$payment && $stripeSessionId) {
+                        $payment = Payment::query()->where('stripe_session_id', $stripeSessionId)->first();
+                    }
+
+                    if (!$payment) {
+                        Log::error('Pago no encontrado para checkout.session.completed', [
+                            'payment_id' => $paymentId,
+                            'stripe_session_id' => $stripeSessionId,
+                        ]);
+                        break;
+                    }
+
+                    // Solo finalizar si aún no está completado/cancelado/refundado
+                    if (in_array($payment->status, [Payment::STATUS_COMPLETED, Payment::STATUS_CANCELED, Payment::STATUS_REFUNDED], true)) {
+                        Log::info('Evento idempotente ignorado (ya finalizado)');
+                        break;
+                    }
+
+                    if (($session['payment_status'] ?? null) === 'paid') {
+                        $this->finalizeSuccessfulPayment($payment, $paymentIntentId, $stripeSessionId);
+                    }
+                    break;
+
+                case 'payment_intent.succeeded':
+                    $pi = $dataObject; // \Stripe\PaymentIntent
+                    $paymentIntentId = $pi['id'] ?? null;
+                    $paymentId = $pi['metadata']['payment_id'] ?? null;
+
+                    $payment = null;
+                    if ($paymentId) {
+                        $payment = Payment::query()->where('id', $paymentId)->first();
+                    }
+                    if (!$payment && $paymentIntentId) {
+                        $payment = Payment::query()->where('stripe_payment_intent_id', $paymentIntentId)->first();
+                    }
+
+                    if ($payment && !in_array($payment->status, [Payment::STATUS_COMPLETED, Payment::STATUS_CANCELED, Payment::STATUS_REFUNDED], true)) {
+                        $this->finalizeSuccessfulPayment($payment, $paymentIntentId, null);
+                    }
+                    break;
+
+                case 'payment_intent.payment_failed':
+                    $pi = $dataObject;
+                    $paymentIntentId = $pi['id'] ?? null;
+                    if ($paymentIntentId) {
+                        $payment = Payment::query()->where('stripe_payment_intent_id', $paymentIntentId)->first();
+                        if ($payment) {
+                            $payment->update(['status' => Payment::STATUS_FAILED]);
+                            Log::info('Pago marcado como fallido', ['payment_id' => $payment->id]);
+                        }
+                    }
+                    break;
+
+                case 'checkout.session.expired':
+                    $session = $dataObject;
+                    $stripeSessionId = $session['id'] ?? null;
+                    if ($stripeSessionId) {
+                        $payment = Payment::query()->where('stripe_session_id', $stripeSessionId)->first();
+                        if ($payment && $payment->status === Payment::STATUS_PENDING) {
+                            $payment->update(['status' => Payment::STATUS_CANCELED]);
+                            Log::info('Pago cancelado por sesión expirada', ['payment_id' => $payment->id]);
+                        }
+                    }
+                    break;
+
+                default:
+                    // Eventos no manejados explícitamente
+                    Log::debug('Stripe webhook evento no manejado', ['type' => $type]);
+                    break;
+            }
+        } catch (Exception $e) {
+            Log::error('Error procesando webhook de Stripe', [
+                'type' => $type,
+                'error' => $e->getMessage(),
+            ]);
+            return response()->json(['success' => false, 'message' => 'Webhook processing error'], 500);
+        }
+
+        return response()->json(['success' => true]);
     }
 
     /**
@@ -355,6 +482,89 @@ class UserPaymentController extends Controller
                 errors: ['error' => $e->getMessage()]
             );
         }
+    }
+
+    /**
+     * Marca pago como completado y actualiza oferta y solicitud (idempotente).
+     *
+     * @param Payment $payment
+     * @param string|null $stripePaymentIntentId
+     * @param string|null $stripeSessionId
+     * @return array{payment: Payment, offer: ServiceOffer, service_request: ServiceRequest}
+     */
+    private function finalizeSuccessfulPayment(Payment $payment, ?string $stripePaymentIntentId = null, ?string $stripeSessionId = null): array
+    {
+        return DB::transaction(function () use ($payment, $stripePaymentIntentId, $stripeSessionId) {
+            // Refrescar y bloquear lógicamente el registro
+            $payment->refresh();
+
+            if (in_array($payment->status, [Payment::STATUS_COMPLETED, Payment::STATUS_CANCELED, Payment::STATUS_REFUNDED], true)) {
+                // Ya finalizado, devolver estado actual
+                $offer = $payment->serviceOffer;
+                $serviceRequest = $payment->serviceRequest;
+                return [
+                    'payment' => $payment,
+                    'offer' => $offer,
+                    'service_request' => $serviceRequest,
+                ];
+            }
+
+            // Actualizar pago como completado
+            $payment->update([
+                'status' => Payment::STATUS_COMPLETED,
+                'stripe_payment_intent_id' => $stripePaymentIntentId ?? $payment->stripe_payment_intent_id,
+                'stripe_session_id' => $stripeSessionId ?? $payment->stripe_session_id,
+                'paid_at' => $payment->paid_at ?? now(),
+            ]);
+
+            // Actualizar oferta y solicitud
+            $offer = $payment->serviceOffer;
+            $serviceRequest = $payment->serviceRequest;
+
+            if ($offer && $offer->status !== ServiceOffer::STATUS_ACCEPTED) {
+                $offer->update(['status' => ServiceOffer::STATUS_ACCEPTED]);
+            }
+
+            if ($serviceRequest && $serviceRequest->status !== ServiceRequest::STATUS_IN_PROGRESS) {
+                $serviceRequest->update([
+                    'status' => ServiceRequest::STATUS_IN_PROGRESS,
+                    'assigned_helper_id' => $payment->payee_user_id,
+                    'started_at' => $serviceRequest->started_at ?? now(),
+                ]);
+            } else if ($serviceRequest) {
+                // Asegurar asignación aunque ya esté en progreso
+                $serviceRequest->update([
+                    'assigned_helper_id' => $serviceRequest->assigned_helper_id ?? $payment->payee_user_id,
+                    'started_at' => $serviceRequest->started_at ?? now(),
+                ]);
+            }
+
+            // Rechazar otras ofertas
+            if ($serviceRequest && $offer) {
+                $serviceRequest
+                    ->offers()
+                    ->where('id', '!=', $offer->id)
+                    ->update(['status' => ServiceOffer::STATUS_REJECTED]);
+            }
+
+            // Notificaciones
+            if ($offer) {
+                $offer->notifyOfferAccepted();
+                if ($serviceRequest) {
+                    foreach ($serviceRequest->offers()->where('id', '!=', $offer->id)->get() as $declinedOffer) {
+                        if ($declinedOffer->user) {
+                            $declinedOffer->notifyStatusUpdate();
+                        }
+                    }
+                }
+            }
+
+            return [
+                'payment' => $payment,
+                'offer' => $offer,
+                'service_request' => $serviceRequest,
+            ];
+        });
     }
 
     /**

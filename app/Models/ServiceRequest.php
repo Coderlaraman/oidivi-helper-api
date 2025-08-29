@@ -49,6 +49,12 @@ use Illuminate\Support\Facades\Log;
  * @property-read string $payment_method_text
  * @property-read string $service_type_text
  * @property bool $initial_payment_confirmed
+ * @property int|null $assigned_helper_id
+ * @property \Illuminate\Support\Carbon|null $started_at
+ * @property \Illuminate\Support\Carbon|null $submitted_at
+ * @property \Illuminate\Support\Carbon|null $client_confirmed_at
+ * @property \Illuminate\Support\Carbon|null $completed_at
+ * @property-read User|null $assignedHelper
  */
 
 class ServiceRequest extends Model
@@ -78,6 +84,12 @@ class ServiceRequest extends Model
         'due_date',
         'metadata',
         'initial_payment_confirmed',
+        'assigned_helper_id',
+        'started_at',
+        // workflow timestamps
+        'submitted_at',
+        'client_confirmed_at',
+        'completed_at',
     ];
 
     /**
@@ -90,6 +102,11 @@ class ServiceRequest extends Model
         'metadata' => 'array',
         'deleted_at' => 'datetime',
         'initial_payment_confirmed' => 'boolean',
+        'started_at' => 'datetime',
+        // workflow timestamps
+        'submitted_at' => 'datetime',
+        'client_confirmed_at' => 'datetime',
+        'completed_at' => 'datetime',
     ];
 
     // --- ESTADOS DE LA SOLICITUD ---
@@ -113,6 +130,42 @@ class ServiceRequest extends Model
         self::STATUS_IN_PROGRESS,
         self::STATUS_CANCELED,
         self::STATUS_COMPLETED,
+    ];
+
+    // --- Alias y etiquetas para compatibilidad y metadatos en respuestas API ---
+    /**
+     * Mapa de estados disponibles (code => label) para metadatos en API.
+     * Utilizado por controladores existentes que referencian ServiceRequest::STATUS.
+     *
+     * @var array<string, string>
+     */
+    public const STATUS = [
+        'published' => 'Published',
+        'in_progress' => 'In progress',
+        'canceled' => 'Canceled',
+        'completed' => 'Completed',
+    ];
+
+    /**
+     * Alias de prioridades para compatibilidad con referencias existentes (PRIORITY => PRIORITIES)
+     *
+     * @var array<string, string>
+     */
+    public const PRIORITY = [
+        'low' => 'Low',
+        'medium' => 'Medium',
+        'high' => 'High',
+        'urgent' => 'Urgent',
+    ];
+
+    /**
+     * Alias de tipos de servicio para compatibilidad (SERVICE_TYPE => SERVICE_TYPES)
+     *
+     * @var array<string, string>
+     */
+    public const SERVICE_TYPE = [
+        'one_time' => 'One Time',
+        'recurring' => 'Recurring',
     ];
 
     /**
@@ -463,6 +516,16 @@ class ServiceRequest extends Model
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class);
+    }
+
+    /**
+     * Relación: Helper asignado a la solicitud (tras aceptación y pago).
+     *
+     * @return BelongsTo
+     */
+    public function assignedHelper(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'assigned_helper_id');
     }
 
     /**

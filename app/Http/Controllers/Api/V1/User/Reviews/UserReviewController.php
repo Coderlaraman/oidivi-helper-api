@@ -237,14 +237,22 @@ class UserReviewController extends Controller
             return [
                 'total_reviews' => 0,
                 'average_rating' => 0,
-                'recommendation_percentage' => 0
+                'recommendation_percentage' => 0,
+                'rating_distribution' => [
+                    1 => 0,
+                    2 => 0,
+                    3 => 0,
+                    4 => 0,
+                    5 => 0,
+                ],
             ];
         }
         
         return [
             'total_reviews' => $totalReviews,
             'average_rating' => round($reviews->avg('rating'), 2),
-            'recommendation_percentage' => round(($reviews->where('would_recommend', true)->count() / $totalReviews) * 100, 2)
+            'recommendation_percentage' => round(($reviews->where('would_recommend', true)->count() / $totalReviews) * 100, 2),
+            'rating_distribution' => Review::getRatingDistribution($userId),
         ];
     }
 
