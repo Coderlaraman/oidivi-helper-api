@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\Admin\Users\AdminUserController;
 use App\Http\Controllers\Api\V1\Chat\ChatController;
 use App\Http\Controllers\Api\V1\Chat\MessageController;
 use App\Http\Controllers\Api\V1\TermsController;
+use App\Http\Controllers\ContractController;
 use App\Http\Controllers\Api\V1\User\Auth\UserAuthController;
 use App\Http\Controllers\Api\V1\User\Auth\UserEmailVerificationController;
 use App\Http\Controllers\Api\V1\User\Categories\UserCategoryController;
@@ -155,6 +156,23 @@ Route::prefix('v1')->middleware('locale')->group(function () {
             // Nuevos endpoints para listar y obtener pagos
             Route::get('/', [UserPaymentController::class, 'index']);
             Route::get('/{payment}', [UserPaymentController::class, 'show']);
+        });
+
+        /**
+         * Rutas de contratos del usuario.
+         */
+        Route::prefix('contracts')->middleware('auth:sanctum')->group(function () {
+            Route::get('/', [ContractController::class, 'index']); // Listar contratos
+            Route::get('/{contract}', [ContractController::class, 'show']); // Ver contrato específico
+            Route::post('/', [ContractController::class, 'store']); // Crear contrato
+            Route::put('/{contract}', [ContractController::class, 'update']); // Actualizar contrato
+            Route::delete('/{contract}', [ContractController::class, 'destroy']); // Eliminar contrato
+            
+            // Rutas para cambios de estado
+            Route::post('/{contract}/send', [ContractController::class, 'send']); // Enviar contrato
+            Route::post('/{contract}/accept', [ContractController::class, 'accept']); // Aceptar contrato
+            Route::post('/{contract}/reject', [ContractController::class, 'reject']); // Rechazar contrato
+            Route::post('/{contract}/cancel', [ContractController::class, 'cancel']); // Cancelar contrato
         });
 
         /**

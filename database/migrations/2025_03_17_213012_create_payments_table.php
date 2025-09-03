@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('payments', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('contract_id')->constrained()->onDelete('cascade');
             $table->foreignId('service_request_id')->constrained()->onDelete('cascade');
             $table->foreignId('service_offer_id')->constrained()->onDelete('cascade');
             $table->foreignId('payer_user_id')->constrained('users')->onDelete('cascade');
@@ -34,6 +35,7 @@ return new class extends Migration
             $table->timestamps();
 
             // Índices para mejorar el rendimiento
+            $table->index(['contract_id']);
             $table->index(['service_request_id', 'service_offer_id']);
             $table->index(['payer_user_id']);
             $table->index(['payee_user_id']);

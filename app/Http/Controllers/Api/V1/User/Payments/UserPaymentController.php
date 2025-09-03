@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1\User\Payments;
 
 use App\Http\Controllers\Controller;
+use App\Models\Contract;
 use App\Models\Payment;
 use App\Models\ServiceOffer;
 use App\Models\ServiceRequest;
@@ -49,12 +50,33 @@ class UserPaymentController extends Controller
                 );
             }
 
+            // Verificar que existe un contrato aceptado para esta oferta
+            $contract = Contract::where('service_offer_id', $offer->id)
+                ->where('status', Contract::STATUS_ACCEPTED)
+                ->first();
+
+            if (!$contract) {
+                return $this->errorResponse(
+                    message: 'Debe existir un contrato aceptado antes de procesar el pago',
+                    statusCode: 400
+                );
+            }
+
+            // Verificar que el usuario autenticado es el cliente del contrato
+            if ($contract->client_id !== auth()->id()) {
+                return $this->errorResponse(
+                    message: 'No tienes permisos para pagar este contrato',
+                    statusCode: 403
+                );
+            }
+
             DB::beginTransaction();
 
             // Crear el registro de pago
             $payment = Payment::create([
                 'service_request_id' => $offer->service_request_id,
                 'service_offer_id' => $offer->id,
+                'contract_id' => $contract->id,
                 'payer_user_id' => auth()->id(),
                 'payee_user_id' => $offer->user_id,
                 'amount' => $offer->price_proposed,
@@ -175,7 +197,7 @@ class UserPaymentController extends Controller
                 ]);
 
                 return $this->successResponse([
-                    'payment' => $result['payment']->load(['serviceRequest', 'serviceOffer.user']),
+                    'payment' => $result['payment']->load(['serviceRequest', 'serviceOffer.user', 'contract']),
                     'service_request' => $result['service_request'],
                     'service_offer' => $result['offer']->load('user'),
                     'redirect_url' => '/service-requests/' . $result['service_request']->id,
@@ -195,7 +217,7 @@ class UserPaymentController extends Controller
                 ]);
 
                 return $this->successResponse([
-                    'payment' => $result['payment']->load(['serviceRequest', 'serviceOffer.user']),
+                    'payment' => $result['payment']->load(['serviceRequest', 'serviceOffer.user', 'contract']),
                     'service_request' => $result['service_request'],
                     'service_offer' => $result['offer']->load('user'),
                     'redirect_url' => '/service-requests/' . $result['service_request']->id,
@@ -410,7 +432,7 @@ class UserPaymentController extends Controller
                     $q->where('payer_user_id', $userId)
                       ->orWhere('payee_user_id', $userId);
                 })
-                ->with(['serviceRequest', 'serviceOffer.user', 'payer', 'payee']);
+                ->with(['serviceRequest', 'serviceOffer.user', 'payer', 'payee', 'contract']);
 
             // Filtro por estado
             if ($request->filled('status')) {
@@ -467,7 +489,7 @@ class UserPaymentController extends Controller
                 );
             }
 
-            $payment->load(['serviceRequest', 'serviceOffer.user', 'payer', 'payee']);
+            $payment->load(['serviceRequest', 'serviceOffer.user', 'payer', 'payee', 'contract']);
 
             return $this->successResponse($payment->toArray(), 'Pago obtenido correctamente');
         } catch (Exception $e) {
@@ -517,9 +539,10 @@ class UserPaymentController extends Controller
                 'paid_at' => $payment->paid_at ?? now(),
             ]);
 
-            // Actualizar oferta y solicitud
+            // Actualizar oferta, solicitud y contrato
             $offer = $payment->serviceOffer;
             $serviceRequest = $payment->serviceRequest;
+            $contract = $payment->contract;
 
             if ($offer && $offer->status !== ServiceOffer::STATUS_ACCEPTED) {
                 $offer->update(['status' => ServiceOffer::STATUS_ACCEPTED]);
@@ -536,6 +559,14 @@ class UserPaymentController extends Controller
                 $serviceRequest->update([
                     'assigned_helper_id' => $serviceRequest->assigned_helper_id ?? $payment->payee_user_id,
                     'started_at' => $serviceRequest->started_at ?? now(),
+                ]);
+            }
+
+            // Marcar contrato como completado cuando el pago se procesa
+            if ($contract && $contract->status === Contract::STATUS_ACCEPTED) {
+                $contract->update([
+                    'status' => Contract::STATUS_COMPLETED,
+                    'completed_at' => now(),
                 ]);
             }
 

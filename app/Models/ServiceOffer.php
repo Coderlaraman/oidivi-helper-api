@@ -32,8 +32,10 @@ use Illuminate\Support\Facades\Log;
  * @property-read ServiceRequest|null $serviceRequest
  * @property-read User|null $user
  * @property-read Payment|null $payment
+ * @property-read Contract|null $contract
  * @property-read \Illuminate\Database\Eloquent\Collection|Chat[] $chats
  * @method \Illuminate\Database\Eloquent\Relations\HasOne payment()
+ * @method \Illuminate\Database\Eloquent\Relations\HasOne contract()
  * @method \Illuminate\Database\Eloquent\Relations\BelongsTo serviceRequest()
  * @method \Illuminate\Database\Eloquent\Relations\BelongsTo user()
  * @method \Illuminate\Database\Eloquent\Relations\HasMany chats()
@@ -251,6 +253,16 @@ class ServiceOffer extends Model
     public function payment(): HasOne
     {
         return $this->hasOne(Payment::class);
+    }
+
+    /**
+     * Relación: Contrato asociado a esta oferta.
+     *
+     * @return HasOne
+     */
+    public function contract(): HasOne
+    {
+        return $this->hasOne(Contract::class);
     }
 
     /**
