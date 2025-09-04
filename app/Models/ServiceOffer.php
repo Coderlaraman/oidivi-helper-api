@@ -46,6 +46,8 @@ class ServiceOffer extends Model
 
     /** Estado: Pendiente */
     public const STATUS_PENDING = 'pending';
+    /** Estado: En revisión (contrato enviado) */
+    public const STATUS_IN_REVIEW = 'in_review';
     /** Estado: Aceptada */
     public const STATUS_ACCEPTED = 'accepted';
     /** Estado: Rechazada */
@@ -58,6 +60,7 @@ class ServiceOffer extends Model
      */
     public const STATUSES = [
         self::STATUS_PENDING,
+        self::STATUS_IN_REVIEW,
         self::STATUS_ACCEPTED,
         self::STATUS_REJECTED
     ];

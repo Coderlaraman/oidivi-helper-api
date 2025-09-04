@@ -483,7 +483,7 @@ class UserServiceOfferController extends Controller
     }
 
     /**
-     * Acepta una oferta e inicia el proceso de pago.
+     * Acepta una oferta creando un contrato que debe ser aceptado por el proveedor.
      *
      * @param ServiceOffer $offer
      * @return JsonResponse
@@ -507,19 +507,63 @@ class UserServiceOfferController extends Controller
                 );
             }
 
-            // Redirigir al controlador de pagos para crear la sesión
-            $paymentController = new \App\Http\Controllers\Api\V1\User\Payments\UserPaymentController();
-            return $paymentController->createPaymentSession(request(), $offer);
+            // Verificar si ya existe un contrato para esta oferta
+            $existingContract = \App\Models\Contract::where('service_offer_id', $offer->id)->first();
+            if ($existingContract) {
+                return $this->successResponse(
+                    data: [
+                        'contract' => $existingContract->load(['serviceRequest', 'serviceOffer', 'client', 'provider']),
+                        'message' => 'Ya existe un contrato para esta oferta'
+                    ],
+                    message: 'Contrato existente encontrado'
+                );
+            }
+
+            \DB::beginTransaction();
+
+            // Crear el contrato
+            $contract = \App\Models\Contract::create([
+                'service_request_id' => $offer->service_request_id,
+                'service_offer_id' => $offer->id,
+                'client_id' => auth()->id(),
+                'provider_id' => $offer->user_id,
+                'status' => \App\Models\Contract::STATUS_DRAFT,
+                'terms' => [
+                    'price' => $offer->price_proposed,
+                    'estimated_time' => $offer->estimated_time,
+                    'description' => $offer->message,
+                    'service_title' => $offer->serviceRequest->title,
+                    'created_at' => now()->toISOString()
+                ]
+            ]);
+
+            // Enviar el contrato al proveedor
+            $contract->markAsSent(now()->addDays(7)); // Expira en 7 días
+
+            // Actualizar el estado de la oferta a "en revisión"
+            $offer->update(['status' => ServiceOffer::STATUS_IN_REVIEW]);
+
+            \DB::commit();
+
+            return $this->successResponse(
+                data: [
+                    'contract' => $contract->load(['serviceRequest', 'serviceOffer', 'client', 'provider']),
+                    'offer' => $offer->load(['user', 'serviceRequest'])
+                ],
+                message: 'Contrato creado y enviado al proveedor para su aceptación'
+            );
 
         } catch (Exception $e) {
-            Log::error('Error accepting offer with payment', [
+            \DB::rollBack();
+            
+            \Log::error('Error creating contract for offer', [
                 'error' => $e->getMessage(),
                 'offer_id' => $offer->id,
                 'user_id' => auth()->id(),
             ]);
 
             return $this->errorResponse(
-                message: 'Error al procesar la aceptación de la oferta',
+                message: 'Error al crear el contrato',
                 statusCode: 500,
                 errors: ['error' => $e->getMessage()]
             );

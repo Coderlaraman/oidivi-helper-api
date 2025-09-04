@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\User\ContractResource;
 use App\Models\Contract;
 use App\Models\ServiceOffer;
 use App\Models\ServiceRequest;
@@ -46,7 +47,13 @@ class ContractController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $contracts,
+                'data' => [
+                    'data' => ContractResource::collection($contracts->items()),
+                    'current_page' => $contracts->currentPage(),
+                    'last_page' => $contracts->lastPage(),
+                    'per_page' => $contracts->perPage(),
+                    'total' => $contracts->total(),
+                ],
                 'message' => __('messages.contracts.index_success')
             ]);
         } catch (\Exception $e) {
@@ -85,7 +92,7 @@ class ContractController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $contract,
+                'data' => new ContractResource($contract),
                 'message' => __('messages.contracts.show_success')
             ]);
         } catch (\Exception $e) {
@@ -162,7 +169,7 @@ class ContractController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $contract,
+                'data' => new ContractResource($contract),
                 'message' => __('messages.contracts.created_success')
             ], 201);
         } catch (\Exception $e) {
@@ -210,7 +217,7 @@ class ContractController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $contract,
+                'data' => new ContractResource($contract),
                 'message' => __('messages.contracts.updated_success')
             ]);
         } catch (\Exception $e) {
@@ -259,7 +266,7 @@ class ContractController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $contract,
+                'data' => new ContractResource($contract),
                 'message' => __('messages.contracts.sent_success')
             ]);
         } catch (\Exception $e) {
@@ -308,7 +315,7 @@ class ContractController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $contract,
+                'data' => new ContractResource($contract),
                 'message' => __('messages.contracts.accepted_success')
             ]);
         } catch (\Exception $e) {
@@ -362,7 +369,7 @@ class ContractController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $contract,
+                'data' => new ContractResource($contract),
                 'message' => __('messages.contracts.rejected_success')
             ]);
         } catch (\Exception $e) {
@@ -416,7 +423,7 @@ class ContractController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $contract,
+                'data' => new ContractResource($contract),
                 'message' => __('messages.contracts.cancelled_success')
             ]);
         } catch (\Exception $e) {
