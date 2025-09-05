@@ -163,6 +163,9 @@ Route::prefix('v1')->middleware('locale')->group(function () {
          */
         Route::prefix('contracts')->middleware('auth:sanctum')->group(function () {
             Route::get('/', [ContractController::class, 'index']); // Listar contratos
+            // Nuevos endpoints específicos por rol (deben ir antes de la ruta dinámica '/{contract}')
+            Route::get('/client', [ContractController::class, 'client']); // Listar contratos donde el usuario es cliente
+            Route::get('/provider', [ContractController::class, 'provider']); // Listar contratos donde el usuario es proveedor
             Route::get('/{contract}', [ContractController::class, 'show']); // Ver contrato específico
             Route::post('/', [ContractController::class, 'store']); // Crear contrato
             Route::put('/{contract}', [ContractController::class, 'update']); // Actualizar contrato

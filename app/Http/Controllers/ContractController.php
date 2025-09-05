@@ -478,4 +478,100 @@ class ContractController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Obtiene los contratos donde el usuario autenticado es el cliente.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function client(Request $request): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            $perPage = $request->get('per_page', 15);
+            $status = $request->get('status');
+
+            $query = Contract::query()
+                ->where('client_id', $user->id)
+                ->with(['serviceRequest', 'serviceOffer', 'client', 'provider'])
+                ->orderBy('created_at', 'desc');
+
+            if ($status && in_array($status, Contract::STATUSES)) {
+                $query->where('status', $status);
+            }
+
+            $contracts = $query->paginate($perPage);
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'data' => ContractResource::collection($contracts->items()),
+                    'current_page' => $contracts->currentPage(),
+                    'last_page' => $contracts->lastPage(),
+                    'per_page' => $contracts->perPage(),
+                    'total' => $contracts->total(),
+                ],
+                'message' => __('messages.contracts.index_success')
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error fetching client contracts', [
+                'error' => $e->getMessage(),
+                'user_id' => Auth::id()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => __('messages.contracts.index_error')
+            ], 500);
+        }
+    }
+
+    /**
+     * Obtiene los contratos donde el usuario autenticado es el proveedor.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function provider(Request $request): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            $perPage = $request->get('per_page', 15);
+            $status = $request->get('status');
+
+            $query = Contract::query()
+                ->where('provider_id', $user->id)
+                ->with(['serviceRequest', 'serviceOffer', 'client', 'provider'])
+                ->orderBy('created_at', 'desc');
+
+            if ($status && in_array($status, Contract::STATUSES)) {
+                $query->where('status', $status);
+            }
+
+            $contracts = $query->paginate($perPage);
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'data' => ContractResource::collection($contracts->items()),
+                    'current_page' => $contracts->currentPage(),
+                    'last_page' => $contracts->lastPage(),
+                    'per_page' => $contracts->perPage(),
+                    'total' => $contracts->total(),
+                ],
+                'message' => __('messages.contracts.index_success')
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error fetching provider contracts', [
+                'error' => $e->getMessage(),
+                'user_id' => Auth::id()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => __('messages.contracts.index_error')
+            ], 500);
+        }
+    }
 }
