@@ -294,10 +294,16 @@ class Contract extends Model
             return false;
         }
 
-        return $this->update([
+        $saved = $this->update([
             'status' => self::STATUS_CANCELLED,
             'cancellation_reason' => $reason,
         ]);
+
+        if ($saved) {
+            $this->notifyContractCancelled();
+        }
+
+        return $saved;
     }
 
     /**
@@ -358,24 +364,34 @@ class Contract extends Model
      */
     protected function notifyContractSent(): void
     {
-        try {
-            $title = $this->serviceRequest?->title ?? '';
-            $this->createNotification(
-                userIds: [$this->client_id],
-                type: NotificationType::CONTRACT_SENT,
-                title: __('notifications.types.contract_sent'),
-                message: __('notifications.messages.contract_sent', [
-                    'title' => $title
-                ])
-            );
+      try {
+        $title = $this->serviceRequest?->title ?? '';
+        // Notificar al proveedor (helper) que recibió un contrato (BD + broadcast)
+        $this->createNotification(
+          userIds: [$this->provider_id],
+          type: NotificationType::CONTRACT_SENT,
+          title: __('notifications.types.contract_sent'),
+          message: __('notifications.messages.contract_sent', [
+            'title' => $title,
+          ])
+        );
+        event(new ContractSentNotification($this, $this->provider_id));
 
-            event(new ContractSentNotification($this, $this->client_id));
-        } catch (\Exception $e) {
-            Log::error('Error notifying contract sent', [
-                'error' => $e->getMessage(),
-                'contract_id' => $this->id
-            ]);
-        }
+        // Notificación de confirmación al cliente (solo BD)
+        $this->createNotification(
+          userIds: [$this->client_id],
+          type: NotificationType::CONTRACT_SENT,
+          title: __('notifications.types.contract_sent_client'),
+          message: __('notifications.messages.contract_sent_client', [
+            'title' => $title,
+          ])
+        );
+      } catch (\Exception $e) {
+        Log::error('Error notifying contract sent', [
+          'error' => $e->getMessage(),
+          'contract_id' => $this->id,
+        ]);
+      }
     }
 
     /**
@@ -385,8 +401,9 @@ class Contract extends Model
     {
         try {
             $title = $this->serviceRequest?->title ?? '';
+            // Notificar al cliente que su contrato fue aceptado
             $this->createNotification(
-                userIds: [$this->provider_id],
+                userIds: [$this->client_id],
                 type: NotificationType::CONTRACT_ACCEPTED,
                 title: __('notifications.types.contract_accepted'),
                 message: __('notifications.messages.contract_accepted', [
@@ -394,7 +411,7 @@ class Contract extends Model
                 ])
             );
 
-            event(new ContractAcceptedNotification($this, $this->provider_id));
+            event(new ContractAcceptedNotification($this, $this->client_id));
         } catch (\Exception $e) {
             Log::error('Error notifying contract accepted', [
                 'error' => $e->getMessage(),
@@ -410,8 +427,9 @@ class Contract extends Model
     {
         try {
             $title = $this->serviceRequest?->title ?? '';
+            // Notificar al cliente que su contrato fue rechazado
             $this->createNotification(
-                userIds: [$this->provider_id],
+                userIds: [$this->client_id],
                 type: NotificationType::CONTRACT_REJECTED,
                 title: __('notifications.types.contract_rejected'),
                 message: __('notifications.messages.contract_rejected', [
@@ -419,9 +437,47 @@ class Contract extends Model
                 ])
             );
 
-            event(new ContractRejectedNotification($this, $this->provider_id));
+            event(new ContractRejectedNotification($this, $this->client_id));
         } catch (\Exception $e) {
             Log::error('Error notifying contract rejected', [
+                'error' => $e->getMessage(),
+                'contract_id' => $this->id
+            ]);
+        }
+    }
+
+    /**
+     * Notify both parties that the contract has been cancelled.
+     */
+    protected function notifyContractCancelled(): void
+    {
+        try {
+            $title = $this->serviceRequest?->title ?? '';
+
+            // Crear notificación para ambas partes
+            $this->createNotification(
+                userIds: [$this->client_id],
+                type: NotificationType::CONTRACT_CANCELLED,
+                title: __('notifications.types.contract_cancelled'),
+                message: __('notifications.messages.contract_cancelled', [
+                    'title' => $title
+                ])
+            );
+
+            $this->createNotification(
+                userIds: [$this->provider_id],
+                type: NotificationType::CONTRACT_CANCELLED,
+                title: __('notifications.types.contract_cancelled'),
+                message: __('notifications.messages.contract_cancelled', [
+                    'title' => $title
+                ])
+            );
+
+            // Emitir broadcast a ambos canales privados
+            event(new \App\Events\ContractCancelledNotification($this, $this->client_id));
+            event(new \App\Events\ContractCancelledNotification($this, $this->provider_id));
+        } catch (\Exception $e) {
+            Log::error('Error notifying contract cancelled', [
                 'error' => $e->getMessage(),
                 'contract_id' => $this->id
             ]);
