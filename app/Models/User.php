@@ -44,6 +44,12 @@ class User extends Authenticatable
         'zip_code',
         'latitude',
         'longitude',
+        // Stripe Connect fields
+        'stripe_account_id',
+        'stripe_charges_enabled',
+        'stripe_payouts_enabled',
+        'stripe_account_status',
+        'stripe_customer_id',
     ];
 
     // Remove the 'role' from fillable as we're using relationships
@@ -75,6 +81,10 @@ class User extends Authenticatable
         'accepted_terms' => 'boolean',
         'latitude' => 'float',
         'longitude' => 'float',
+        // Stripe Connect fields
+        'stripe_charges_enabled' => 'boolean',
+        'stripe_payouts_enabled' => 'boolean',
+        'stripe_account_status' => 'array',
     ];
 
     // Constantes para estados de verificación

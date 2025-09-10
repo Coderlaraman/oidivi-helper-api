@@ -302,6 +302,20 @@ class ContractController extends Controller
                 ], 403);
             }
 
+            // Stripe Connect: require helper to be onboarded and enabled before accepting
+            if (empty($user->stripe_account_id) || !$user->stripe_charges_enabled || !$user->stripe_payouts_enabled) {
+                return response()->json([
+                    'success' => false,
+                    'code' => 'stripe_connect_required',
+                    'message' => 'Para aceptar contratos, primero conecta y verifica tu cuenta de Stripe (Connect).',
+                    'data' => [
+                        'account_id' => $user->stripe_account_id,
+                        'charges_enabled' => (bool) $user->stripe_charges_enabled,
+                        'payouts_enabled' => (bool) $user->stripe_payouts_enabled,
+                    ],
+                ], 422);
+            }
+
             if (!$contract->markAsAccepted()) {
                 return response()->json([
                     'success' => false,
