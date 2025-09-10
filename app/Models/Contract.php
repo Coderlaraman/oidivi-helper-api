@@ -29,6 +29,7 @@ use Illuminate\Support\Facades\Log;
  * @property Carbon|null $sent_at
  * @property Carbon|null $responded_at
  * @property Carbon|null $expires_at
+ * @property Carbon|null $completed_at
  * @property string|null $rejection_reason
  * @property string|null $cancellation_reason
  * @property Carbon|null $created_at
@@ -109,6 +110,7 @@ class Contract extends Model
         'sent_at',
         'responded_at',
         'expires_at',
+        'completed_at',
         'rejection_reason',
         'cancellation_reason',
     ];
@@ -123,6 +125,7 @@ class Contract extends Model
         'sent_at' => 'datetime',
         'responded_at' => 'datetime',
         'expires_at' => 'datetime',
+        'completed_at' => 'datetime',
     ];
 
     // --- RELACIONES ---
