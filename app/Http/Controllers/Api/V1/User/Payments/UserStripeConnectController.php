@@ -3,176 +3,171 @@
 namespace App\Http\Controllers\Api\V1\User\Payments;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
-use Stripe\Stripe;
-use Stripe\Account as StripeAccount;
-use Stripe\AccountLink as StripeAccountLink;
+use Stripe\StripeClient;
 
 class UserStripeConnectController extends Controller
 {
+    protected StripeClient $stripe;
+
     public function __construct()
     {
-        // Configurar Stripe con la clave secreta
-        Stripe::setApiKey(config('services.stripe.secret'));
+        $this->stripe = new StripeClient(config('services.stripe.secret'));
     }
 
     /**
-     * Crea (si no existe) una cuenta Connect Express para el helper
-     * y devuelve un Account Link para completar el onboarding.
+     * Inicia el onboarding de Stripe Connect (Express) para helpers.
      */
-    public function createOrGetAccount(Request $request): JsonResponse
+    public function startOnboarding(Request $request): JsonResponse
     {
-        try {
-            $user = Auth::user();
-            if (!$user) {
-                return response()->json(['success' => false, 'message' => 'No autenticado'], 401);
-            }
+        /** @var User $user */
+        $user = Auth::user();
 
-            // Si no existe cuenta conectada, crearla
-            if (empty($user->stripe_account_id)) {
-                $account = StripeAccount::create([
+        if (!$user) {
+            return response()->json(['success' => false, 'message' => __('auth.unauthenticated')], 401);
+        }
+
+        if (!$user->hasRole('helper')) {
+            return response()->json(['success' => false, 'message' => __('messages.connect.only_helpers')], 403);
+        }
+
+        try {
+            // Crear cuenta Express si no existe
+            if (!$user->stripe_account_id) {
+                $account = $this->stripe->accounts->create([
                     'type' => 'express',
+                    'country' => 'ES',
                     'email' => $user->email,
+                    'business_type' => 'individual',
                     'capabilities' => [
                         'card_payments' => ['requested' => true],
                         'transfers' => ['requested' => true],
                     ],
                 ]);
-
                 $user->stripe_account_id = $account->id;
-                $user->stripe_charges_enabled = (bool)($account->charges_enabled ?? false);
-                $user->stripe_payouts_enabled = (bool)($account->payouts_enabled ?? false);
-                $user->stripe_account_status = [
-                    'details_submitted' => (bool)($account->details_submitted ?? false),
-                    'requirements' => $account->requirements ?? null,
-                ];
-                $user->save();
-            } else {
-                // Recuperar el estado actual de la cuenta existente
-                $account = StripeAccount::retrieve($user->stripe_account_id);
-                $user->stripe_charges_enabled = (bool)($account->charges_enabled ?? false);
-                $user->stripe_payouts_enabled = (bool)($account->payouts_enabled ?? false);
-                $user->stripe_account_status = [
-                    'details_submitted' => (bool)($account->details_submitted ?? false),
-                    'requirements' => $account->requirements ?? null,
-                ];
                 $user->save();
             }
 
-            // Crear Account Link de onboarding/actualización
-            $accountLink = StripeAccountLink::create([
+            $returnUrl = config('app.frontend_url') . '/connect/return';
+            $refreshUrl = config('app.frontend_url') . '/connect/refresh';
+
+            $accountLink = $this->stripe->accountLinks->create([
                 'account' => $user->stripe_account_id,
-                'refresh_url' => rtrim(config('app.frontend_url'), '/') . '/stripe/onboarding/refresh',
-                'return_url' => rtrim(config('app.frontend_url'), '/') . '/stripe/onboarding/return',
+                'refresh_url' => $refreshUrl,
+                'return_url' => $returnUrl,
                 'type' => 'account_onboarding',
             ]);
 
             return response()->json([
                 'success' => true,
-                'message' => 'Enlace de onboarding generado',
                 'data' => [
-                    'account_id' => $user->stripe_account_id,
-                    'onboarding_url' => $accountLink->url,
-                    'charges_enabled' => $user->stripe_charges_enabled,
-                    'payouts_enabled' => $user->stripe_payouts_enabled,
-                    'account_status' => $user->stripe_account_status,
+                    'url' => $accountLink->url,
+                    'expires_at' => $accountLink->expires_at,
                 ],
             ]);
-        } catch (\Exception $e) {
-            Log::error('Stripe Connect createOrGetAccount error', ['error' => $e->getMessage(), 'user_id' => Auth::id()]);
-            return response()->json(['success' => false, 'message' => 'No se pudo generar el enlace de onboarding'], 500);
-        }
-    }
-
-    /**
-     * Genera un nuevo Account Link de onboarding/actualización para una cuenta existente.
-     */
-    public function refreshAccountLink(Request $request): JsonResponse
-    {
-        try {
-            $user = Auth::user();
-            if (!$user) {
-                return response()->json(['success' => false, 'message' => 'No autenticado'], 401);
-            }
-
-            if (empty($user->stripe_account_id)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Aún no tienes una cuenta conectada. Debes crearla primero.',
-                ], 400);
-            }
-
-            $accountLink = StripeAccountLink::create([
-                'account' => $user->stripe_account_id,
-                'refresh_url' => rtrim(config('app.frontend_url'), '/') . '/stripe/onboarding/refresh',
-                'return_url' => rtrim(config('app.frontend_url'), '/') . '/stripe/onboarding/return',
-                'type' => 'account_onboarding',
+        } catch (\Throwable $e) {
+            Log::error('Error starting Stripe Connect onboarding', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
             ]);
-
             return response()->json([
-                'success' => true,
-                'message' => 'Nuevo enlace de onboarding generado',
-                'data' => [
-                    'account_id' => $user->stripe_account_id,
-                    'onboarding_url' => $accountLink->url,
-                ],
-            ]);
-        } catch (\Exception $e) {
-            Log::error('Stripe Connect refreshAccountLink error', ['error' => $e->getMessage(), 'user_id' => Auth::id()]);
-            return response()->json(['success' => false, 'message' => 'No se pudo generar el enlace de onboarding'], 500);
+                'success' => false,
+                'message' => __('messages.connect.onboarding_error'),
+            ], 500);
         }
     }
 
     /**
-     * Obtiene y sincroniza el estado de la cuenta conectada del helper.
+     * Obtiene el estado de onboarding y capabilities del helper.
      */
-    public function getStatus(): JsonResponse
+    public function getOnboardingStatus(): JsonResponse
     {
+        /** @var User $user */
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['success' => false, 'message' => __('auth.unauthenticated')], 401);
+        }
+        if (!$user->hasRole('helper') || !$user->stripe_account_id) {
+            return response()->json(['success' => false, 'message' => __('messages.connect.only_helpers')], 403);
+        }
+
         try {
-            $user = Auth::user();
-            if (!$user) {
-                return response()->json(['success' => false, 'message' => 'No autenticado'], 401);
+            $account = $this->stripe->accounts->retrieve($user->stripe_account_id, []);
+
+            // Persistir estado principal
+            $user->stripe_charges_enabled = (bool) $account->charges_enabled;
+            $user->stripe_payouts_enabled = (bool) $account->payouts_enabled;
+            $user->stripe_requirements = $account->requirements ? $account->requirements->toArray() : null;
+            if ($account->charges_enabled && $account->payouts_enabled && !$user->stripe_onboarded_at) {
+                $user->stripe_onboarded_at = now();
             }
-
-            if (empty($user->stripe_account_id)) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Aún no has creado una cuenta conectada',
-                    'data' => [
-                        'account_id' => null,
-                        'charges_enabled' => false,
-                        'payouts_enabled' => false,
-                        'account_status' => null,
-                    ],
-                ]);
-            }
-
-            $account = StripeAccount::retrieve($user->stripe_account_id);
-
-            $user->stripe_charges_enabled = (bool)($account->charges_enabled ?? false);
-            $user->stripe_payouts_enabled = (bool)($account->payouts_enabled ?? false);
-            $user->stripe_account_status = [
-                'details_submitted' => (bool)($account->details_submitted ?? false),
-                'requirements' => $account->requirements ?? null,
-            ];
             $user->save();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Estado de cuenta actualizado',
                 'data' => [
-                    'account_id' => $user->stripe_account_id,
-                    'charges_enabled' => $user->stripe_charges_enabled,
-                    'payouts_enabled' => $user->stripe_payouts_enabled,
-                    'account_status' => $user->stripe_account_status,
+                    'charges_enabled' => $account->charges_enabled,
+                    'payouts_enabled' => $account->payouts_enabled,
+                    'details_submitted' => $account->details_submitted,
+                    'requirements' => $account->requirements,
                 ],
             ]);
-        } catch (\Exception $e) {
-            Log::error('Stripe Connect getStatus error', ['error' => $e->getMessage(), 'user_id' => Auth::id()]);
-            return response()->json(['success' => false, 'message' => 'No se pudo obtener el estado de la cuenta'], 500);
+        } catch (\Throwable $e) {
+            Log::error('Error fetching Stripe account status', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => __('messages.connect.status_error'),
+            ], 500);
+        }
+    }
+
+    /**
+     * Refresca un account link de onboarding si expiró.
+     */
+    public function refreshOnboardingLink(): JsonResponse
+    {
+        /** @var User $user */
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['success' => false, 'message' => __('auth.unauthenticated')], 401);
+        }
+        if (!$user->hasRole('helper') || !$user->stripe_account_id) {
+            return response()->json(['success' => false, 'message' => __('messages.connect.only_helpers')], 403);
+        }
+        try {
+            $returnUrl = config('app.frontend_url') . '/connect/return';
+            $refreshUrl = config('app.frontend_url') . '/connect/refresh';
+
+            $accountLink = $this->stripe->accountLinks->create([
+                'account' => $user->stripe_account_id,
+                'refresh_url' => $refreshUrl,
+                'return_url' => $returnUrl,
+                'type' => 'account_onboarding',
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'url' => $accountLink->url,
+                    'expires_at' => $accountLink->expires_at,
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Error refreshing Stripe Connect account link', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => __('messages.connect.refresh_error'),
+            ], 500);
         }
     }
 }

@@ -26,30 +26,16 @@ class User extends Authenticatable
      * @var array<string>
      */
     protected $fillable = [
-        'name',
-        'email',
-        'password',
-        'preferred_language',
-        'is_active',
-        'metadata',
-        'accepted_terms',
-        'profile_photo_url',
-        'profile_video_url',
-        'biography',
-        'verification_documents',
-        'verification_status',
-        'verification_notes',
-        'phone',
-        'address',
-        'zip_code',
-        'latitude',
-        'longitude',
-        // Stripe Connect fields
-        'stripe_account_id',
-        'stripe_charges_enabled',
-        'stripe_payouts_enabled',
-        'stripe_account_status',
-        'stripe_customer_id',
+        'name', 'email', 'password', 'preferred_language', 'is_active', 'accepted_terms',
+        'profile_photo_url', 'profile_video_url', 'biography', 'verification_documents',
+        'documents_verified_at', 'verification_status', 'verification_notes', 'phone',
+        'phone_verified_at', 'two_factor_authentication_code', 'two_factor_authentication_code_sent_at',
+        'last_login_at', 'last_logout_at', 'last_password_reset_at', 'last_activity_at',
+        'last_ip_address_change_at', 'last_device_id_change_at', 'last_browser_id_change_at',
+        'last_two_factor_authentication_code_change_at', 'address', 'zip_code', 'latitude', 'longitude',
+        // Stripe fields
+        'stripe_account_id', 'stripe_customer_id', 'stripe_charges_enabled', 'stripe_payouts_enabled',
+        'stripe_onboarded_at', 'stripe_requirements',
     ];
 
     // Remove the 'role' from fillable as we're using relationships
@@ -81,10 +67,11 @@ class User extends Authenticatable
         'accepted_terms' => 'boolean',
         'latitude' => 'float',
         'longitude' => 'float',
-        // Stripe Connect fields
+        // Stripe casts
         'stripe_charges_enabled' => 'boolean',
         'stripe_payouts_enabled' => 'boolean',
-        'stripe_account_status' => 'array',
+        'stripe_onboarded_at' => 'datetime',
+        'stripe_requirements' => 'array',
     ];
 
     // Constantes para estados de verificación

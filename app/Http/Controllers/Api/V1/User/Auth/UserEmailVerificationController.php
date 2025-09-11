@@ -25,7 +25,7 @@ class UserEmailVerificationController extends Controller
             if ($user->hasVerifiedEmail()) {
                 return $this->successResponse(
                     [],
-                    'Email already verified.'
+                    'Email already verified'
                 );
             }
 
@@ -33,7 +33,7 @@ class UserEmailVerificationController extends Controller
 
             return $this->successResponse(
                 [],
-                'Verification email sent.'
+                'Verification email sent successfully'
             );
 
         } catch (Exception $e) {
@@ -58,7 +58,7 @@ class UserEmailVerificationController extends Controller
                 sha1($user->getEmailForVerification())
             )) {
                 return $this->errorResponse(
-                    'Invalid verification hash.',
+                    'Invalid verification link',
                     403
                 );
             }
@@ -66,7 +66,7 @@ class UserEmailVerificationController extends Controller
             if ($user->hasVerifiedEmail()) {
                 return $this->successResponse(
                     [],
-                    'Email already verified.'
+                    'Email already verified'
                 );
             }
 
@@ -76,7 +76,7 @@ class UserEmailVerificationController extends Controller
 
             return $this->successResponse(
                 [],
-                'Email successfully verified.'
+                'Email verified successfully'
             );
 
         } catch (Exception $e) {
@@ -95,7 +95,7 @@ class UserEmailVerificationController extends Controller
 
             if ($user->hasVerifiedEmail()) {
                 return $this->errorResponse(
-                    'Email already verified.',
+                    'Email already verified',
                     400
                 );
             }
@@ -104,7 +104,7 @@ class UserEmailVerificationController extends Controller
 
             return $this->successResponse(
                 [],
-                'Verification email sent.'
+                'Verification email resent successfully'
             );
 
         } catch (Exception $e) {

@@ -63,6 +63,33 @@ return [
         'completed' => 'Contrato marcado como completado.',
         'created' => 'Contrato generado exitosamente.',
         'updated' => 'Contrato actualizado.',
+        
+        'sent_success' => 'Contrato enviado exitosamente.',
+        'send_error' => 'Error al enviar el contrato.',
+        'unauthorized_send' => 'No estás autorizado para enviar este contrato.',
+        'cannot_send' => 'No es posible enviar este contrato en su estado actual.',
+
+        'accepted_success' => 'Contrato aceptado exitosamente.',
+        'accept_error' => 'Error al aceptar el contrato.',
+        'unauthorized_accept' => 'No estás autorizado para aceptar este contrato.',
+        'cannot_accept' => 'No es posible aceptar este contrato en su estado actual.',
+
+        'rejected_success' => 'Contrato rechazado exitosamente.',
+        'reject_error' => 'Error al rechazar el contrato.',
+        'unauthorized_reject' => 'No estás autorizado para rechazar este contrato.',
+        'cannot_reject' => 'No es posible rechazar este contrato en su estado actual.',
+
+        'updated_success' => 'Contrato actualizado exitosamente.',
+        'update_error' => 'Error al actualizar el contrato.',
+    ],
+
+    // Stripe Connect
+    'connect' => [
+        'only_helpers' => 'Solo los helpers pueden realizar esta acción.',
+        'onboarding_error' => 'No se pudo iniciar el onboarding de Stripe Connect.',
+        'status_error' => 'No se pudo obtener el estado de la cuenta de Stripe.',
+        'refresh_error' => 'No se pudo refrescar el enlace de onboarding.',
+        'gated_accept' => 'Debes completar el onboarding de pagos antes de aceptar contratos.',
     ],
 
     // Dashboard

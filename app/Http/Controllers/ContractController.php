@@ -302,18 +302,43 @@ class ContractController extends Controller
                 ], 403);
             }
 
-            // Stripe Connect: require helper to be onboarded and enabled before accepting
-            if (empty($user->stripe_account_id) || !$user->stripe_charges_enabled || !$user->stripe_payouts_enabled) {
-                return response()->json([
-                    'success' => false,
-                    'code' => 'stripe_connect_required',
-                    'message' => 'Para aceptar contratos, primero conecta y verifica tu cuenta de Stripe (Connect).',
-                    'data' => [
-                        'account_id' => $user->stripe_account_id,
-                        'charges_enabled' => (bool) $user->stripe_charges_enabled,
-                        'payouts_enabled' => (bool) $user->stripe_payouts_enabled,
-                    ],
-                ], 422);
+            // Gating: requerir Stripe Connect onboarding completo
+            if ($user->hasRole('helper')) {
+                if (!($user->stripe_charges_enabled && $user->stripe_payouts_enabled)) {
+                    // Intentar crear link de onboarding si hay cuenta
+                    $onboardingUrl = null;
+                    try {
+                        if ($user->stripe_account_id) {
+                            $stripe = new \Stripe\StripeClient(config('services.stripe.secret'));
+                            $returnUrl = config('app.frontend_url') . '/connect/return';
+                            $refreshUrl = config('app.frontend_url') . '/connect/refresh';
+                            $link = $stripe->accountLinks->create([
+                                'account' => $user->stripe_account_id,
+                                'refresh_url' => $refreshUrl,
+                                'return_url' => $returnUrl,
+                                'type' => 'account_onboarding',
+                            ]);
+                            $onboardingUrl = $link->url;
+                        }
+                    } catch (\Throwable $e) {
+                        // No bloquear si falla la generación del link; solo informar gating
+                        \Log::warning('No se pudo generar account link de Connect al aceptar contrato', [
+                            'user_id' => $user->id,
+                            'contract_id' => $contract->id,
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
+
+                    return response()->json([
+                        'success' => false,
+                        'message' => __('messages.connect.gated_accept'),
+                        'data' => [
+                            'onboarding_url' => $onboardingUrl,
+                            'charges_enabled' => (bool) $user->stripe_charges_enabled,
+                            'payouts_enabled' => (bool) $user->stripe_payouts_enabled,
+                        ],
+                    ], 409);
+                }
             }
 
             if (!$contract->markAsAccepted()) {
@@ -333,7 +358,7 @@ class ContractController extends Controller
                 'message' => __('messages.contracts.accepted_success')
             ]);
         } catch (\Exception $e) {
-            Log::error('Error accepting contract', [
+            \Log::error('Error accepting contract', [
                 'error' => $e->getMessage(),
                 'contract_id' => $contract->id,
                 'user_id' => Auth::id()

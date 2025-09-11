@@ -21,7 +21,7 @@ return new class extends Migration
         });
 
         // 2) Agregar el estado 'completed' al enum de status (solo en MySQL)
-        $driver = Schema::getConnection()->getDriverName();
+        $driver = DB::connection()->getDriverName();
         if ($driver === 'mysql') {
             DB::statement("ALTER TABLE `contracts` MODIFY COLUMN `status` 
                 ENUM('draft','sent','accepted','rejected','cancelled','expired','completed') 
@@ -34,8 +34,9 @@ return new class extends Migration
      */
     public function down(): void
     {
-        // Revertir enum para remover 'completed' (solo en MySQL)
-        $driver = Schema::getConnection()->getDriverName();
+        $driver = DB::connection()->getDriverName();
+
+        // Revertir enum para remover 'completed' solo en MySQL
         if ($driver === 'mysql') {
             DB::statement("ALTER TABLE `contracts` MODIFY COLUMN `status` 
                 ENUM('draft','sent','accepted','rejected','cancelled','expired') 

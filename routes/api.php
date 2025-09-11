@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\V1\User\Categories\UserCategoryController;
 use App\Http\Controllers\Api\V1\User\Locations\UserLocationController;
 use App\Http\Controllers\Api\V1\User\Notifications\UserNotificationController;
 use App\Http\Controllers\Api\V1\User\Payments\UserPaymentController;
+use App\Http\Controllers\Api\V1\User\Payments\UserStripeConnectController;
 use App\Http\Controllers\Api\V1\User\Profiles\UserProfileController;
 use App\Http\Controllers\Api\V1\User\Referrals\UserReferralController;
 use App\Http\Controllers\Api\V1\User\Reports\UserReportController;
@@ -23,18 +24,19 @@ use App\Http\Controllers\Api\V1\User\ServiceOffers\UserServiceOfferController;
 use App\Http\Controllers\Api\V1\User\ServiceRequests\UserServiceRequestController;
 use App\Http\Controllers\Api\V1\User\Skills\UserSkillController;
 use App\Http\Controllers\Api\V1\User\Subscriptions\UserSubscriptionController;
-use App\Http\Controllers\Api\V1\User\Tickets\UserTicketController;
+use App\Http\Controllers\Api\V1\User\Tickets\UserTicketController; // added
 use App\Http\Controllers\Api\V1\User\Search\UserSearchController;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 /*
-|--------------------------------------------------------------------------
-| API Routes - V1
-|--------------------------------------------------------------------------
-|
-| Se definen las rutas para la versión 1 de la API, separadas por dominios.
-|
-*/
+ * |--------------------------------------------------------------------------
+ * | API Routes - V1
+ * |--------------------------------------------------------------------------
+ * |
+ * | Se definen las rutas para la versión 1 de la API, separadas por dominios.
+ * |
+ */
 
 Route::prefix('v1')->middleware('locale')->group(function () {
     /**
@@ -50,28 +52,13 @@ Route::prefix('v1')->middleware('locale')->group(function () {
 
     Route::get('user/service-requests/summary', [UserServiceRequestController::class, 'getServiceRequestSummary']);
     Route::get('user/service-requests/trends', [UserServiceRequestController::class, 'getServiceRequestTrends']);
+            
 
     /**
      * Rutas de autenticación para el administrador.
      */
     Route::prefix('admin/auth')->group(function () {
         Route::post('login', [AdminAuthController::class, 'login']);
-    });
-
-    /**
-     * Rutas públicas y protegidas para clientes (alias de user) requeridas por tests.
-     */
-    Route::prefix('client')->group(function () {
-        // Autenticación y verificación para clientes (mapeadas a controladores de usuario)
-        Route::prefix('auth')->group(function () {
-            Route::post('email/verification-notification', [UserEmailVerificationController::class, 'sendVerificationEmail']);
-            Route::get('email/verify/{id}/{hash}', [UserEmailVerificationController::class, 'verify'])->name('client.verification.verify');
-            Route::post('forgot-password', [UserAuthController::class, 'forgotPassword'])->name('client.auth.forgot-password');
-            Route::post('login', [UserAuthController::class, 'login'])->name('client.auth.login');
-            Route::post('logout', [UserAuthController::class, 'logout'])->name('client.auth.logout')->middleware('auth:sanctum');
-            Route::post('register', [UserAuthController::class, 'register'])->name('client.auth.register');
-            Route::post('reset-password', [UserAuthController::class, 'resetPassword'])->name('client.auth.reset-password');
-        });
     });
 
     /**
@@ -161,15 +148,22 @@ Route::prefix('v1')->middleware('locale')->group(function () {
         /**
          * Rutas de pagos del usuario.
          */
+
         Route::prefix('payments')->middleware('auth:sanctum')->group(function () {
             Route::post('initiate', [UserPaymentController::class, 'initiatePayment']);
             Route::post('create-session/{offer}', [UserPaymentController::class, 'createPaymentSession']);
             Route::get('confirm/{payment}', [UserPaymentController::class, 'confirmPayment']);
             Route::post('cancel/{payment}', [UserPaymentController::class, 'cancelPayment']);
-            Route::post('{payment}/release', [UserPaymentController::class, 'releaseFunds']);
             // Nuevos endpoints para listar y obtener pagos
             Route::get('/', [UserPaymentController::class, 'index']);
             Route::get('/{payment}', [UserPaymentController::class, 'show']);
+        });
+
+        // Onboarding de helpers con Stripe Connect
+        Route::prefix('connect')->middleware('auth:sanctum')->group(function () {
+            Route::post('onboarding/start', [UserStripeConnectController::class, 'startOnboarding']);
+            Route::get('onboarding/status', [UserStripeConnectController::class, 'getOnboardingStatus']);
+            Route::post('onboarding/refresh', [UserStripeConnectController::class, 'refreshOnboardingLink']);
         });
 
         /**
@@ -184,7 +178,7 @@ Route::prefix('v1')->middleware('locale')->group(function () {
             Route::post('/', [ContractController::class, 'store']); // Crear contrato
             Route::put('/{contract}', [ContractController::class, 'update']); // Actualizar contrato
             Route::delete('/{contract}', [ContractController::class, 'destroy']); // Eliminar contrato
-
+            
             // Rutas para cambios de estado
             Route::post('/{contract}/send', [ContractController::class, 'send']); // Enviar contrato
             Route::post('/{contract}/accept', [ContractController::class, 'accept']); // Aceptar contrato
@@ -302,15 +296,18 @@ Route::prefix('v1')->middleware('locale')->group(function () {
         /**
          * Rutas de ofertas realizadas por el usuario autenticado.
          */
-        Route::get('my-offers', [UserServiceOfferController::class, 'myOffers'])->middleware('auth:sanctum');
+        Route::get('my-offers', [UserServiceOfferController::class, 'myOffers']);
 
         /**
-         * Rutas de ofertas de servicio (recibidas, enviadas y acciones).
-         * La línea que mencionaste fue movida aquí para una mejor organización.
+         * Rutas de ofertas recibidas y enviadas por el usuario autenticado.
+         */
+        Route::get('service-offers/received', [UserServiceOfferController::class, 'receivedOffers'])->middleware('auth:sanctum');
+        Route::get('service-offers/sent', [UserServiceOfferController::class, 'sentOffers'])->middleware('auth:sanctum');
+
+        /**
+         * Rutas específicas para ofertas de servicio.
          */
         Route::prefix('service-offers')->middleware('auth:sanctum')->group(function () {
-            Route::get('/received', [UserServiceOfferController::class, 'receivedOffers']);
-            Route::get('/sent', [UserServiceOfferController::class, 'sentOffers']);
             Route::post('/{offer}/accept-with-payment', [UserServiceOfferController::class, 'acceptWithPayment']);
             Route::post('/{offer}/reject', [UserServiceOfferController::class, 'rejectOffer']);
         });
@@ -328,7 +325,6 @@ Route::prefix('v1')->middleware('locale')->group(function () {
          */
         Route::get('public/profiles/{user}', [UserProfileController::class, 'showPublicProfile']);
     });
-
     /**
      * Rutas de chat y mensajes entre usuarios autenticados.
      */

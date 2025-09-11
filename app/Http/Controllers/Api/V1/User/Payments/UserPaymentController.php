@@ -15,9 +15,6 @@ use Stripe\Stripe;
 use Stripe\Checkout\Session as StripeSession;
 use Stripe\Webhook as StripeWebhook;
 use Exception;
-use Stripe\Customer as StripeCustomer;
-use Stripe\Transfer as StripeTransfer;
-use Stripe\Refund as StripeRefund;
 
 class UserPaymentController extends Controller
 {
@@ -73,20 +70,6 @@ class UserPaymentController extends Controller
                 );
             }
 
-            // Asegurar/crear el Customer de Stripe para el pagador y guardarlo
-            $user = auth()->user();
-            if (empty($user->stripe_customer_id)) {
-                $customer = StripeCustomer::create([
-                    'email' => $user->email,
-                    'name' => $user->name,
-                    'metadata' => [
-                        'app_user_id' => (string) $user->id,
-                    ],
-                ]);
-                $user->stripe_customer_id = $customer->id;
-                $user->save();
-            }
-
             DB::beginTransaction();
 
             // Crear el registro de pago
@@ -101,9 +84,8 @@ class UserPaymentController extends Controller
                 'status' => Payment::STATUS_PENDING,
             ]);
 
-            // Crear sesión de Stripe Checkout (cobro en la cuenta de plataforma)
+            // Crear sesión de Stripe Checkout
             $session = StripeSession::create([
-                'customer' => $user->stripe_customer_id,
                 'payment_method_types' => ['card'],
                 'line_items' => [[
                     'price_data' => [
@@ -127,7 +109,6 @@ class UserPaymentController extends Controller
                     'payee_user_id' => $offer->user_id,
                 ],
                 'payment_intent_data' => [
-                    'setup_future_usage' => 'off_session', // guardar tarjeta para futuros cobros
                     'metadata' => [
                         'payment_id' => $payment->id,
                         'service_request_id' => $offer->service_request_id,
@@ -153,7 +134,6 @@ class UserPaymentController extends Controller
                 'payment_id' => $payment->id,
                 'stripe_session_id' => $session->id,
                 'offer_id' => $offer->id,
-                'stripe_customer_id' => $user->stripe_customer_id,
             ]);
 
             return $this->successResponse([
@@ -180,7 +160,7 @@ class UserPaymentController extends Controller
     }
 
     /**
-     * Confirma un pago exitoso usando la sesión de Stripe.
+     * Confirma el pago exitoso y actualiza los estados correspondientes.
      *
      * @param Request $request
      * @param Payment $payment
@@ -189,6 +169,15 @@ class UserPaymentController extends Controller
     public function confirmPayment(Request $request, Payment $payment): JsonResponse
     {
         try {
+            $sessionId = $request->input('session_id');
+
+            if (!$sessionId) {
+                return $this->errorResponse(
+                    message: 'Session ID requerido',
+                    statusCode: 400
+                );
+            }
+
             // Verificar que el usuario autenticado es el que realizó el pago
             if ($payment->payer_user_id !== auth()->id()) {
                 return $this->errorResponse(
@@ -197,28 +186,32 @@ class UserPaymentController extends Controller
                 );
             }
 
-            $sessionId = $request->query('session_id');
+            // Atajo de desarrollo: permitir forzar confirmación en entornos local/testing
+            if ((app()->environment(['local', 'testing']) || config('app.debug')) && $request->boolean('dev_force')) {
+                $result = $this->finalizeSuccessfulPayment($payment, null, $sessionId);
 
-            if (!$sessionId) {
-                // Si no se proporciona el session_id, intentar con el registrado
-                $sessionId = $payment->stripe_session_id;
-            }
+                Log::warning('Payment confirmed via dev_force (development shortcut)', [
+                    'payment_id' => $payment->id,
+                    'stripe_session_id' => $sessionId,
+                    'user_id' => auth()->id(),
+                ]);
 
-            if (!$sessionId) {
-                return $this->errorResponse(
-                    message: 'No se pudo obtener la sesión de pago',
-                    statusCode: 400
-                );
+                return $this->successResponse([
+                    'payment' => $result['payment']->load(['serviceRequest', 'serviceOffer.user', 'contract']),
+                    'service_request' => $result['service_request'],
+                    'service_offer' => $result['offer']->load('user'),
+                    'redirect_url' => '/service-requests/' . $result['service_request']->id,
+                ], 'Pago confirmado en modo desarrollo');
             }
 
             // Verificar el estado del pago en Stripe
             $session = StripeSession::retrieve($sessionId);
 
             if ($session->payment_status === 'paid') {
-                // Finalizar pago de forma segura e idempotente (marcar HELD)
+                // Finalizar pago de forma segura e idempotente
                 $result = $this->finalizeSuccessfulPayment($payment, $session->payment_intent, $sessionId);
 
-                Log::info('Payment confirmed successfully (held)', [
+                Log::info('Payment confirmed successfully', [
                     'payment_id' => $payment->id,
                     'stripe_session_id' => $sessionId,
                 ]);
@@ -228,7 +221,7 @@ class UserPaymentController extends Controller
                     'service_request' => $result['service_request'],
                     'service_offer' => $result['offer']->load('user'),
                     'redirect_url' => '/service-requests/' . $result['service_request']->id,
-                ], 'Pago confirmado y fondos retenidos');
+                ], 'Pago confirmado exitosamente');
             } else {
                 return $this->errorResponse(
                     message: 'El pago no ha sido completado',
@@ -313,9 +306,9 @@ class UserPaymentController extends Controller
                         break;
                     }
 
-                    // Solo finalizar si aún no está completado/cancelado/refundado/held
-                    if (in_array($payment->status, [Payment::STATUS_COMPLETED, Payment::STATUS_CANCELED, Payment::STATUS_REFUNDED, Payment::STATUS_HELD], true)) {
-                        Log::info('Evento idempotente ignorado (ya finalizado/held)');
+                    // Solo finalizar si aún no está completado/cancelado/refundado
+                    if (in_array($payment->status, [Payment::STATUS_COMPLETED, Payment::STATUS_CANCELED, Payment::STATUS_REFUNDED], true)) {
+                        Log::info('Evento idempotente ignorado (ya finalizado)');
                         break;
                     }
 
@@ -327,11 +320,18 @@ class UserPaymentController extends Controller
                 case 'payment_intent.succeeded':
                     $pi = $dataObject; // \Stripe\PaymentIntent
                     $paymentIntentId = $pi['id'] ?? null;
-                    if ($paymentIntentId) {
+                    $paymentId = $pi['metadata']['payment_id'] ?? null;
+
+                    $payment = null;
+                    if ($paymentId) {
+                        $payment = Payment::query()->where('id', $paymentId)->first();
+                    }
+                    if (!$payment && $paymentIntentId) {
                         $payment = Payment::query()->where('stripe_payment_intent_id', $paymentIntentId)->first();
-                        if ($payment && !in_array($payment->status, [Payment::STATUS_COMPLETED, Payment::STATUS_CANCELED, Payment::STATUS_REFUNDED, Payment::STATUS_HELD], true)) {
-                            $this->finalizeSuccessfulPayment($payment, $paymentIntentId, null);
-                        }
+                    }
+
+                    if ($payment && !in_array($payment->status, [Payment::STATUS_COMPLETED, Payment::STATUS_CANCELED, Payment::STATUS_REFUNDED], true)) {
+                        $this->finalizeSuccessfulPayment($payment, $paymentIntentId, null);
                     }
                     break;
 
@@ -342,7 +342,7 @@ class UserPaymentController extends Controller
                         $payment = Payment::query()->where('stripe_payment_intent_id', $paymentIntentId)->first();
                         if ($payment) {
                             $payment->update(['status' => Payment::STATUS_FAILED]);
-                            Log::info('Payment marked as failed from webhook', ['payment_id' => $payment->id]);
+                            Log::info('Pago marcado como fallido', ['payment_id' => $payment->id]);
                         }
                     }
                     break;
@@ -385,6 +385,7 @@ class UserPaymentController extends Controller
     public function cancelPayment(Request $request, Payment $payment): JsonResponse
     {
         try {
+
             // Verificar que el usuario autenticado es el que realizó el pago
             if ($payment->payer_user_id !== auth()->id()) {
                 return $this->errorResponse(
@@ -393,73 +394,25 @@ class UserPaymentController extends Controller
                 );
             }
 
-            // Si ya fue reembolsado o cancelado, responder idempotentemente
-            if (in_array($payment->status, [Payment::STATUS_REFUNDED, Payment::STATUS_CANCELED], true)) {
-                return $this->successResponse([
-                    'payment' => $payment->load(['serviceRequest', 'serviceOffer.user', 'contract'])
-                ], 'Pago ya cancelado/reembolsado');
-            }
+            $payment->update(['status' => Payment::STATUS_CANCELED]);
 
-            // No permitir reembolso si los fondos ya fueron liberados
-            if ($payment->status === Payment::STATUS_RELEASED) {
-                return $this->errorResponse('No se puede reembolsar un pago ya liberado', 400);
-            }
-
-            // Requiere Payment Intent para reembolsar
-            if (!$payment->stripe_payment_intent_id) {
-                return $this->errorResponse('No se puede reembolsar: falta payment_intent', 400);
-            }
-
-            // Crear refund en Stripe
-            $reason = $request->input('reason');
-            $refund = StripeRefund::create(array_filter([
-                'payment_intent' => $payment->stripe_payment_intent_id,
-                'reason' => $reason,
-                'metadata' => [
-                    'payment_id' => $payment->id,
-                    'contract_id' => $payment->contract_id,
-                    'service_request_id' => $payment->service_request_id,
-                    'service_offer_id' => $payment->service_offer_id,
-                    'payer_user_id' => $payment->payer_user_id,
-                    'payee_user_id' => $payment->payee_user_id,
-                ],
-            ]));
-
-            // Actualizar estado local del pago y campos de refund
-            $payment->update([
-                'status' => Payment::STATUS_REFUNDED,
-                'stripe_metadata' => array_merge($payment->stripe_metadata ?? [], [
-                    'refund_id' => $refund->id,
-                ]),
-                'paid_at' => $payment->paid_at ?? now(),
-            ]);
-
-            // Marcar solicitud como cancelada si estaba en progreso
-            $serviceRequest = $payment->serviceRequest;
-            if ($serviceRequest && $serviceRequest->status === ServiceRequest::STATUS_IN_PROGRESS) {
-                $serviceRequest->update([
-                    'status' => ServiceRequest::STATUS_CANCELED,
-                ]);
-            }
-
-            Log::info('Payment refunded and canceled', [
+            Log::info('Payment canceled', [
                 'payment_id' => $payment->id,
                 'user_id' => auth()->id(),
-                'refund_id' => $refund->id,
             ]);
 
             return $this->successResponse([
-                'payment' => $payment->load(['serviceRequest', 'serviceOffer.user', 'contract'])
-            ], 'Pago reembolsado correctamente');
+                'redirect_url' => '/service-requests/' . $payment->service_request_id,
+            ], 'Pago cancelado');
 
         } catch (Exception $e) {
-            Log::error('Error canceling/refunding payment', [
+            Log::error('Error canceling payment', [
                 'error' => $e->getMessage(),
                 'payment_id' => $payment->id ?? null,
             ]);
 
             return $this->errorResponse(
-                message: 'Error al cancelar/reembolsar el pago',
+                message: 'Error al cancelar el pago',
                 statusCode: 500,
                 errors: ['error' => $e->getMessage()]
             );
@@ -467,174 +420,94 @@ class UserPaymentController extends Controller
     }
 
     /**
-     * Lista los pagos relacionados al usuario autenticado (como pagador o receptor).
-     * Filtros opcionales: role=payer|payee, status=<status>, per_page=<n>
+     * Lista los pagos del usuario autenticado (como pagador o receptor).
      */
     public function index(Request $request): JsonResponse
     {
-        $userId = auth()->id();
-        $query = Payment::query()->with(['serviceRequest', 'serviceOffer.user', 'contract']);
+        try {
+            $userId = auth()->id();
 
-        $role = $request->query('role');
-        if ($role === 'payer') {
-            $query->where('payer_user_id', $userId);
-        } elseif ($role === 'payee') {
-            $query->where('payee_user_id', $userId);
-        } else {
-            $query->where(function ($q) use ($userId) {
-                $q->where('payer_user_id', $userId)
-                  ->orWhere('payee_user_id', $userId);
-            });
+            $query = Payment::query()
+                ->where(function ($q) use ($userId) {
+                    $q->where('payer_user_id', $userId)
+                      ->orWhere('payee_user_id', $userId);
+                })
+                ->with(['serviceRequest', 'serviceOffer.user', 'payer', 'payee', 'contract']);
+
+            // Filtro por estado
+            if ($request->filled('status')) {
+                $query->where('status', $request->query('status'));
+            }
+
+            // Ordenamiento
+            $sortBy = $request->query('sort_by', 'created_at');
+            $sortDirection = strtolower($request->query('sort_direction', 'desc'));
+            $allowedSort = ['created_at', 'amount'];
+            if (!in_array($sortBy, $allowedSort, true)) {
+                $sortBy = 'created_at';
+            }
+            if (!in_array($sortDirection, ['asc', 'desc'], true)) {
+                $sortDirection = 'desc';
+            }
+            $query->orderBy($sortBy, $sortDirection);
+
+            // Paginación opcional (el frontend espera un array en data)
+            $perPage = (int) $request->query('per_page', 0);
+            if ($perPage > 0) {
+                $paginator = $query->simplePaginate($perPage);
+                $items = collect($paginator->items());
+            } else {
+                $items = $query->get();
+            }
+
+            return $this->successResponse($items->toArray(), 'Pagos obtenidos correctamente');
+        } catch (Exception $e) {
+            Log::error('Error listing payments', [
+                'error' => $e->getMessage(),
+                'user_id' => auth()->id(),
+            ]);
+
+            return $this->errorResponse(
+                message: 'Error al obtener los pagos',
+                statusCode: 500,
+                errors: ['error' => $e->getMessage()]
+            );
         }
-
-        if ($status = $request->query('status')) {
-            $query->where('status', $status);
-        }
-
-        $perPage = (int) $request->query('per_page', 15);
-        $perPage = $perPage > 0 && $perPage <= 100 ? $perPage : 15;
-
-        $payments = $query->orderByDesc('created_at')->paginate($perPage);
-
-        return $this->successResponse([
-            'payments' => $payments,
-        ], 'Listado de pagos');
     }
 
     /**
-     * Muestra el detalle de un pago. Solo accesible para el pagador o el receptor.
+     * Muestra un pago específico del usuario autenticado.
      */
     public function show(Request $request, Payment $payment): JsonResponse
     {
-        $userId = auth()->id();
-        if ($payment->payer_user_id !== $userId && $payment->payee_user_id !== $userId) {
-            return $this->errorResponse('No tienes permisos para ver este pago', 403);
-        }
-
-        return $this->successResponse([
-            'payment' => $payment->load(['serviceRequest', 'serviceOffer.user', 'contract'])
-        ], 'Detalle de pago');
-    }
-
-    /**
-     * Inicia el proceso de pago recibiendo offer_id y redirigiendo a createPaymentSession.
-     * Útil para clientes que aún no tienen la ruta con parámetro de oferta.
-     */
-    public function initiatePayment(Request $request): JsonResponse
-    {
-        $offerId = $request->input('offer_id');
-        if (!$offerId) {
-            return $this->errorResponse('offer_id es requerido', 422);
-        }
-
-        $offer = ServiceOffer::find($offerId);
-        if (!$offer) {
-            return $this->errorResponse('Oferta no encontrada', 404);
-        }
-
-        return $this->createPaymentSession($request, $offer);
-    }
-
-    /**
-     * Libera fondos retenidos hacia el helper (Transfer a cuenta conectada) y completa el contrato.
-     */
-    public function releaseFunds(Request $request, Payment $payment): JsonResponse
-    {
         try {
-            // Permitir solo al pagador
-            if ($payment->payer_user_id !== auth()->id()) {
-                return $this->errorResponse('No tienes permisos para liberar fondos de este pago', 403);
+            $userId = auth()->id();
+            if ($payment->payer_user_id !== $userId && $payment->payee_user_id !== $userId) {
+                return $this->errorResponse(
+                    message: 'No tienes permisos para ver este pago',
+                    statusCode: 403
+                );
             }
 
-            // El pago debe estar retenido
-            if ($payment->status !== Payment::STATUS_HELD) {
-                if ($payment->status === Payment::STATUS_RELEASED) {
-                    return $this->successResponse([
-                        'payment' => $payment->load(['serviceRequest', 'serviceOffer.user', 'contract'])
-                    ], 'Pago ya liberado');
-                }
-                return $this->errorResponse('El pago no está en estado retenido', 400);
-            }
+            $payment->load(['serviceRequest', 'serviceOffer.user', 'payer', 'payee', 'contract']);
 
-            $helper = $payment->payee;
-            if (!$helper || empty($helper->stripe_account_id)) {
-                return $this->errorResponse('El proveedor no tiene una cuenta Stripe conectada', 400);
-            }
-            if (!$helper->stripe_payouts_enabled) {
-                return $this->errorResponse('La cuenta del proveedor no tiene payouts habilitados', 400);
-            }
-
-            $platformFeePercent = $payment->platform_fee_percent ?? (int) (config('services.stripe.platform_fee_percent') ?? env('PLATFORM_FEE_PERCENT', 15));
-            $platformFeeAmount = $payment->platform_fee_amount ?? round(($payment->amount * $platformFeePercent) / 100, 2);
-            $netAmount = max(0, round($payment->amount - $platformFeeAmount, 2));
-
-            if ($netAmount <= 0) {
-                return $this->errorResponse('El monto neto a transferir es inválido', 400);
-            }
-
-            // Crear transferencia desde la cuenta de plataforma al helper
-            $transfer = StripeTransfer::create([
-                'amount' => intval(round($netAmount * 100)),
-                'currency' => strtolower($payment->currency ?? 'USD'),
-                'destination' => $helper->stripe_account_id,
-                'metadata' => [
-                    'payment_id' => $payment->id,
-                    'contract_id' => $payment->contract_id,
-                    'service_request_id' => $payment->service_request_id,
-                    'service_offer_id' => $payment->service_offer_id,
-                    'payer_user_id' => $payment->payer_user_id,
-                    'payee_user_id' => $payment->payee_user_id,
-                ],
-            ]);
-
-            // Actualizar estados y campos del pago
-            $payment->update([
-                'status' => Payment::STATUS_RELEASED,
-                'released_at' => now(),
-                'stripe_transfer_id' => $transfer->id,
-                'platform_fee_percent' => $platformFeePercent,
-                'platform_fee_amount' => $platformFeeAmount,
-            ]);
-
-            // Actualizar contrato y solicitud a COMPLETED
-            $contract = $payment->contract;
-            if ($contract && $contract->status !== Contract::STATUS_COMPLETED) {
-                $contract->update([
-                    'status' => Contract::STATUS_COMPLETED,
-                    'completed_at' => now(),
-                ]);
-            }
-
-            $serviceRequest = $payment->serviceRequest;
-            if ($serviceRequest && $serviceRequest->status !== ServiceRequest::STATUS_COMPLETED) {
-                $serviceRequest->update([
-                    'status' => ServiceRequest::STATUS_COMPLETED,
-                ]);
-            }
-
-            Log::info('Funds released to helper', [
-                'payment_id' => $payment->id,
-                'transfer_id' => $transfer->id,
-                'net_amount' => $netAmount,
-                'platform_fee_percent' => $platformFeePercent,
-                'platform_fee_amount' => $platformFeeAmount,
-            ]);
-
-            return $this->successResponse([
-                'payment' => $payment->load(['serviceRequest', 'serviceOffer.user', 'contract'])
-            ], 'Fondos liberados exitosamente');
+            return $this->successResponse($payment->toArray(), 'Pago obtenido correctamente');
         } catch (Exception $e) {
-            Log::error('Error releasing funds', [
+            Log::error('Error getting payment', [
                 'error' => $e->getMessage(),
                 'payment_id' => $payment->id ?? null,
             ]);
 
-            return $this->errorResponse('Error al liberar fondos', 500, ['error' => $e->getMessage()]);
+            return $this->errorResponse(
+                message: 'Error al obtener el pago',
+                statusCode: 500,
+                errors: ['error' => $e->getMessage()]
+            );
         }
     }
 
     /**
-     * Marca pago como HELD (escrow) e inicializa progreso de la solicitud (idempotente).
+     * Marca pago como completado y actualiza oferta y solicitud (idempotente).
      *
      * @param Payment $payment
      * @param string|null $stripePaymentIntentId
@@ -647,7 +520,7 @@ class UserPaymentController extends Controller
             // Refrescar y bloquear lógicamente el registro
             $payment->refresh();
 
-            if (in_array($payment->status, [Payment::STATUS_COMPLETED, Payment::STATUS_CANCELED, Payment::STATUS_REFUNDED, Payment::STATUS_HELD], true)) {
+            if (in_array($payment->status, [Payment::STATUS_COMPLETED, Payment::STATUS_CANCELED, Payment::STATUS_REFUNDED], true)) {
                 // Ya finalizado, devolver estado actual
                 $offer = $payment->serviceOffer;
                 $serviceRequest = $payment->serviceRequest;
@@ -658,21 +531,15 @@ class UserPaymentController extends Controller
                 ];
             }
 
-            // Calcular fee de plataforma (si no existe aún)
-            $platformFeePercent = $payment->platform_fee_percent ?? (int) (config('services.stripe.platform_fee_percent') ?? env('PLATFORM_FEE_PERCENT', 15));
-            $platformFeeAmount = $payment->platform_fee_amount ?? round(($payment->amount * $platformFeePercent) / 100, 2);
-
-            // Actualizar pago como HELD (fondos retenidos)
+            // Actualizar pago como completado
             $payment->update([
-                'status' => Payment::STATUS_HELD,
+                'status' => Payment::STATUS_COMPLETED,
                 'stripe_payment_intent_id' => $stripePaymentIntentId ?? $payment->stripe_payment_intent_id,
                 'stripe_session_id' => $stripeSessionId ?? $payment->stripe_session_id,
                 'paid_at' => $payment->paid_at ?? now(),
-                'platform_fee_percent' => $platformFeePercent,
-                'platform_fee_amount' => $platformFeeAmount,
             ]);
 
-            // Actualizar oferta, solicitud (in progress) y NO completar el contrato aún
+            // Actualizar oferta, solicitud y contrato
             $offer = $payment->serviceOffer;
             $serviceRequest = $payment->serviceRequest;
             $contract = $payment->contract;
@@ -695,9 +562,12 @@ class UserPaymentController extends Controller
                 ]);
             }
 
-            // Mantener contrato en ACCEPTED hasta liberar fondos
+            // Marcar contrato como completado cuando el pago se procesa
             if ($contract && $contract->status === Contract::STATUS_ACCEPTED) {
-                // Sin cambios de estado aquí
+                $contract->update([
+                    'status' => Contract::STATUS_COMPLETED,
+                    'completed_at' => now(),
+                ]);
             }
 
             // Rechazar otras ofertas

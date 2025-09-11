@@ -59,21 +59,46 @@ return [
 
     // Contracts
     'contracts' => [
-        // Se eliminan las claves redundantes de nivel superior 
-        // como 'created' y 'updated'. Se mantienen 'canceled' y 'completed'
-        // si se usan como mensajes de estado simples y no como respuesta de una acción.
         'canceled' => 'Contract canceled.',
         'completed' => 'Contract marked as completed.',
 
-        'success' => [
+        'sent_success' => 'Contract sent successfully.',
+        'send_error' => 'Error sending contract.',
+        'unauthorized_send' => 'You are not authorized to send this contract.',
+        'cannot_send' => 'This contract cannot be sent in its current status.',
+
+        'accepted_success' => 'Contract accepted successfully.',
+        'accept_error' => 'Error accepting contract.',
+        'unauthorized_accept' => 'You are not authorized to accept this contract.',
+        'cannot_accept' => 'This contract cannot be accepted in its current status.',
+
+        'rejected_success' => 'Contract rejected successfully.',
+        'reject_error' => 'Error rejecting contract.',
+        'unauthorized_reject' => 'You are not authorized to reject this contract.',
+        'cannot_reject' => 'This contract cannot be rejected in its current status.',
+
+        'updated_success' => 'Contract updated successfully.',
+        'update_error' => 'Error updating contract.',
+    ],
+
+    // Stripe Connect
+    'connect' => [
+        'only_helpers' => 'Only helpers can perform this action.',
+        'onboarding_error' => 'Unable to start Stripe Connect onboarding.',
+        'status_error' => 'Unable to fetch Stripe account status.',
+        'refresh_error' => 'Unable to refresh onboarding link.',
+        'gated_accept' => 'You must complete payment onboarding before accepting contracts.',
+    ],
+
+    'success' => [
             'retrieved' => 'Contracts retrieved successfully.',
             'show' => 'Contract retrieved successfully.',
             'created' => 'Contract created successfully.', // Unificado
             'updated' => 'Contract updated successfully.', // Unificado
             'deleted' => 'Contract deleted successfully.',
-        ],
+    ],
 
-        'errors' => [
+    'errors' => [
             'not_found' => 'Contract not found.', // ¡Corregido!
             'service_offer_not_found' => 'Service offer not found for this contract.', // Clave más específica
             'retrieval_failed' => 'Error retrieving contracts.',
@@ -90,7 +115,6 @@ return [
             'delete_unauthorized' => 'Unauthorized to delete this contract.',
             'delete_time_expired' => 'Contract cannot be deleted after :hours hours from creation.',
             'delete_status_invalid' => 'Only pending or canceled contracts can be deleted.',
-        ],
     ],
 
     // Dashboard
