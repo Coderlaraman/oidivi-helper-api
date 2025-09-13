@@ -333,5 +333,9 @@ Route::prefix('v1')->middleware('locale')->group(function () {
         Route::get('/', [ChatController::class, 'index'])->name('chats.index');
         Route::get('/offers/{offerId}', [ChatController::class, 'showOrCreate']);
         Route::post('/offers/{offerId}/messages', [MessageController::class, 'store']);
+        
+        // Rutas para marcar mensajes como leídos
+        Route::patch('/messages/{messageId}/read', [MessageController::class, 'markAsRead']);
+        Route::patch('/offers/{offerId}/messages/read', [MessageController::class, 'markMultipleAsRead']);
     });
 });

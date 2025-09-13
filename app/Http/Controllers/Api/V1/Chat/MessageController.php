@@ -85,12 +85,96 @@ class MessageController extends Controller
         if ($recipient = $chat->getOtherParticipant($user)) {
             event(new NewChatMessageNotification($message, $recipient->id));
         }
+        
+        // Marcar automáticamente como "visto" para el destinatario
+        // (esto disparará el evento MessageSeen)
+        $message->markAsSeen();
 
         // 7. Devolver una respuesta exitosa y consistente
         return $this->successResponse(
             (new UserMessageResource($message))->resolve(),
             __('messages.message_sent'),
             201
+        );
+    }
+
+    /**
+     * Marca un mensaje como leído
+     */
+    public function markAsRead(Request $request, int $messageId): JsonResponse
+    {
+        $user = Auth::user();
+
+        // Buscar el mensaje
+        $message = Message::find($messageId);
+        if (!$message) {
+            return $this->notFoundResponse(__('messages.message_not_found'));
+        }
+
+        // Verificar que el usuario es el destinatario (no el remitente)
+        if ($message->sender_id === $user->id) {
+            return $this->errorResponse(__('messages.cannot_mark_own_message_as_read'), 400);
+        }
+
+        // Verificar que el usuario participa en el chat
+        $chat = $message->chat;
+        $offer = $chat->serviceOffer;
+        if (!$offer || !$offer->isParticipant($user)) {
+            return $this->unauthorizedResponse(__('messages.unauthorized'));
+        }
+
+        // Marcar como leído
+        $message->markAsRead();
+
+        return $this->successResponse(
+            ['read_at' => $message->fresh()->read_at],
+            __('messages.message_marked_as_read')
+        );
+    }
+
+    /**
+     * Marca múltiples mensajes como leídos
+     */
+    public function markMultipleAsRead(Request $request, int $offerId): JsonResponse
+    {
+        $user = Auth::user();
+
+        // Validar la oferta y la participación del usuario
+        $offer = ServiceOffer::find($offerId);
+        if (!$offer) {
+            return $this->notFoundResponse(__('messages.offer_not_found'));
+        }
+        if (!$offer->isParticipant($user)) {
+            return $this->unauthorizedResponse(__('messages.unauthorized'));
+        }
+
+        // Validar los IDs de mensajes
+        $validator = Validator::make($request->all(), [
+            'message_ids' => 'required|array',
+            'message_ids.*' => 'integer|exists:messages,id'
+        ]);
+        if ($validator->fails()) {
+            return $this->validationErrorResponse($validator->errors()->toArray());
+        }
+
+        $chat = Chat::where('service_offer_id', $offer->id)->first();
+        if (!$chat) {
+            return $this->notFoundResponse(__('messages.chat_not_found'));
+        }
+
+        // Marcar mensajes como leídos (solo los que no son del usuario actual)
+        $updatedCount = Message::whereIn('id', $request->message_ids)
+            ->where('chat_id', $chat->id)
+            ->where('sender_id', '!=', $user->id)
+            ->whereNull('read_at')
+            ->update([
+                'seen_at' => now(),
+                'read_at' => now()
+            ]);
+
+        return $this->successResponse(
+            ['updated_count' => $updatedCount],
+            __('messages.messages_marked_as_read')
         );
     }
 }

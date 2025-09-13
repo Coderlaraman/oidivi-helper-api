@@ -25,6 +25,7 @@ class Message extends Model
         'media_name',
         'metadata',
         'seen_at',
+        'read_at',
     ];
 
     /**
@@ -33,6 +34,7 @@ class Message extends Model
     protected $casts = [
         'metadata'   => 'array',
         'seen_at'    => 'datetime',
+        'read_at'    => 'datetime',
         'deleted_at' => 'datetime',
     ];
 
@@ -59,7 +61,40 @@ class Message extends Model
     {
         if (is_null($this->seen_at)) {
             $this->update(['seen_at' => now()]);
+            // Disparar evento WebSocket
+            \App\Events\MessageSeen::dispatch($this);
         }
+    }
+
+    /**
+     * Marca el mensaje como leído (setea read_at)
+     */
+    public function markAsRead(): void
+    {
+        if (is_null($this->read_at)) {
+            $this->update([
+                'seen_at' => $this->seen_at ?? now(),
+                'read_at' => now()
+            ]);
+            // Disparar evento WebSocket
+            \App\Events\MessageRead::dispatch($this);
+        }
+    }
+
+    /**
+     * Verifica si el mensaje ha sido leído
+     */
+    public function isRead(): bool
+    {
+        return !is_null($this->read_at);
+    }
+
+    /**
+     * Verifica si el mensaje ha sido visto
+     */
+    public function isSeen(): bool
+    {
+        return !is_null($this->seen_at);
     }
 
     /**
