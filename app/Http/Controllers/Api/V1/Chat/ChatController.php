@@ -63,9 +63,16 @@ class ChatController extends Controller
                 ],
                 'last_message' => $lastMessage ? [
                     'id'         => $lastMessage->id,
+                    'chat_id'    => $lastMessage->chat_id,
+                    'sender_id'  => $lastMessage->sender_id,
                     'type'       => $lastMessage->type,
                     'message'    => $lastMessage->message,
                     'media_url'  => $lastMessage->media_url,
+                    'media_type' => $lastMessage->media_type,
+                    'media_name' => $lastMessage->media_name,
+                    'metadata'   => $lastMessage->metadata,
+                    'seen_at'    => $lastMessage->seen_at?->toIso8601String(),
+                    'read_at'    => $lastMessage->read_at?->toIso8601String(),
                     'created_at' => $lastMessage->created_at->toIso8601String(),
                 ] : null,
                 'unread_count'     => $chat->getUnreadCount($user),
@@ -123,6 +130,7 @@ class ChatController extends Controller
             'messages' => $chat->messages->map(function ($msg) {
                 return [
                     'id'          => $msg->id,
+                    'chat_id'     => $msg->chat_id,
                     'sender_id'   => $msg->sender_id,
                     'sender_name' => $msg->sender->name,
                     'message'     => $msg->message,
@@ -132,6 +140,7 @@ class ChatController extends Controller
                     'media_name'  => $msg->media_name,
                     'metadata'    => $msg->metadata,
                     'seen_at'     => $msg->seen_at?->toIso8601String(),
+                    'read_at'     => $msg->read_at?->toIso8601String(),
                     'created_at'  => $msg->created_at->toIso8601String(),
                 ];
             })->all(),

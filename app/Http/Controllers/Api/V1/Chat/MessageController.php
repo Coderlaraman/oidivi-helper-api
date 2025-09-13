@@ -162,15 +162,18 @@ class MessageController extends Controller
             return $this->notFoundResponse(__('messages.chat_not_found'));
         }
 
-        // Marcar mensajes como leídos (solo los que no son del usuario actual)
-        $updatedCount = Message::whereIn('id', $request->message_ids)
+        // Buscar mensajes candidatos y marcarlos individualmente como leídos para disparar eventos
+        $messages = Message::whereIn('id', $request->message_ids)
             ->where('chat_id', $chat->id)
             ->where('sender_id', '!=', $user->id)
             ->whereNull('read_at')
-            ->update([
-                'seen_at' => now(),
-                'read_at' => now()
-            ]);
+            ->get();
+
+        $updatedCount = 0;
+        foreach ($messages as $msg) {
+            $msg->markAsRead(); // Esto setea seen_at/read_at y emite MessageRead
+            $updatedCount++;
+        }
 
         return $this->successResponse(
             ['updated_count' => $updatedCount],

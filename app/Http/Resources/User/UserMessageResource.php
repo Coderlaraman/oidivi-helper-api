@@ -36,6 +36,8 @@ class UserMessageResource extends JsonResource
 
             'metadata' => $this->metadata,
             'seen_at' => $this->seen_at?->toIso8601String(),
+            // NUEVO: incluir read_at para que el frontend pueda mostrar el doble check azul
+            'read_at' => $this->read_at?->toIso8601String(),
             'created_at' => $this->created_at->toIso8601String(),
             'updated_at' => $this->updated_at->toIso8601String(),
         ];
