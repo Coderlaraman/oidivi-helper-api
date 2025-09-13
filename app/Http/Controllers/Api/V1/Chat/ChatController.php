@@ -68,6 +68,7 @@ class ChatController extends Controller
                     'media_url'  => $lastMessage->media_url,
                     'created_at' => $lastMessage->created_at->toIso8601String(),
                 ] : null,
+                'unread_count'     => $chat->getUnreadCount($user),
             ];
         });
 
