@@ -160,7 +160,8 @@ class ContractController extends Controller
                 'provider_id' => $serviceOffer->user_id,
                 'status' => Contract::STATUS_DRAFT,
                 'terms' => $validated['terms'] ?? null,
-                'expires_at' => $validated['expires_at'] ?? now()->addDays(7)
+                'expires_at' => $validated['expires_at'] ?? now()->addDays(7),
+                'version' => 1,
             ]);
 
             $contract->load(['serviceRequest', 'serviceOffer', 'client', 'provider']);
@@ -610,6 +611,59 @@ class ContractController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => __('messages.contracts.index_error')
+            ], 500);
+        }
+    }
+
+    /**
+     * Revisa un contrato rechazado (solo el cliente) y lo regresa a borrador con versión incrementada.
+     *
+     * @param Request $request
+     * @param Contract $contract
+     * @return JsonResponse
+     */
+    public function revise(Request $request, Contract $contract): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+
+            // Solo el cliente puede revisar y solo si está REJECTED
+            if ($contract->client_id !== $user->id || $contract->status !== Contract::STATUS_REJECTED) {
+                return response()->json([
+                    'success' => false,
+                    'message' => __('messages.contracts.unauthorized_update')
+                ], 403);
+            }
+
+            $validated = $request->validate([
+                'terms' => 'nullable|array',
+                'revision_note' => 'nullable|string|max:500',
+            ]);
+
+            if (!$contract->revise($validated, $user->id)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => __('messages.contracts.update_error')
+                ], 400);
+            }
+
+            $contract->load(['serviceRequest', 'serviceOffer', 'client', 'provider']);
+
+            return response()->json([
+                'success' => true,
+                'data' => new ContractResource($contract),
+                'message' => __('messages.contracts.updated_success')
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error revising contract', [
+                'error' => $e->getMessage(),
+                'contract_id' => $contract->id,
+                'user_id' => Auth::id()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => __('messages.contracts.update_error')
             ], 500);
         }
     }

@@ -184,6 +184,7 @@ Route::prefix('v1')->middleware('locale')->group(function () {
             Route::post('/{contract}/accept', [ContractController::class, 'accept']); // Aceptar contrato
             Route::post('/{contract}/reject', [ContractController::class, 'reject']); // Rechazar contrato
             Route::post('/{contract}/cancel', [ContractController::class, 'cancel']); // Cancelar contrato
+            Route::patch('/{contract}/revise', [ContractController::class, 'revise'])->name('contracts.revise'); // Enviar contrato
         });
 
         /**

@@ -32,6 +32,8 @@ class ContractResource extends JsonResource
             'terms' => $this->terms,
             'rejection_reason' => $this->rejection_reason,
             'cancellation_reason' => $this->cancellation_reason,
+            'version' => $this->version,
+            'revision_note' => $this->revision_note,
             
             // Fechas estructuradas
             'dates' => [
@@ -41,6 +43,8 @@ class ContractResource extends JsonResource
                 'responded_at' => $this->responded_at?->format('Y-m-d H:i:s'),
                 'expires_at' => $this->expires_at?->format('Y-m-d H:i:s'),
                 'completed_at' => $this->status === 'completed' ? $this->updated_at?->format('Y-m-d H:i:s') : null,
+                'edited_at' => $this->edited_at?->format('Y-m-d H:i:s'),
+                're_sent_at' => $this->re_sent_at?->format('Y-m-d H:i:s'),
             ],
             
             // Permisos basados en el usuario actual y estado del contrato
@@ -53,6 +57,7 @@ class ContractResource extends JsonResource
                 'can_cancel' => ($isClient || $isProvider) && !$this->isFinal(),
                 'can_edit' => $isClient && $this->status === 'draft',
                 'can_delete' => $isClient && $this->status === 'draft',
+                'can_revise' => $isClient && $this->status === 'rejected',
             ],
             
             // Flags de estado

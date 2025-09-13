@@ -113,6 +113,12 @@ class Contract extends Model
         'completed_at',
         'rejection_reason',
         'cancellation_reason',
+        // Campos de versionado/revisión
+        'version',
+        'edited_by',
+        'revision_note',
+        'edited_at',
+        're_sent_at',
     ];
 
     /**
@@ -126,6 +132,8 @@ class Contract extends Model
         'responded_at' => 'datetime',
         'expires_at' => 'datetime',
         'completed_at' => 'datetime',
+        'edited_at' => 'datetime',
+        're_sent_at' => 'datetime',
     ];
 
     // --- RELACIONES ---
@@ -187,7 +195,7 @@ class Contract extends Model
      *
      * @return bool
      */
-    public function canBepaid(): bool
+    public function canBePaid(): bool
     {
         return in_array($this->status, self::PAYABLE_STATUSES);
     }
@@ -228,6 +236,7 @@ class Contract extends Model
             'status' => self::STATUS_SENT,
             'sent_at' => now(),
             'expires_at' => $expiresAt ?? now()->addDays(7), // Expira en 7 días por defecto
+            're_sent_at' => ($this->version && $this->version > 1) ? now() : $this->re_sent_at,
         ]);
         
         if ($saved) {
@@ -323,6 +332,39 @@ class Contract extends Model
         return $this->update([
             'status' => self::STATUS_EXPIRED,
         ]);
+    }
+
+    /**
+     * Crea una nueva revisión del contrato incrementando la versión y pasando a draft.
+     * Limpia campos de respuesta y motivo de rechazo.
+     *
+     * @param array{terms?: array|null, revision_note?: string|null} $attributes
+     * @param int $editorId
+     * @return bool
+     */
+    public function revise(array $attributes, int $editorId): bool
+    {
+        if ($this->status !== self::STATUS_REJECTED) {
+            return false;
+        }
+
+        $payload = [
+            'status' => self::STATUS_DRAFT,
+            'responded_at' => null,
+            'rejection_reason' => null,
+            'edited_by' => $editorId,
+            'edited_at' => now(),
+            'version' => (int) ($this->version ?? 1) + 1,
+        ];
+
+        if (array_key_exists('terms', $attributes)) {
+            $payload['terms'] = $attributes['terms'];
+        }
+        if (array_key_exists('revision_note', $attributes)) {
+            $payload['revision_note'] = $attributes['revision_note'];
+        }
+
+        return $this->update($payload);
     }
 
     // --- SCOPES ---
