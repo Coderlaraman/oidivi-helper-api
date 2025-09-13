@@ -13,6 +13,12 @@ return new class extends Migration {
         Schema::create('service_requests', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            
+            // Helper asignado al request tras el pago
+            $table->foreignId('assigned_helper_id')
+                ->nullable()
+                ->constrained('users')
+                ->nullOnDelete();
             $table->string('title');
             $table->string('slug')->unique();
             $table->text('description');
@@ -23,6 +29,14 @@ return new class extends Migration {
             $table->decimal('budget', 10, 2);
             $table->enum('visibility', ['public', 'private'])->default('public');
             $table->enum('status', ['published', 'in_progress', 'completed', 'canceled'])->default('published');
+            
+            // Fecha/hora de inicio del trabajo una vez pagado
+            $table->timestamp('started_at')->nullable();
+            
+            // Campos de workflow
+            $table->timestamp('submitted_at')->nullable();
+            $table->timestamp('client_confirmed_at')->nullable();
+            $table->timestamp('completed_at')->nullable();
             $table->enum('payment_method', ['paypal', 'credit_card', 'bank_transfer'])->nullable();
             $table->boolean('initial_payment_confirmed')->default(false);
             $table->enum('service_type', ['one_time', 'recurring'])->default('one_time');

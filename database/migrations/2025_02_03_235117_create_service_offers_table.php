@@ -17,7 +17,7 @@ return new class extends Migration {
             $table->decimal('price_proposed', 10, 2);
             $table->integer('estimated_time'); // en horas o días
             $table->text('message')->nullable();
-            $table->enum('status', ['pending', 'accepted', 'rejected'])->default('pending');
+            $table->enum('status', ['pending', 'accepted', 'rejected', 'in_review'])->default('pending');
             $table->timestamps();
         });
     }

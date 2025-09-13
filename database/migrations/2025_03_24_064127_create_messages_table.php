@@ -40,11 +40,17 @@ return new class extends Migration
             // JSON para datos adicionales: dimensiones, duración, miniatura, reacciones, etc.
             $table->json('metadata')->nullable();
 
-            // Timestamp de “vistos”
+            // Timestamp de "vistos"
             $table->timestamp('seen_at')->nullable();
+            
+            // Agregar campo para indicar cuándo el mensaje fue leído por el destinatario
+            $table->timestamp('read_at')->nullable();
 
             $table->timestamps();
             $table->softDeletes();
+            
+            // Índices
+            $table->index(['sender_id', 'read_at']);
         });
     }
 

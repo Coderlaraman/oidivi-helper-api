@@ -23,14 +23,24 @@ return new class extends Migration
                 'accepted',
                 'rejected',
                 'cancelled',
-                'expired'
+                'expired',
+                'completed'
             ])->default('draft');
             $table->json('terms')->nullable(); // Términos del contrato en formato JSON
             $table->timestamp('sent_at')->nullable(); // Cuando se envió al provider
             $table->timestamp('responded_at')->nullable(); // Cuando el provider respondió
             $table->timestamp('expires_at')->nullable(); // Fecha de expiración del contrato
+            $table->timestamp('completed_at')->nullable(); // Cuando se completó el contrato
             $table->text('rejection_reason')->nullable(); // Razón del rechazo si aplica
             $table->text('cancellation_reason')->nullable(); // Razón de cancelación si aplica
+            
+            // Campos de revisión
+            $table->unsignedInteger('version')->default(1); // Versión del contrato
+            $table->foreignId('edited_by')->nullable()->constrained('users')->nullOnDelete(); // Usuario que editó
+            $table->timestamp('edited_at')->nullable(); // Cuando se editó
+            $table->timestamp('re_sent_at')->nullable(); // Cuando se reenvió
+            $table->string('revision_note', 500)->nullable(); // Nota de revisión
+            
             $table->timestamps();
 
             // Índices para mejorar el rendimiento
@@ -39,6 +49,7 @@ return new class extends Migration
             $table->index(['provider_id']);
             $table->index(['status']);
             $table->index(['expires_at']);
+            $table->index(['version']);
             
             // Constraint único: solo un contrato por oferta
             $table->unique('service_offer_id');

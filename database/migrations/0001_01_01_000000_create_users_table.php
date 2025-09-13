@@ -48,6 +48,14 @@ return new class extends Migration {
             $table->string('zip_code')->nullable();  // Código postal
             $table->float('latitude', 10)->nullable();
             $table->float('longitude', 10)->nullable();
+            
+            // Campos de Stripe Connect
+            $table->string('stripe_account_id')->nullable()->unique();
+            $table->string('stripe_customer_id')->nullable()->unique();
+            $table->boolean('stripe_charges_enabled')->default(false);
+            $table->boolean('stripe_payouts_enabled')->default(false);
+            $table->timestamp('stripe_onboarded_at')->nullable();
+            $table->json('stripe_requirements')->nullable();
 
             $table->rememberToken();
             $table->timestamps();
