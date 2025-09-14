@@ -6,7 +6,7 @@ Al registrarse y utilizar la plataforma, el usuario acepta cumplir con los prese
 
 ## 2. Objeto de la Plataforma
 
-La plataforma permite a los usuarios publicar solicitudes de servicios, recibir ofertas de otros usuarios, negociar condiciones, formalizar contratos y gestionar pagos de manera segura.
+La plataforma permite a los usuarios publicar solicitudes de servicios, recibir ofertas de otros usuarios, negociar condiciones, formalizar acuerdos y gestionar pagos de manera segura.
 
 ## 3. Registro y Responsabilidad del Usuario
 
@@ -25,16 +25,16 @@ La plataforma permite a los usuarios publicar solicitudes de servicios, recibir 
 -   Está prohibido compartir datos de contacto personales, acordar transacciones fuera de la plataforma o enviar contenido ofensivo, ilegal o no relacionado con el servicio.
 -   La plataforma podrá monitorear y moderar las conversaciones para garantizar el cumplimiento de estas normas.
 
-## 6. Contratos y Pagos
+## 6. Acuerdos y Pagos
 
--   Los contratos se formalizan dentro de la plataforma al aceptar una oferta.
+-   Los acuerdos se formalizan dentro de la plataforma al aceptar una oferta.
 -   La plataforma puede retener los pagos (escrow) hasta la finalización satisfactoria del servicio.
--   Se cobrará una comisión sobre el monto del contrato, la cual será informada previamente.
--   El incumplimiento de las obligaciones contractuales puede derivar en sanciones, bloqueo de la cuenta o acciones legales.
+-   Se cobrará una comisión sobre el monto del acuerdo, la cual será informada previamente.
+-   El incumplimiento de las obligaciones del acuerdo puede derivar en sanciones, bloqueo de la cuenta o acciones legales.
 
 ## 7. Valoraciones y Reputación
 
--   Los usuarios pueden valorar y dejar comentarios sobre la contraparte al finalizar un contrato.
+-   Los usuarios pueden valorar y dejar comentarios sobre la contraparte al finalizar un acuerdo.
 -   Las valoraciones deben ser honestas y respetuosas.
 
 ## 8. Prohibiciones Generales
