@@ -8,7 +8,7 @@ use App\Http\Controllers\Api\V1\Admin\Users\AdminUserController;
 use App\Http\Controllers\Api\V1\Chat\ChatController;
 use App\Http\Controllers\Api\V1\Chat\MessageController;
 use App\Http\Controllers\Api\V1\TermsController;
-use App\Http\Controllers\ContractController;
+use App\Http\Controllers\AgreementController;
 use App\Http\Controllers\Api\V1\User\Auth\UserAuthController;
 use App\Http\Controllers\Api\V1\User\Auth\UserEmailVerificationController;
 use App\Http\Controllers\Api\V1\User\Categories\UserCategoryController;
@@ -167,24 +167,24 @@ Route::prefix('v1')->middleware('locale')->group(function () {
         });
 
         /**
-         * Rutas de contratos del usuario.
+         * Rutas de acuerdos del usuario.
          */
-        Route::prefix('contracts')->middleware('auth:sanctum')->group(function () {
-            Route::get('/', [ContractController::class, 'index']); // Listar contratos
-            // Nuevos endpoints específicos por rol (deben ir antes de la ruta dinámica '/{contract}')
-            Route::get('/client', [ContractController::class, 'client']); // Listar contratos donde el usuario es cliente
-            Route::get('/provider', [ContractController::class, 'provider']); // Listar contratos donde el usuario es proveedor
-            Route::get('/{contract}', [ContractController::class, 'show']); // Ver contrato específico
-            Route::post('/', [ContractController::class, 'store']); // Crear contrato
-            Route::put('/{contract}', [ContractController::class, 'update']); // Actualizar contrato
-            Route::delete('/{contract}', [ContractController::class, 'destroy']); // Eliminar contrato
+        Route::prefix('agreements')->middleware('auth:sanctum')->group(function () {
+            Route::get('/', [AgreementController::class, 'index']); // Listar acuerdos
+            // Nuevos endpoints específicos por rol (deben ir antes de la ruta dinámica '/{agreement}')
+            Route::get('/client', [AgreementController::class, 'client']); // Listar acuerdos donde el usuario es cliente
+            Route::get('/provider', [AgreementController::class, 'provider']); // Listar acuerdos donde el usuario es proveedor
+            Route::get('/{agreement}', [AgreementController::class, 'show']); // Ver acuerdo específico
+            Route::post('/', [AgreementController::class, 'store']); // Crear acuerdo
+            Route::put('/{agreement}', [AgreementController::class, 'update']); // Actualizar acuerdo
+            Route::delete('/{agreement}', [AgreementController::class, 'destroy']); // Eliminar acuerdo
             
             // Rutas para cambios de estado
-            Route::post('/{contract}/send', [ContractController::class, 'send']); // Enviar contrato
-            Route::post('/{contract}/accept', [ContractController::class, 'accept']); // Aceptar contrato
-            Route::post('/{contract}/reject', [ContractController::class, 'reject']); // Rechazar contrato
-            Route::post('/{contract}/cancel', [ContractController::class, 'cancel']); // Cancelar contrato
-            Route::patch('/{contract}/revise', [ContractController::class, 'revise'])->name('contracts.revise'); // Enviar contrato
+            Route::post('/{agreement}/send', [AgreementController::class, 'send']); // Enviar acuerdo
+            Route::post('/{agreement}/accept', [AgreementController::class, 'accept']); // Aceptar acuerdo
+            Route::post('/{agreement}/reject', [AgreementController::class, 'reject']); // Rechazar acuerdo
+            Route::post('/{agreement}/cancel', [AgreementController::class, 'cancel']); // Cancelar acuerdo
+            Route::patch('/{agreement}/revise', [AgreementController::class, 'revise'])->name('agreements.revise'); // Revisar acuerdo
         });
 
         /**

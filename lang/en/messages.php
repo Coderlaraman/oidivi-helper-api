@@ -33,7 +33,6 @@ return [
     'user_inactive' => 'The user is inactive.',
     'user_registered_successfully' => 'User registered successfully.',
     'validation_error' => 'Validation error.',
-
     // Auth
     'auth' => [
         'account_locked' => 'Account locked due to multiple failed attempts. Try again later.',
@@ -46,7 +45,6 @@ return [
         'verification_failed' => 'Error sending verification email.',
         'verification_sent' => 'Verification email sent.',
     ],
-
     // Categories
     'categories' => [
         'create_success' => 'Category created successfully.',
@@ -56,79 +54,68 @@ return [
         'show_success' => 'Category retrieved successfully.',
         'update_success' => 'Category updated successfully.',
     ],
-
-    // Contracts
-    'contracts' => [
-        'canceled' => 'Contract canceled.',
-        'completed' => 'Contract marked as completed.',
-
-        'sent_success' => 'Contract sent successfully.',
-        'send_error' => 'Error sending contract.',
-        'unauthorized_send' => 'You are not authorized to send this contract.',
-        'cannot_send' => 'This contract cannot be sent in its current status.',
-
-        'accepted_success' => 'Contract accepted successfully.',
-        'accept_error' => 'Error accepting contract.',
-        'unauthorized_accept' => 'You are not authorized to accept this contract.',
-        'cannot_accept' => 'This contract cannot be accepted in its current status.',
-
-        'rejected_success' => 'Contract rejected successfully.',
-        'reject_error' => 'Error rejecting contract.',
-        'unauthorized_reject' => 'You are not authorized to reject this contract.',
-        'cannot_reject' => 'This contract cannot be rejected in its current status.',
-
-        'updated_success' => 'Contract updated successfully.',
-        'update_error' => 'Error updating contract.',
+    // Agreements
+    'agreements' => [
+        'canceled' => 'Agreement canceled.',
+        'completed' => 'Agreement marked as completed.',
+        'sent_success' => 'Agreement sent successfully.',
+        'send_error' => 'Error sending agreement.',
+        'unauthorized_send' => 'You are not authorized to send this agreement.',
+        'cannot_send' => 'This agreement cannot be sent in its current status.',
+        'accepted_success' => 'Agreement accepted successfully.',
+        'accept_error' => 'Error accepting agreement.',
+        'unauthorized_accept' => 'You are not authorized to accept this agreement.',
+        'cannot_accept' => 'This agreement cannot be accepted in its current status.',
+        'rejected_success' => 'Agreement rejected successfully.',
+        'reject_error' => 'Error rejecting agreement.',
+        'unauthorized_reject' => 'You are not authorized to reject this agreement.',
+        'cannot_reject' => 'This agreement cannot be rejected in its current status.',
+        'updated_success' => 'Agreement updated successfully.',
+        'update_error' => 'Error updating agreement.',
     ],
-
     // Stripe Connect
     'connect' => [
         'only_helpers' => 'Only helpers can perform this action.',
         'onboarding_error' => 'Unable to start Stripe Connect onboarding.',
         'status_error' => 'Unable to fetch Stripe account status.',
         'refresh_error' => 'Unable to refresh onboarding link.',
-        'gated_accept' => 'You must complete payment onboarding before accepting contracts.',
+        'gated_accept' => 'You must complete payment onboarding before accepting agreements.',
     ],
-
     'success' => [
-            'retrieved' => 'Contracts retrieved successfully.',
-            'show' => 'Contract retrieved successfully.',
-            'created' => 'Contract created successfully.', // Unificado
-            'updated' => 'Contract updated successfully.', // Unificado
-            'deleted' => 'Contract deleted successfully.',
+        'retrieved' => 'Agreements retrieved successfully.',
+        'show' => 'Agreement retrieved successfully.',
+        'created' => 'Agreement created successfully.',  // Unificado
+        'updated' => 'Agreement updated successfully.',  // Unificado
+        'deleted' => 'Agreement deleted successfully.',
     ],
-
     'errors' => [
-            'not_found' => 'Contract not found.', // ¡Corregido!
-            'service_offer_not_found' => 'Service offer not found for this contract.', // Clave más específica
-            'retrieval_failed' => 'Error retrieving contracts.',
-            'show_failed' => 'Error retrieving contract.',
-            'create_failed' => 'Error creating contract.',
-            'update_failed' => 'Error updating contract.',
-            'delete_failed' => 'Error deleting contract.',
-            'validation_failed' => 'Validation failed.',
-            'invalid_status' => 'Invalid contract status.',
-            'already_exists' => 'A contract already exists for this service offer.',
-            'must_be_accepted' => 'The service offer must be accepted before creating a contract.',
-            'unauthorized' => 'Unauthorized to perform this action.',
-            'create_unauthorized' => 'Unauthorized to create a contract for this service offer.',
-            'delete_unauthorized' => 'Unauthorized to delete this contract.',
-            'delete_time_expired' => 'Contract cannot be deleted after :hours hours from creation.',
-            'delete_status_invalid' => 'Only pending or canceled contracts can be deleted.',
+        'not_found' => 'Agreement not found.',  // ¡Corregido!
+        'service_offer_not_found' => 'Service offer not found for this agreement.',  // Clave más específica
+        'retrieval_failed' => 'Error retrieving agreements.',
+        'show_failed' => 'Error retrieving agreement.',
+        'create_failed' => 'Error creating agreement.',
+        'update_failed' => 'Error updating agreement.',
+        'delete_failed' => 'Error deleting agreement.',
+        'validation_failed' => 'Validation failed.',
+        'invalid_status' => 'Invalid agreement status.',
+        'already_exists' => 'An agreement already exists for this service offer.',
+        'must_be_accepted' => 'The service offer must be accepted before creating an agreement.',
+        'unauthorized' => 'Unauthorized to perform this action.',
+        'create_unauthorized' => 'Unauthorized to create an agreement for this service offer.',
+        'delete_unauthorized' => 'Unauthorized to delete this agreement.',
+        'delete_time_expired' => 'Agreement cannot be deleted after :hours hours from creation.',
+        'delete_status_invalid' => 'Only pending or canceled agreements can be deleted.',
     ],
-
     // Dashboard
     'dashboard' => [
         'data_retrieved' => 'Dashboard data retrieved successfully.',
     ],
-
     // Notifications
     'notifications' => [
         'deleted' => 'Notification deleted.',
         'read' => 'Notification marked as read.',
         'sent' => 'Notification sent successfully.',
     ],
-
     // Offers
     'offers' => [
         'accepted' => 'Offer accepted.',
@@ -137,7 +124,6 @@ return [
         'rejected' => 'Offer rejected.',
         'updated' => 'Offer updated.',
     ],
-
     // Payments
     'payments' => [
         'confirmed' => 'Payment confirmed successfully.',
@@ -149,7 +135,6 @@ return [
         'refunded' => 'Refund processed successfully.',
         'transaction_not_found' => 'Transaction not found.',
     ],
-
     // Profile
     'profile' => [
         'bio_updated' => 'Biography updated.',
@@ -163,7 +148,6 @@ return [
         'users_retrieved' => 'Users retrieved successfully.',
         'video_updated' => 'Profile video updated.',
     ],
-
     // Profile Photo
     'profile_photo' => [
         'image' => 'The file must be a valid image.',
@@ -172,7 +156,6 @@ return [
         'mimes' => 'The image must be in JPEG, PNG, JPG, or GIF format.',
         'required' => 'A profile photo is required.',
     ],
-
     // Reviews
     'reviews' => [
         'created' => 'Review submitted successfully.',
@@ -180,7 +163,6 @@ return [
         'not_allowed' => 'You cannot rate this service.',
         'updated' => 'Review updated.',
     ],
-
     // Service Offers
     'service_offers' => [
         'errors' => [
@@ -200,7 +182,6 @@ return [
             'updated' => 'Service offer updated successfully.',
         ],
     ],
-
     // Service Requests
     'service_requests' => [
         'already_assigned' => 'The request has already been assigned to a provider.',
@@ -216,7 +197,6 @@ return [
             'canceled' => 'Canceled',
         ],
     ],
-
     // Subscriptions
     'subscriptions' => [
         'activated' => 'Subscription activated successfully.',
@@ -231,7 +211,6 @@ return [
         'show_error' => 'Error retrieving subscription.',
         'cancel_error' => 'Error canceling subscription.',
     ],
-
     // Tickets
     'tickets' => [
         'closed' => 'Ticket closed.',
@@ -245,7 +224,6 @@ return [
         'reply_error' => 'Error sending reply.',
         'updated' => 'Ticket updated.',
     ],
-
     // Referrals
     'referrals' => [
         'accepted' => 'Referral accepted successfully.',
@@ -259,7 +237,6 @@ return [
         'show_error' => 'Error retrieving referral.',
         'show_success' => 'Referral retrieved successfully.',
     ],
-
     // Reports
     'reports' => [
         'created' => 'Report submitted successfully.',

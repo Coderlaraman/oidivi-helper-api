@@ -15,9 +15,9 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Class Contract
+ * Class Agreement
  *
- * Modelo que representa un contrato entre cliente y proveedor de servicios.
+ * Modelo que representa un acuerdo entre cliente y proveedor de servicios.
  *
  * @property int $id
  * @property int $service_request_id
@@ -40,7 +40,7 @@ use Illuminate\Support\Facades\Log;
  * @property-read User $provider
  * @property-read \Illuminate\Database\Eloquent\Collection|Payment[] $payments
  */
-class Contract extends Model
+class Agreement extends Model
 {
     use HasFactory, Notifiable;
 
@@ -60,7 +60,7 @@ class Contract extends Model
     public const STATUS_COMPLETED = 'completed';
 
     /**
-     * Lista de todos los estados válidos para un contrato.
+     * Lista de todos los estados válidos para un acuerdo.
      *
      * @var array<int, string>
      */
@@ -139,7 +139,7 @@ class Contract extends Model
     // --- RELACIONES ---
 
     /**
-     * Relación: Solicitud de servicio asociada al contrato.
+     * Relación: Solicitud de servicio asociada al acuerdo.
      *
      * @return BelongsTo
      */
@@ -149,7 +149,7 @@ class Contract extends Model
     }
 
     /**
-     * Relación: Oferta de servicio asociada al contrato.
+     * Relación: Oferta de servicio asociada al acuerdo.
      *
      * @return BelongsTo
      */
@@ -179,7 +179,7 @@ class Contract extends Model
     }
 
     /**
-     * Relación: Pagos asociados al contrato.
+     * Relación: Pagos asociados al acuerdo.
      *
      * @return HasMany
      */
@@ -191,7 +191,7 @@ class Contract extends Model
     // --- MÉTODOS DE UTILIDAD ---
 
     /**
-     * Verifica si el contrato puede ser pagado.
+     * Verifica si el acuerdo puede ser pagado.
      *
      * @return bool
      */
@@ -201,7 +201,7 @@ class Contract extends Model
     }
 
     /**
-     * Verifica si el contrato está en un estado final.
+     * Verifica si el acuerdo está en un estado final.
      *
      * @return bool
      */
@@ -211,7 +211,7 @@ class Contract extends Model
     }
 
     /**
-     * Verifica si el contrato ha expirado.
+     * Verifica si el acuerdo ha expirado.
      *
      * @return bool
      */
@@ -221,7 +221,7 @@ class Contract extends Model
     }
 
     /**
-     * Marca el contrato como enviado.
+     * Marca el acuerdo como enviado.
      *
      * @param Carbon|null $expiresAt
      * @return bool
@@ -247,7 +247,7 @@ class Contract extends Model
     }
 
     /**
-     * Marca el contrato como aceptado.
+     * Marca el acuerdo como aceptado.
      *
      * @return bool
      */
@@ -270,7 +270,7 @@ class Contract extends Model
     }
 
     /**
-     * Marca el contrato como rechazado.
+     * Marca el acuerdo como rechazado.
      *
      * @param string|null $reason
      * @return bool
@@ -295,7 +295,7 @@ class Contract extends Model
     }
 
     /**
-     * Marca el contrato como cancelado.
+     * Marca el acuerdo como cancelado.
      *
      * @param string|null $reason
      * @return bool
@@ -319,7 +319,7 @@ class Contract extends Model
     }
 
     /**
-     * Marca el contrato como expirado.
+     * Marca el acuerdo como expirado.
      *
      * @return bool
      */
@@ -335,7 +335,7 @@ class Contract extends Model
     }
 
     /**
-     * Crea una nueva revisión del contrato incrementando la versión y pasando a draft.
+     * Crea una nueva revisión del acuerdo incrementando la versión y pasando a draft.
      * Limpia campos de respuesta y motivo de rechazo.
      *
      * @param array{terms?: array|null, revision_note?: string|null} $attributes
@@ -370,7 +370,7 @@ class Contract extends Model
     // --- SCOPES ---
 
     /**
-     * Scope: Contratos por estado.
+     * Scope: Acuerdos por estado.
      *
      * @param \Illuminate\Database\Eloquent\Builder $query
      * @param string $status
@@ -382,7 +382,7 @@ class Contract extends Model
     }
 
     /**
-     * Scope: Contratos expirados.
+     * Scope: Acuerdos expirados.
      *
      * @param \Illuminate\Database\Eloquent\Builder $query
      * @return \Illuminate\Database\Eloquent\Builder
@@ -394,7 +394,7 @@ class Contract extends Model
     }
 
     /**
-     * Scope: Contratos que pueden ser pagados.
+     * Scope: Acuerdos que pueden ser pagados.
      *
      * @param \Illuminate\Database\Eloquent\Builder $query
      * @return \Illuminate\Database\Eloquent\Builder
@@ -405,13 +405,13 @@ class Contract extends Model
     }
 
     /**
-     * Notify client that contract has been sent.
+     * Notify client that agreement has been sent.
      */
     protected function notifyContractSent(): void
     {
       try {
         $title = $this->serviceRequest?->title ?? '';
-        // Notificar al proveedor (helper) que recibió un contrato (BD + broadcast)
+        // Notificar al proveedor (helper) que recibió un acuerdo (BD + broadcast)
         $this->createNotification(
           userIds: [$this->provider_id],
           type: NotificationType::CONTRACT_SENT,
@@ -432,21 +432,21 @@ class Contract extends Model
           ])
         );
       } catch (\Exception $e) {
-        Log::error('Error notifying contract sent', [
+        Log::error('Error notifying agreement sent', [
           'error' => $e->getMessage(),
-          'contract_id' => $this->id,
+          'agreement_id' => $this->id,
         ]);
       }
     }
 
     /**
-     * Notify provider that contract has been accepted.
+     * Notify provider that agreement has been accepted.
      */
     protected function notifyContractAccepted(): void
     {
         try {
             $title = $this->serviceRequest?->title ?? '';
-            // Notificar al cliente que su contrato fue aceptado
+            // Notificar al cliente que su acuerdo fue aceptado
             $this->createNotification(
                 userIds: [$this->client_id],
                 type: NotificationType::CONTRACT_ACCEPTED,
@@ -458,21 +458,21 @@ class Contract extends Model
 
             event(new ContractAcceptedNotification($this, $this->client_id));
         } catch (\Exception $e) {
-            Log::error('Error notifying contract accepted', [
+            Log::error('Error notifying agreement accepted', [
                 'error' => $e->getMessage(),
-                'contract_id' => $this->id
+                'agreement_id' => $this->id
             ]);
         }
     }
 
     /**
-     * Notify provider that contract has been rejected.
+     * Notify provider that agreement has been rejected.
      */
     protected function notifyContractRejected(): void
     {
         try {
             $title = $this->serviceRequest?->title ?? '';
-            // Notificar al cliente que su contrato fue rechazado
+            // Notificar al cliente que su acuerdo fue rechazado
             $this->createNotification(
                 userIds: [$this->client_id],
                 type: NotificationType::CONTRACT_REJECTED,
@@ -484,15 +484,15 @@ class Contract extends Model
 
             event(new ContractRejectedNotification($this, $this->client_id));
         } catch (\Exception $e) {
-            Log::error('Error notifying contract rejected', [
+            Log::error('Error notifying agreement rejected', [
                 'error' => $e->getMessage(),
-                'contract_id' => $this->id
+                'agreement_id' => $this->id
             ]);
         }
     }
 
     /**
-     * Notify both parties that the contract has been cancelled.
+     * Notify both parties that the agreement has been cancelled.
      */
     protected function notifyContractCancelled(): void
     {
@@ -522,9 +522,9 @@ class Contract extends Model
             event(new \App\Events\ContractCancelledNotification($this, $this->client_id));
             event(new \App\Events\ContractCancelledNotification($this, $this->provider_id));
         } catch (\Exception $e) {
-            Log::error('Error notifying contract cancelled', [
+            Log::error('Error notifying agreement cancelled', [
                 'error' => $e->getMessage(),
-                'contract_id' => $this->id
+                'agreement_id' => $this->id
             ]);
         }
     }

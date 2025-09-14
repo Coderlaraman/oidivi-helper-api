@@ -13,7 +13,7 @@ use Illuminate\Support\Carbon;
  * Modelo que representa un pago realizado a través de Stripe para una oferta de servicio aceptada.
  *
  * @property int $id
- * @property int $contract_id
+ * @property int $agreement_id
  * @property int $service_request_id
  * @property int $service_offer_id
  * @property int $payer_user_id
@@ -28,7 +28,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  *
- * @property-read Contract $contract
+ * @property-read Agreement $agreement
  * @property-read ServiceRequest $serviceRequest
  * @property-read ServiceOffer $serviceOffer
  * @property-read User $payer
@@ -71,7 +71,7 @@ class Payment extends Model
      * @var array<string>
      */
     protected $fillable = [
-        'contract_id',
+        'agreement_id',
         'service_request_id',
         'service_offer_id',
         'payer_user_id',
@@ -97,13 +97,13 @@ class Payment extends Model
     ];
 
     /**
-     * Relación: Contrato asociado al pago.
+     * Relación: Acuerdo asociado al pago.
      *
      * @return BelongsTo
      */
-    public function contract(): BelongsTo
+    public function agreement(): BelongsTo
     {
-        return $this->belongsTo(Contract::class);
+        return $this->belongsTo(Agreement::class);
     }
 
     /**

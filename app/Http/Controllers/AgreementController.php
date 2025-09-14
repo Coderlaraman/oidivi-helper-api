@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Resources\User\ContractResource;
-use App\Models\Contract;
+use App\Http\Resources\User\AgreementResource;
+use App\Models\Agreement;
 use App\Models\ServiceOffer;
 use App\Models\ServiceRequest;
 use Illuminate\Http\JsonResponse;
@@ -16,7 +16,7 @@ use Illuminate\Validation\Rule;
 /**
  * Controlador para gestionar contratos entre clientes y proveedores de servicios.
  */
-class ContractController extends Controller
+class AgreementController extends Controller
 {
     /**
      * Obtiene todos los contratos del usuario autenticado.
@@ -31,7 +31,7 @@ class ContractController extends Controller
             $perPage = $request->get('per_page', 15);
             $status = $request->get('status');
 
-            $query = Contract::query()
+            $query = Agreement::query()
                 ->where(function ($q) use ($user) {
                     $q->where('client_id', $user->id)
                       ->orWhere('provider_id', $user->id);
@@ -39,32 +39,32 @@ class ContractController extends Controller
                 ->with(['serviceRequest', 'serviceOffer', 'client', 'provider'])
                 ->orderBy('created_at', 'desc');
 
-            if ($status && in_array($status, Contract::STATUSES)) {
+            if ($status && in_array($status, Agreement::STATUSES)) {
                 $query->where('status', $status);
             }
 
-            $contracts = $query->paginate($perPage);
+            $agreements = $query->paginate($perPage);
 
             return response()->json([
                 'success' => true,
                 'data' => [
-                    'data' => ContractResource::collection($contracts->items()),
-                    'current_page' => $contracts->currentPage(),
-                    'last_page' => $contracts->lastPage(),
-                    'per_page' => $contracts->perPage(),
-                    'total' => $contracts->total(),
+                    'data' => AgreementResource::collection($agreements->items()),
+                    'current_page' => $agreements->currentPage(),
+                    'last_page' => $agreements->lastPage(),
+                    'per_page' => $agreements->perPage(),
+                    'total' => $agreements->total(),
                 ],
-                'message' => __('messages.contracts.index_success')
+                'message' => __('messages.agreements.index_success')
             ]);
         } catch (\Exception $e) {
-            Log::error('Error fetching contracts', [
+            Log::error('Error fetching agreements', [
                 'error' => $e->getMessage(),
                 'user_id' => Auth::id()
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => __('messages.contracts.index_error')
+                'message' => __('messages.agreements.index_error')
             ], 500);
         }
     }
@@ -72,45 +72,45 @@ class ContractController extends Controller
     /**
      * Muestra un contrato específico.
      *
-     * @param Contract $contract
+     * @param Agreement $agreement
      * @return JsonResponse
      */
-    public function show(Contract $contract): JsonResponse
+    public function show(Agreement $agreement): JsonResponse
     {
         try {
             $user = Auth::user();
 
-            // Verificar que el usuario tenga acceso al contrato
-            if ($contract->client_id !== $user->id && $contract->provider_id !== $user->id) {
+            // Verificar que el usuario tenga acceso al acuerdo
+            if ($agreement->client_id !== $user->id && $agreement->provider_id !== $user->id) {
                 return response()->json([
                     'success' => false,
-                    'message' => __('messages.contracts.unauthorized')
+                    'message' => __('messages.agreements.unauthorized')
                 ], 403);
             }
 
-            $contract->load(['serviceRequest', 'serviceOffer', 'client', 'provider', 'payments']);
+            $agreement->load(['serviceRequest', 'serviceOffer', 'client', 'provider', 'payments']);
 
             return response()->json([
                 'success' => true,
-                'data' => new ContractResource($contract),
-                'message' => __('messages.contracts.show_success')
+                'data' => new AgreementResource($agreement),
+                'message' => __('messages.agreements.show_success')
             ]);
         } catch (\Exception $e) {
-            Log::error('Error fetching contract', [
+            Log::error('Error fetching agreement', [
                 'error' => $e->getMessage(),
-                'contract_id' => $contract->id,
+                'agreement_id' => $agreement->id,
                 'user_id' => Auth::id()
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => __('messages.contracts.show_error')
+                'message' => __('messages.agreements.show_error')
             ], 500);
         }
     }
 
     /**
-     * Crea un nuevo contrato basado en una oferta de servicio.
+     * Crea un nuevo acuerdo basado en una oferta de servicio.
      *
      * @param Request $request
      * @return JsonResponse
@@ -131,7 +131,7 @@ class ContractController extends Controller
             if ($serviceOffer->serviceRequest->user_id !== $user->id) {
                 return response()->json([
                     'success' => false,
-                    'message' => __('messages.contracts.unauthorized_create')
+                    'message' => __('messages.agreements.unauthorized_create')
                 ], 403);
             }
 
@@ -139,43 +139,43 @@ class ContractController extends Controller
             if ($serviceOffer->status !== ServiceOffer::STATUS_PENDING) {
                 return response()->json([
                     'success' => false,
-                    'message' => __('messages.contracts.offer_not_pending')
+                    'message' => __('messages.agreements.offer_not_pending')
                 ], 400);
             }
 
-            // Verificar que no exista ya un contrato para esta oferta
-            if (Contract::where('service_offer_id', $serviceOffer->id)->exists()) {
+            // Verificar que no exista ya un acuerdo para esta oferta
+            if (Agreement::where('service_offer_id', $serviceOffer->id)->exists()) {
                 return response()->json([
                     'success' => false,
-                    'message' => __('messages.contracts.already_exists')
+                    'message' => __('messages.agreements.already_exists')
                 ], 400);
             }
 
             DB::beginTransaction();
 
-            $contract = Contract::create([
+            $agreement = Agreement::create([
                 'service_request_id' => $serviceOffer->service_request_id,
                 'service_offer_id' => $serviceOffer->id,
                 'client_id' => $user->id,
                 'provider_id' => $serviceOffer->user_id,
-                'status' => Contract::STATUS_DRAFT,
+                'status' => Agreement::STATUS_DRAFT,
                 'terms' => $validated['terms'] ?? null,
                 'expires_at' => $validated['expires_at'] ?? now()->addDays(7),
                 'version' => 1,
             ]);
 
-            $contract->load(['serviceRequest', 'serviceOffer', 'client', 'provider']);
+            $agreement->load(['serviceRequest', 'serviceOffer', 'client', 'provider']);
 
             DB::commit();
 
             return response()->json([
                 'success' => true,
-                'data' => new ContractResource($contract),
-                'message' => __('messages.contracts.created_success')
+                'data' => new AgreementResource($agreement),
+                'message' => __('messages.agreements.created_success')
             ], 201);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error creating contract', [
+            Log::error('Error creating agreement', [
                 'error' => $e->getMessage(),
                 'user_id' => Auth::id(),
                 'request_data' => $request->all()
@@ -183,28 +183,28 @@ class ContractController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => __('messages.contracts.create_error')
+                'message' => __('messages.agreements.create_error')
             ], 500);
         }
     }
 
     /**
-     * Actualiza un contrato existente.
+     * Actualiza un acuerdo existente.
      *
      * @param Request $request
-     * @param Contract $contract
+     * @param Agreement $agreement
      * @return JsonResponse
      */
-    public function update(Request $request, Contract $contract): JsonResponse
+    public function update(Request $request, Agreement $agreement): JsonResponse
     {
         try {
             $user = Auth::user();
 
-            // Solo el cliente puede actualizar el contrato y solo si está en draft
-            if ($contract->client_id !== $user->id || $contract->status !== Contract::STATUS_DRAFT) {
+            // Solo el cliente puede actualizar el acuerdo y solo si está en draft
+            if ($agreement->client_id !== $user->id || $agreement->status !== Agreement::STATUS_DRAFT) {
                 return response()->json([
                     'success' => false,
-                    'message' => __('messages.contracts.unauthorized_update')
+                    'message' => __('messages.agreements.unauthorized_update')
                 ], 403);
             }
 
@@ -213,93 +213,93 @@ class ContractController extends Controller
                 'expires_at' => 'nullable|date|after:now'
             ]);
 
-            $contract->update($validated);
-            $contract->load(['serviceRequest', 'serviceOffer', 'client', 'provider']);
+            $agreement->update($validated);
+            $agreement->load(['serviceRequest', 'serviceOffer', 'client', 'provider']);
 
             return response()->json([
                 'success' => true,
-                'data' => new ContractResource($contract),
-                'message' => __('messages.contracts.updated_success')
+                'data' => new AgreementResource($agreement),
+                'message' => __('messages.agreements.updated_success')
             ]);
         } catch (\Exception $e) {
-            Log::error('Error updating contract', [
+            Log::error('Error updating agreement', [
                 'error' => $e->getMessage(),
-                'contract_id' => $contract->id,
+                'agreement_id' => $agreement->id,
                 'user_id' => Auth::id()
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => __('messages.contracts.update_error')
+                'message' => __('messages.agreements.update_error')
             ], 500);
         }
     }
 
     /**
-     * Envía el contrato al proveedor.
+     * Envía el acuerdo al proveedor.
      *
-     * @param Contract $contract
+     * @param Agreement $agreement
      * @return JsonResponse
      */
-    public function send(Contract $contract): JsonResponse
+    public function send(Agreement $agreement): JsonResponse
     {
         try {
             $user = Auth::user();
 
-            // Solo el cliente puede enviar el contrato
-            if ($contract->client_id !== $user->id) {
+            // Solo el cliente puede enviar el acuerdo
+            if ($agreement->client_id !== $user->id) {
                 return response()->json([
                     'success' => false,
-                    'message' => __('messages.contracts.unauthorized_send')
+                    'message' => __('messages.agreements.unauthorized_send')
                 ], 403);
             }
 
-            if (!$contract->markAsSent()) {
+            if (!$agreement->markAsSent()) {
                 return response()->json([
                     'success' => false,
-                    'message' => __('messages.contracts.cannot_send')
+                    'message' => __('messages.agreements.cannot_send')
                 ], 400);
             }
 
             // TODO: Implementar notificación al proveedor
 
-            $contract->load(['serviceRequest', 'serviceOffer', 'client', 'provider']);
+            $agreement->load(['serviceRequest', 'serviceOffer', 'client', 'provider']);
 
             return response()->json([
                 'success' => true,
-                'data' => new ContractResource($contract),
-                'message' => __('messages.contracts.sent_success')
+                'data' => new AgreementResource($agreement),
+                'message' => __('messages.agreements.sent_success')
             ]);
         } catch (\Exception $e) {
-            Log::error('Error sending contract', [
+            Log::error('Error sending agreement', [
                 'error' => $e->getMessage(),
-                'contract_id' => $contract->id,
+                'agreement_id' => $agreement->id,
                 'user_id' => Auth::id()
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => __('messages.contracts.send_error')
+                'message' => __('messages.agreements.send_error')
             ], 500);
         }
     }
 
     /**
-     * Acepta el contrato (solo el proveedor).
+     * Acepta el acuerdo (solo el proveedor).
      *
-     * @param Contract $contract
+     * @param Agreement $agreement
      * @return JsonResponse
      */
-    public function accept(Contract $contract): JsonResponse
+    public function accept(Agreement $agreement): JsonResponse
     {
         try {
             $user = Auth::user();
 
             // Solo el proveedor puede aceptar el contrato
-            if ($contract->provider_id !== $user->id) {
+            if ($agreement->provider_id !== $user->id) {
                 return response()->json([
                     'success' => false,
-                    'message' => __('messages.contracts.unauthorized_accept')
+                    'message' => __('messages.agreements.unauthorized_accept')
                 ], 403);
             }
 
@@ -325,7 +325,7 @@ class ContractController extends Controller
                         // No bloquear si falla la generación del link; solo informar gating
                         \Log::warning('No se pudo generar account link de Connect al aceptar contrato', [
                             'user_id' => $user->id,
-                            'contract_id' => $contract->id,
+                            'agreement_id' => $agreement->id,
                             'error' => $e->getMessage(),
                         ]);
                     }
@@ -342,53 +342,53 @@ class ContractController extends Controller
                 }
             }
 
-            if (!$contract->markAsAccepted()) {
+            if (!$agreement->markAsAccepted()) {
                 return response()->json([
                     'success' => false,
-                    'message' => __('messages.contracts.cannot_accept')
+                    'message' => __('messages.agreements.cannot_accept')
                 ], 400);
             }
 
             // TODO: Implementar notificación al cliente
 
-            $contract->load(['serviceRequest', 'serviceOffer', 'client', 'provider']);
+            $agreement->load(['serviceRequest', 'serviceOffer', 'client', 'provider']);
 
             return response()->json([
                 'success' => true,
-                'data' => new ContractResource($contract),
-                'message' => __('messages.contracts.accepted_success')
+                'data' => new AgreementResource($agreement),
+                'message' => __('messages.agreements.accepted_success')
             ]);
         } catch (\Exception $e) {
-            \Log::error('Error accepting contract', [
+            \Log::error('Error accepting agreement', [
                 'error' => $e->getMessage(),
-                'contract_id' => $contract->id,
+                'agreement_id' => $agreement->id,
                 'user_id' => Auth::id()
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => __('messages.contracts.accept_error')
+                'message' => __('messages.agreements.accept_error')
             ], 500);
         }
     }
 
     /**
-     * Rechaza el contrato (solo el proveedor).
+     * Rechaza el acuerdo (solo el proveedor).
      *
      * @param Request $request
-     * @param Contract $contract
+     * @param Agreement $agreement
      * @return JsonResponse
      */
-    public function reject(Request $request, Contract $contract): JsonResponse
+    public function reject(Request $request, Agreement $agreement): JsonResponse
     {
         try {
             $user = Auth::user();
 
-            // Solo el proveedor puede rechazar el contrato
-            if ($contract->provider_id !== $user->id) {
+            // Solo el proveedor puede rechazar el acuerdo
+            if ($agreement->provider_id !== $user->id) {
                 return response()->json([
                     'success' => false,
-                    'message' => __('messages.contracts.unauthorized_reject')
+                    'message' => __('messages.agreements.unauthorized_reject')
                 ], 403);
             }
 
@@ -396,53 +396,53 @@ class ContractController extends Controller
                 'reason' => 'nullable|string|max:500'
             ]);
 
-            if (!$contract->markAsRejected($validated['reason'] ?? null)) {
+            if (!$agreement->markAsRejected($validated['reason'] ?? null)) {
                 return response()->json([
                     'success' => false,
-                    'message' => __('messages.contracts.cannot_reject')
+                    'message' => __('messages.agreements.cannot_reject')
                 ], 400);
             }
 
             // TODO: Implementar notificación al cliente
 
-            $contract->load(['serviceRequest', 'serviceOffer', 'client', 'provider']);
+            $agreement->load(['serviceRequest', 'serviceOffer', 'client', 'provider']);
 
             return response()->json([
                 'success' => true,
-                'data' => new ContractResource($contract),
-                'message' => __('messages.contracts.rejected_success')
+                'data' => new AgreementResource($agreement),
+                'message' => __('messages.agreements.rejected_success')
             ]);
         } catch (\Exception $e) {
-            Log::error('Error rejecting contract', [
+            Log::error('Error rejecting agreement', [
                 'error' => $e->getMessage(),
-                'contract_id' => $contract->id,
+                'agreement_id' => $agreement->id,
                 'user_id' => Auth::id()
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => __('messages.contracts.reject_error')
+                'message' => __('messages.agreements.reject_error')
             ], 500);
         }
     }
 
     /**
-     * Cancela el contrato.
+     * Cancela el acuerdo.
      *
      * @param Request $request
-     * @param Contract $contract
+     * @param Agreement $agreement
      * @return JsonResponse
      */
-    public function cancel(Request $request, Contract $contract): JsonResponse
+    public function cancel(Request $request, Agreement $agreement): JsonResponse
     {
         try {
             $user = Auth::user();
 
-            // Solo el cliente o proveedor pueden cancelar el contrato
-            if ($contract->client_id !== $user->id && $contract->provider_id !== $user->id) {
+            // Solo el cliente o proveedor pueden cancelar el acuerdo
+            if ($agreement->client_id !== $user->id && $agreement->provider_id !== $user->id) {
                 return response()->json([
                     'success' => false,
-                    'message' => __('messages.contracts.unauthorized_cancel')
+                    'message' => __('messages.agreements.unauthorized_cancel')
                 ], 403);
             }
 
@@ -450,77 +450,77 @@ class ContractController extends Controller
                 'reason' => 'nullable|string|max:500'
             ]);
 
-            if (!$contract->markAsCancelled($validated['reason'] ?? null)) {
+            if (!$agreement->markAsCancelled($validated['reason'] ?? null)) {
                 return response()->json([
                     'success' => false,
-                    'message' => __('messages.contracts.cannot_cancel')
+                    'message' => __('messages.agreements.cannot_cancel')
                 ], 400);
             }
 
             // TODO: Implementar notificación a la otra parte
 
-            $contract->load(['serviceRequest', 'serviceOffer', 'client', 'provider']);
+            $agreement->load(['serviceRequest', 'serviceOffer', 'client', 'provider']);
 
             return response()->json([
                 'success' => true,
-                'data' => new ContractResource($contract),
-                'message' => __('messages.contracts.cancelled_success')
+                'data' => new AgreementResource($agreement),
+                'message' => __('messages.agreements.cancelled_success')
             ]);
         } catch (\Exception $e) {
-            Log::error('Error cancelling contract', [
+            Log::error('Error cancelling agreement', [
                 'error' => $e->getMessage(),
-                'contract_id' => $contract->id,
+                'agreement_id' => $agreement->id,
                 'user_id' => Auth::id()
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => __('messages.contracts.cancel_error')
+                'message' => __('messages.agreements.cancel_error')
             ], 500);
         }
     }
 
     /**
-     * Elimina un contrato (solo si está en draft).
+     * Elimina un acuerdo (solo si está en draft).
      *
-     * @param Contract $contract
+     * @param Agreement $agreement
      * @return JsonResponse
      */
-    public function destroy(Contract $contract): JsonResponse
+    public function destroy(Agreement $agreement): JsonResponse
     {
         try {
             $user = Auth::user();
 
-            // Solo el cliente puede eliminar el contrato y solo si está en draft
-            if ($contract->client_id !== $user->id || $contract->status !== Contract::STATUS_DRAFT) {
+            // Solo el cliente puede eliminar el acuerdo y solo si está en draft
+            if ($agreement->client_id !== $user->id || $agreement->status !== Agreement::STATUS_DRAFT) {
                 return response()->json([
                     'success' => false,
-                    'message' => __('messages.contracts.unauthorized_delete')
+                    'message' => __('messages.agreements.unauthorized_delete')
                 ], 403);
             }
 
-            $contract->delete();
+            $agreement->delete();
 
             return response()->json([
                 'success' => true,
-                'message' => __('messages.contracts.deleted_success')
+                'message' => __('messages.agreements.deleted_success')
             ]);
         } catch (\Exception $e) {
-            Log::error('Error deleting contract', [
+            Log::error('Error deleting agreement', [
                 'error' => $e->getMessage(),
-                'contract_id' => $contract->id,
+                'agreement_id' => $agreement->id,
                 'user_id' => Auth::id()
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => __('messages.contracts.delete_error')
+                'message' => __('messages.agreements.delete_error')
             ], 500);
         }
     }
 
     /**
-     * Obtiene los contratos donde el usuario autenticado es el cliente.
+     * Obtiene los acuerdos donde el usuario autenticado es el cliente.
      *
      * @param Request $request
      * @return JsonResponse
@@ -532,43 +532,43 @@ class ContractController extends Controller
             $perPage = $request->get('per_page', 15);
             $status = $request->get('status');
 
-            $query = Contract::query()
+            $query = Agreement::query()
                 ->where('client_id', $user->id)
                 ->with(['serviceRequest', 'serviceOffer', 'client', 'provider'])
                 ->orderBy('created_at', 'desc');
 
-            if ($status && in_array($status, Contract::STATUSES)) {
+            if ($status && in_array($status, Agreement::STATUSES)) {
                 $query->where('status', $status);
             }
 
-            $contracts = $query->paginate($perPage);
+            $agreements = $query->paginate($perPage);
 
             return response()->json([
                 'success' => true,
                 'data' => [
-                    'data' => ContractResource::collection($contracts->items()),
-                    'current_page' => $contracts->currentPage(),
-                    'last_page' => $contracts->lastPage(),
-                    'per_page' => $contracts->perPage(),
-                    'total' => $contracts->total(),
+                    'data' => AgreementResource::collection($agreements->items()),
+                    'current_page' => $agreements->currentPage(),
+                    'last_page' => $agreements->lastPage(),
+                    'per_page' => $agreements->perPage(),
+                    'total' => $agreements->total(),
                 ],
-                'message' => __('messages.contracts.index_success')
+                'message' => __('messages.agreements.index_success')
             ]);
         } catch (\Exception $e) {
-            Log::error('Error fetching client contracts', [
+            Log::error('Error fetching client agreements', [
                 'error' => $e->getMessage(),
                 'user_id' => Auth::id()
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => __('messages.contracts.index_error')
+                'message' => __('messages.agreements.index_error')
             ], 500);
         }
     }
 
     /**
-     * Obtiene los contratos donde el usuario autenticado es el proveedor.
+     * Obtiene los acuerdos donde el usuario autenticado es el proveedor.
      *
      * @param Request $request
      * @return JsonResponse
@@ -580,58 +580,58 @@ class ContractController extends Controller
             $perPage = $request->get('per_page', 15);
             $status = $request->get('status');
 
-            $query = Contract::query()
+            $query = Agreement::query()
                 ->where('provider_id', $user->id)
                 ->with(['serviceRequest', 'serviceOffer', 'client', 'provider'])
                 ->orderBy('created_at', 'desc');
 
-            if ($status && in_array($status, Contract::STATUSES)) {
+            if ($status && in_array($status, Agreement::STATUSES)) {
                 $query->where('status', $status);
             }
 
-            $contracts = $query->paginate($perPage);
+            $agreements = $query->paginate($perPage);
 
             return response()->json([
                 'success' => true,
                 'data' => [
-                    'data' => ContractResource::collection($contracts->items()),
-                    'current_page' => $contracts->currentPage(),
-                    'last_page' => $contracts->lastPage(),
-                    'per_page' => $contracts->perPage(),
-                    'total' => $contracts->total(),
+                    'data' => AgreementResource::collection($agreements->items()),
+                    'current_page' => $agreements->currentPage(),
+                    'last_page' => $agreements->lastPage(),
+                    'per_page' => $agreements->perPage(),
+                    'total' => $agreements->total(),
                 ],
-                'message' => __('messages.contracts.index_success')
+                'message' => __('messages.agreements.index_success')
             ]);
         } catch (\Exception $e) {
-            Log::error('Error fetching provider contracts', [
+            Log::error('Error fetching provider agreements', [
                 'error' => $e->getMessage(),
                 'user_id' => Auth::id()
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => __('messages.contracts.index_error')
+                'message' => __('messages.agreements.index_error')
             ], 500);
         }
     }
 
     /**
-     * Revisa un contrato rechazado (solo el cliente) y lo regresa a borrador con versión incrementada.
+     * Revisa un acuerdo rechazado (solo el cliente) y lo regresa a borrador con versión incrementada.
      *
      * @param Request $request
-     * @param Contract $contract
+     * @param Agreement $agreement
      * @return JsonResponse
      */
-    public function revise(Request $request, Contract $contract): JsonResponse
+    public function revise(Request $request, Agreement $agreement): JsonResponse
     {
         try {
             $user = Auth::user();
 
             // Solo el cliente puede revisar y solo si está REJECTED
-            if ($contract->client_id !== $user->id || $contract->status !== Contract::STATUS_REJECTED) {
+            if ($agreement->client_id !== $user->id || $agreement->status !== Agreement::STATUS_REJECTED) {
                 return response()->json([
                     'success' => false,
-                    'message' => __('messages.contracts.unauthorized_update')
+                    'message' => __('messages.agreements.unauthorized_update')
                 ], 403);
             }
 
@@ -640,30 +640,30 @@ class ContractController extends Controller
                 'revision_note' => 'nullable|string|max:500',
             ]);
 
-            if (!$contract->revise($validated, $user->id)) {
+            if (!$agreement->revise($validated, $user->id)) {
                 return response()->json([
                     'success' => false,
-                    'message' => __('messages.contracts.update_error')
+                    'message' => __('messages.agreements.update_error')
                 ], 400);
             }
 
-            $contract->load(['serviceRequest', 'serviceOffer', 'client', 'provider']);
+            $agreement->load(['serviceRequest', 'serviceOffer', 'client', 'provider']);
 
             return response()->json([
                 'success' => true,
-                'data' => new ContractResource($contract),
-                'message' => __('messages.contracts.updated_success')
+                'data' => new AgreementResource($agreement),
+                'message' => __('messages.agreements.updated_success')
             ]);
         } catch (\Exception $e) {
-            \Log::error('Error revising contract', [
+            \Log::error('Error revising agreement', [
                 'error' => $e->getMessage(),
-                'contract_id' => $contract->id,
+                'agreement_id' => $agreement->id,
                 'user_id' => Auth::id()
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => __('messages.contracts.update_error')
+                'message' => __('messages.agreements.update_error')
             ], 500);
         }
     }

@@ -1,10 +1,5 @@
 <?php
 
-use App\Events\MyEvent;
-use App\Events\MyProofEvent;
-use App\Events\PrivateMessageEvent;
-//use App\Events\SomethingHappened;
-//use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Facades\Route;
 
 

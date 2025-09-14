@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('contracts', function (Blueprint $table) {
+        Schema::create('agreements', function (Blueprint $table) {
             $table->id();
             $table->foreignId('service_request_id')->constrained()->onDelete('cascade');
             $table->foreignId('service_offer_id')->constrained()->onDelete('cascade');
@@ -51,7 +51,7 @@ return new class extends Migration
             $table->index(['expires_at']);
             $table->index(['version']);
             
-            // Constraint único: solo un contrato por oferta
+            // Constraint único: solo un acuerdo por oferta
             $table->unique('service_offer_id');
         });
     }
@@ -61,6 +61,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('contracts');
+        Schema::dropIfExists('agreements');
     }
 };

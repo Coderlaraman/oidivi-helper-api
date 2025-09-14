@@ -507,27 +507,27 @@ class UserServiceOfferController extends Controller
                 );
             }
 
-            // Verificar si ya existe un contrato para esta oferta
-            $existingContract = \App\Models\Contract::where('service_offer_id', $offer->id)->first();
-            if ($existingContract) {
+            // Verificar si ya existe un acuerdo para esta oferta
+            $existingAgreement = \App\Models\Agreement::where('service_offer_id', $offer->id)->first();
+            if ($existingAgreement) {
                 return $this->successResponse(
                     data: [
-                        'contract' => $existingContract->load(['serviceRequest', 'serviceOffer', 'client', 'provider']),
-                        'message' => 'Ya existe un contrato para esta oferta'
+                        'agreement' => $existingAgreement->load(['serviceRequest', 'serviceOffer', 'client', 'provider']),
+                        'message' => 'Ya existe un acuerdo para esta oferta'
                     ],
-                    message: 'Contrato existente encontrado'
+                    message: 'Acuerdo existente encontrado'
                 );
             }
 
             \DB::beginTransaction();
 
-            // Crear el contrato
-            $contract = \App\Models\Contract::create([
+            // Crear el acuerdo
+            $agreement = \App\Models\Agreement::create([
                 'service_request_id' => $offer->service_request_id,
                 'service_offer_id' => $offer->id,
                 'client_id' => auth()->id(),
                 'provider_id' => $offer->user_id,
-                'status' => \App\Models\Contract::STATUS_DRAFT,
+                'status' => \App\Models\Agreement::STATUS_DRAFT,
                 'terms' => [
                     'price' => $offer->price_proposed,
                     'estimated_time' => $offer->estimated_time,
@@ -537,8 +537,8 @@ class UserServiceOfferController extends Controller
                 ]
             ]);
 
-            // Enviar el contrato al proveedor
-            $contract->markAsSent(now()->addDays(7)); // Expira en 7 días
+            // Enviar el acuerdo al proveedor
+            $agreement->markAsSent(now()->addDays(7)); // Expira en 7 días
 
             // Actualizar el estado de la oferta a "en revisión"
             $offer->update(['status' => ServiceOffer::STATUS_IN_REVIEW]);
@@ -547,23 +547,23 @@ class UserServiceOfferController extends Controller
 
             return $this->successResponse(
                 data: [
-                    'contract' => $contract->load(['serviceRequest', 'serviceOffer', 'client', 'provider']),
+                    'agreement' => $agreement->load(['serviceRequest', 'serviceOffer', 'client', 'provider']),
                     'offer' => $offer->load(['user', 'serviceRequest'])
                 ],
-                message: 'Contrato creado y enviado al proveedor para su aceptación'
+                message: 'Acuerdo creado y enviado al proveedor para su aceptación'
             );
 
         } catch (Exception $e) {
             \DB::rollBack();
             
-            \Log::error('Error creating contract for offer', [
+            \Log::error('Error creating agreement for offer', [
                 'error' => $e->getMessage(),
                 'offer_id' => $offer->id,
                 'user_id' => auth()->id(),
             ]);
 
             return $this->errorResponse(
-                message: 'Error al crear el contrato',
+                message: 'Error al crear el acuerdo',
                 statusCode: 500,
                 errors: ['error' => $e->getMessage()]
             );

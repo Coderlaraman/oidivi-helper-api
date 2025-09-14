@@ -5,13 +5,13 @@ return [
     'bad_request' => 'Requête invalide.',
     'dashboard_data_retrieved' => 'Données du tableau de bord récupérées avec succès.',
     'error' => 'Une erreur est survenue.',
-    'file_too_large' => 'Le fichier est trop grand.',
+    'file_too_large' => 'Le fichier est trop volumineux.',
     'forbidden' => 'Vous n\'avez pas la permission d\'accéder à cette ressource.',
     'general_error' => 'Une erreur est survenue.',
     'internal_error' => 'Erreur interne du serveur.',
     'invalid_credentials' => 'Les identifiants fournis sont incorrects.',
     'invalid_current_password' => 'Le mot de passe actuel est incorrect.',
-    'invalid_file_provided' => 'Fichier fourni invalide.',
+    'invalid_file_provided' => 'Fichier fourni non valide.',
     'invalid_file_type' => 'Le fichier n\'est pas valide ou son contenu ne correspond pas au type attendu.',
     'login_successful' => 'Connexion réussie.',
     'logout_successful' => 'Déconnexion réussie.',
@@ -27,26 +27,24 @@ return [
     'profile_video_deleted' => 'Vidéo de profil supprimée avec succès.',
     'reset_link_failed' => 'Erreur lors de l\'envoi du lien de réinitialisation du mot de passe.',
     'reset_link_sent' => 'Lien de réinitialisation du mot de passe envoyé avec succès.',
-    'success' => 'Opération effectuée avec succès.',
+    'success' => 'Opération terminée avec succès.',
     'unauthorized' => 'Non autorisé à effectuer cette action.',
-    'user_data_retrieved' => 'Données utilisateur récupérées avec succès.',
+    'user_data_retrieved' => 'Données de l\'utilisateur récupérées avec succès.',
     'user_inactive' => 'L\'utilisateur est inactif.',
     'user_registered_successfully' => 'Utilisateur enregistré avec succès.',
     'validation_error' => 'Erreur de validation.',
-
     // Auth
     'auth' => [
-        'account_locked' => 'Compte verrouillé en raison de plusieurs tentatives échouées. Réessayez plus tard.',
-        'email_verified' => 'Email vérifié avec succès.',
+        'account_locked' => 'Compte bloqué en raison de multiples tentatives infructueuses. Réessayez plus tard.',
+        'email_verified' => 'E-mail vérifié avec succès.',
         'login_failed' => 'Identifiants invalides.',
         'login_success' => 'Connexion réussie.',
         'logout_success' => 'Déconnexion réussie.',
-        'register_success' => 'Inscription réussie. Veuillez vérifier votre email.',
+        'register_success' => 'Inscription réussie. Veuillez vérifier votre e-mail.',
         'session_expired' => 'Session expirée. Veuillez vous reconnecter.',
-        'verification_failed' => 'Erreur lors de l\'envoi de l\'email de vérification.',
-        'verification_sent' => 'Email de vérification envoyé.',
+        'verification_failed' => 'Erreur lors de l\'envoi de l\'e-mail de vérification.',
+        'verification_sent' => 'E-mail de vérification envoyé.',
     ],
-
     // Categories
     'categories' => [
         'create_success' => 'Catégorie créée avec succès.',
@@ -56,27 +54,68 @@ return [
         'show_success' => 'Catégorie récupérée avec succès.',
         'update_success' => 'Catégorie mise à jour avec succès.',
     ],
-
-    // Contracts
-    'contracts' => [
-        'canceled' => 'Contrat annulé.',
-        'completed' => 'Contrat marqué comme terminé.',
-        'created' => 'Contrat généré avec succès.',
-        'updated' => 'Contrat mis à jour.',
+    // Agreements
+    'agreements' => [
+        'canceled' => 'Accord annulé.',
+        'completed' => 'Accord marqué comme terminé.',
+        'sent_success' => 'Accord envoyé avec succès.',
+        'send_error' => 'Erreur lors de l\'envoi de l\'accord.',
+        'unauthorized_send' => 'Vous n\'êtes pas autorisé à envoyer cet accord.',
+        'cannot_send' => 'Cet accord ne peut pas être envoyé dans son état actuel.',
+        'accepted_success' => 'Accord accepté avec succès.',
+        'accept_error' => 'Erreur lors de l\'acceptation de l\'accord.',
+        'unauthorized_accept' => 'Vous n\'êtes pas autorisé à accepter cet accord.',
+        'cannot_accept' => 'Cet accord ne peut pas être accepté dans son état actuel.',
+        'rejected_success' => 'Accord rejeté avec succès.',
+        'reject_error' => 'Erreur lors du rejet de l\'accord.',
+        'unauthorized_reject' => 'Vous n\'êtes pas autorisé à rejeter cet accord.',
+        'cannot_reject' => 'Cet accord ne peut pas être rejeté dans son état actuel.',
+        'updated_success' => 'Accord mis à jour avec succès.',
+        'update_error' => 'Erreur lors de la mise à jour de l\'accord.',
     ],
-
+    // Stripe Connect
+    'connect' => [
+        'only_helpers' => 'Seuls les prestataires peuvent effectuer cette action.',
+        'onboarding_error' => 'Impossible de démarrer l\'intégration de Stripe Connect.',
+        'status_error' => 'Impossible de récupérer le statut du compte Stripe.',
+        'refresh_error' => 'Impossible d\'actualiser le lien d\'intégration.',
+        'gated_accept' => 'Vous devez terminer l\'intégration des paiements avant d\'accepter des accords.',
+    ],
+    'success' => [
+        'retrieved' => 'Accords récupérés avec succès.',
+        'show' => 'Accord récupéré avec succès.',
+        'created' => 'Accord créé avec succès.',
+        'updated' => 'Accord mis à jour avec succès.',
+        'deleted' => 'Accord supprimé avec succès.',
+    ],
+    'errors' => [
+        'not_found' => 'Accord non trouvé.',
+        'service_offer_not_found' => 'Offre de service non trouvée pour cet accord.',
+        'retrieval_failed' => 'Erreur lors de la récupération des accords.',
+        'show_failed' => 'Erreur lors de la récupération de l\'accord.',
+        'create_failed' => 'Erreur lors de la création de l\'accord.',
+        'update_failed' => 'Erreur lors de la mise à jour de l\'accord.',
+        'delete_failed' => 'Erreur lors de la suppression de l\'accord.',
+        'validation_failed' => 'La validation a échoué.',
+        'invalid_status' => 'Statut de l\'accord invalide.',
+        'already_exists' => 'Un accord existe déjà pour cette offre de service.',
+        'must_be_accepted' => 'L\'offre de service doit être acceptée avant de créer un accord.',
+        'unauthorized' => 'Non autorisé à effectuer cette action.',
+        'create_unauthorized' => 'Non autorisé à créer un accord pour cette offre de service.',
+        'delete_unauthorized' => 'Non autorisé à supprimer cet accord.',
+        'delete_time_expired' => 'L\'accord ne peut pas être supprimé après :hours heures de sa création.',
+        'delete_status_invalid' => 'Seuls les accords en attente ou annulés peuvent être supprimés.',
+    ],
     // Dashboard
     'dashboard' => [
         'data_retrieved' => 'Données du tableau de bord récupérées avec succès.',
     ],
-
     // Notifications
     'notifications' => [
         'deleted' => 'Notification supprimée.',
         'read' => 'Notification marquée comme lue.',
         'sent' => 'Notification envoyée avec succès.',
     ],
-
     // Offers
     'offers' => [
         'accepted' => 'Offre acceptée.',
@@ -85,7 +124,6 @@ return [
         'rejected' => 'Offre rejetée.',
         'updated' => 'Offre mise à jour.',
     ],
-
     // Payments
     'payments' => [
         'confirmed' => 'Paiement confirmé avec succès.',
@@ -97,7 +135,6 @@ return [
         'refunded' => 'Remboursement traité avec succès.',
         'transaction_not_found' => 'Transaction non trouvée.',
     ],
-
     // Profile
     'profile' => [
         'bio_updated' => 'Biographie mise à jour.',
@@ -111,16 +148,14 @@ return [
         'users_retrieved' => 'Utilisateurs récupérés avec succès.',
         'video_updated' => 'Vidéo de profil mise à jour.',
     ],
-
     // Profile Photo
     'profile_photo' => [
         'image' => 'Le fichier doit être une image valide.',
-        'invalid' => 'Fichier fourni invalide.',
-        'max' => 'La taille maximale autorisée pour l\'image est de 2 Mo.',
+        'invalid' => 'Fichier fourni non valide.',
+        'max' => 'La taille maximale de l\'image autorisée est de 2 Mo.',
         'mimes' => 'L\'image doit être au format JPEG, PNG, JPG ou GIF.',
         'required' => 'Une photo de profil est requise.',
     ],
-
     // Reviews
     'reviews' => [
         'created' => 'Avis soumis avec succès.',
@@ -128,17 +163,40 @@ return [
         'not_allowed' => 'Vous ne pouvez pas évaluer ce service.',
         'updated' => 'Avis mis à jour.',
     ],
-
+    // Service Offers
+    'service_offers' => [
+        'errors' => [
+            'skills_required' => 'Compétences compatibles requises.',
+            'creation_failed' => 'La création de l\'offre de service a échoué.',
+            'unauthorized' => 'Non autorisé à effectuer cette action.',
+            'update_failed' => 'La mise à jour de l\'offre de service a échoué.',
+        ],
+        'notifications' => [
+            'new_offer_title' => 'Nouvelle offre de service.',
+            'new_offer_message' => 'Vous avez reçu une nouvelle offre pour :title.',
+            'status_update_title' => 'Mise à jour du statut de l\'offre.',
+            'status_update_message' => 'Le statut de votre offre pour :title a été mis à jour à :status.',
+        ],
+        'success' => [
+            'created' => 'Offre de service créée avec succès.',
+            'updated' => 'Offre de service mise à jour avec succès.',
+        ],
+    ],
     // Service Requests
     'service_requests' => [
-        'already_assigned' => 'La demande a déjà été attribuée à un prestataire.',
+        'already_assigned' => 'La demande a déjà été assignée à un prestataire.',
         'created' => 'Demande de service créée avec succès.',
         'deleted' => 'Demande de service supprimée.',
         'not_found' => 'Demande de service non trouvée.',
         'status_updated' => 'Statut de la demande de service mis à jour.',
         'updated' => 'Demande de service mise à jour.',
+        'status' => [
+            'published' => 'Publiée',
+            'in_progress' => 'En cours',
+            'completed' => 'Terminée',
+            'canceled' => 'Annulée',
+        ],
     ],
-
     // Subscriptions
     'subscriptions' => [
         'activated' => 'Abonnement activé avec succès.',
@@ -153,7 +211,6 @@ return [
         'show_error' => 'Erreur lors de la récupération de l\'abonnement.',
         'cancel_error' => 'Erreur lors de l\'annulation de l\'abonnement.',
     ],
-
     // Tickets
     'tickets' => [
         'closed' => 'Ticket fermé.',
@@ -167,7 +224,6 @@ return [
         'reply_error' => 'Erreur lors de l\'envoi de la réponse.',
         'updated' => 'Ticket mis à jour.',
     ],
-
     // Referrals
     'referrals' => [
         'accepted' => 'Parrainage accepté avec succès.',
@@ -181,35 +237,14 @@ return [
         'show_error' => 'Erreur lors de la récupération du parrainage.',
         'show_success' => 'Parrainage récupéré avec succès.',
     ],
-
     // Reports
     'reports' => [
-        'created' => 'Signalement soumis avec succès.',
-        'create_error' => 'Erreur lors de la soumission du signalement.',
-        'list_error' => 'Erreur lors de la récupération des signalements.',
-        'list_success' => 'Signalements récupérés avec succès.',
-        'show_error' => 'Erreur lors de la récupération des détails du signalement.',
-        'show_success' => 'Détails du signalement récupérés avec succès.',
-        'unauthorized' => 'Vous n\'êtes pas autorisé à voir ce signalement.',
-    ],
-
-    // Service Offers
-    'service_offers' => [
-        'errors' => [
-            'skills_required' => 'Compétences compatibles requises.',
-            'creation_failed' => 'Échec de la création de l\'offre de service.',
-            'unauthorized' => 'Non autorisé à effectuer cette action.',
-            'update_failed' => 'Échec de la mise à jour de l\'offre de service.',
-        ],
-        'notifications' => [
-            'new_offer_title' => 'Nouvelle offre de service.',
-            'new_offer_message' => 'Vous avez reçu une nouvelle offre pour : :title.',
-            'status_update_title' => 'Mise à jour du statut de l\'offre.',
-            'status_update_message' => 'Le statut de votre offre pour :title a été mis à jour à :status.',
-        ],
-        'success' => [
-            'created' => 'Offre de service créée avec succès.',
-            'updated' => 'Offre de service mise à jour avec succès.',
-        ],
+        'created' => 'Rapport soumis avec succès.',
+        'create_error' => 'Erreur lors de la soumission du rapport.',
+        'list_error' => 'Erreur lors de la récupération des rapports.',
+        'list_success' => 'Rapports récupérés avec succès.',
+        'show_error' => 'Erreur lors de la récupération des détails du rapport.',
+        'show_success' => 'Détails du rapport récupérés avec succès.',
+        'unauthorized' => 'Vous n\'êtes pas autorisé à voir ce rapport.',
     ],
 ];

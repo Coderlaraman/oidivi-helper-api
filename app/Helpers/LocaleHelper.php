@@ -15,7 +15,7 @@ class LocaleHelper
      */
     public static function setLocale($locale)
     {
-        if (!in_array($locale, ['en', 'es', 'fr'])) {
+        if (!in_array($locale, ['en', 'es', 'fr', 'pt'])) {
             $locale = 'en';
         }
 
@@ -48,6 +48,7 @@ class LocaleHelper
             'en' => 'English',
             'es' => 'Español',
             'fr' => 'Français',
+            'pt' => 'Português',
         ];
 
         return $locales[App::getLocale()] ?? 'English';
