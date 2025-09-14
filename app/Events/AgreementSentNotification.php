@@ -2,7 +2,7 @@
 
 namespace App\Events;
 
-use App\Models\Contract;
+use App\Models\Agreement;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
@@ -11,14 +11,14 @@ use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 
-class ContractRejectedNotification implements ShouldBroadcast
+class AgreementSentNotification implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     /**
-     * @var Contract
+     * @var Agreement
      */
-    private Contract $contract;
+    private Agreement $agreement;
 
     /**
      * @var int
@@ -28,13 +28,13 @@ class ContractRejectedNotification implements ShouldBroadcast
     /**
      * Create a new event instance.
      */
-    public function __construct(Contract $contract, int $userId)
+    public function __construct(Agreement $agreement, int $userId)
     {
-        $this->contract = $contract;
+        $this->agreement = $agreement;
         $this->userId = $userId;
 
-        Log::info('ContractRejectedNotification event created', [
-            'contract_id' => $contract->id,
+        Log::info('AgreementSentNotification event created', [
+            'agreement_id' => $agreement->id,
             'user_id' => $userId
         ]);
     }
@@ -59,21 +59,20 @@ class ContractRejectedNotification implements ShouldBroadcast
     public function broadcastWith(): array
     {
         return [
-            'type' => 'contract_rejected',
-            'contract' => [
-                'id' => $this->contract->id,
-                'service_request_id' => $this->contract->service_request_id,
-                'service_offer_id' => $this->contract->service_offer_id,
-                'status' => $this->contract->status,
-                'rejection_reason' => $this->contract->rejection_reason,
-                'created_at' => $this->contract->created_at?->toIso8601String()
+            'type' => 'agreement_sent',
+            'agreement' => [
+                'id' => $this->agreement->id,
+                'service_request_id' => $this->agreement->service_request_id,
+                'service_offer_id' => $this->agreement->service_offer_id,
+                'status' => $this->agreement->status,
+                'created_at' => $this->agreement->created_at?->toIso8601String()
             ],
             'notification' => [
-                'title' => __('notifications.types.contract_rejected'),
-                'message' => __('notifications.messages.contract_rejected', [
-                    'title' => $this->contract->serviceRequest->title ?? ''
+                'title' => __('notifications.types.agreement_sent'),
+                'message' => __('notifications.messages.agreement_sent', [
+                    'title' => $this->agreement->serviceRequest->title ?? ''
                 ]),
-                'action_url' => "/contracts/{$this->contract->id}"
+                'action_url' => "/agreements/{$this->agreement->id}"
             ]
         ];
     }
@@ -83,6 +82,6 @@ class ContractRejectedNotification implements ShouldBroadcast
      */
     public function broadcastAs(): string
     {
-        return 'contract.rejected';
+        return 'agreement.sent';
     }
 }

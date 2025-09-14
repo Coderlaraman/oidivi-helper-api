@@ -3,9 +3,9 @@
 namespace App\Models;
 
 use App\Constants\NotificationType;
-use App\Events\ContractAcceptedNotification;
-use App\Events\ContractRejectedNotification;
-use App\Events\ContractSentNotification;
+use App\Events\AgreementAcceptedNotification;
+use App\Events\AgreementRejectedNotification;
+use App\Events\AgreementSentNotification;
 use App\Traits\Notifiable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -240,7 +240,7 @@ class Agreement extends Model
         ]);
         
         if ($saved) {
-            $this->notifyContractSent();
+            $this->notifyAgreementSent();
         }
         
         return $saved;
@@ -263,7 +263,7 @@ class Agreement extends Model
         ]);
         
         if ($saved) {
-            $this->notifyContractAccepted();
+            $this->notifyAgreementAccepted();
         }
         
         return $saved;
@@ -288,7 +288,7 @@ class Agreement extends Model
         ]);
         
         if ($saved) {
-            $this->notifyContractRejected();
+            $this->notifyAgreementRejected();
         }
         
         return $saved;
@@ -312,7 +312,7 @@ class Agreement extends Model
         ]);
 
         if ($saved) {
-            $this->notifyContractCancelled();
+            $this->notifyAgreementCancelled();
         }
 
         return $saved;
@@ -407,27 +407,27 @@ class Agreement extends Model
     /**
      * Notify client that agreement has been sent.
      */
-    protected function notifyContractSent(): void
+    protected function notifyAgreementSent(): void
     {
       try {
         $title = $this->serviceRequest?->title ?? '';
         // Notificar al proveedor (helper) que recibió un acuerdo (BD + broadcast)
         $this->createNotification(
           userIds: [$this->provider_id],
-          type: NotificationType::CONTRACT_SENT,
-          title: __('notifications.types.contract_sent'),
-          message: __('notifications.messages.contract_sent', [
+          type: NotificationType::AGREEMENT_SENT,
+            title: __('notifications.types.agreement_sent'),
+            message: __('notifications.messages.agreement_sent', [
             'title' => $title,
           ])
         );
-        event(new ContractSentNotification($this, $this->provider_id));
+        event(new AgreementSentNotification($this, $this->provider_id));
 
         // Notificación de confirmación al cliente (solo BD)
         $this->createNotification(
           userIds: [$this->client_id],
-          type: NotificationType::CONTRACT_SENT,
-          title: __('notifications.types.contract_sent_client'),
-          message: __('notifications.messages.contract_sent_client', [
+          type: NotificationType::AGREEMENT_SENT,
+            title: __('notifications.types.agreement_sent_client'),
+            message: __('notifications.messages.agreement_sent_client', [
             'title' => $title,
           ])
         );
@@ -442,21 +442,21 @@ class Agreement extends Model
     /**
      * Notify provider that agreement has been accepted.
      */
-    protected function notifyContractAccepted(): void
+    protected function notifyAgreementAccepted(): void
     {
         try {
             $title = $this->serviceRequest?->title ?? '';
             // Notificar al cliente que su acuerdo fue aceptado
             $this->createNotification(
                 userIds: [$this->client_id],
-                type: NotificationType::CONTRACT_ACCEPTED,
-                title: __('notifications.types.contract_accepted'),
-                message: __('notifications.messages.contract_accepted', [
+                type: NotificationType::AGREEMENT_ACCEPTED,
+                title: __('notifications.types.agreement_accepted'),
+                message: __('notifications.messages.agreement_accepted', [
                     'title' => $title
                 ])
             );
 
-            event(new ContractAcceptedNotification($this, $this->client_id));
+            event(new AgreementAcceptedNotification($this, $this->client_id));
         } catch (\Exception $e) {
             Log::error('Error notifying agreement accepted', [
                 'error' => $e->getMessage(),
@@ -468,21 +468,21 @@ class Agreement extends Model
     /**
      * Notify provider that agreement has been rejected.
      */
-    protected function notifyContractRejected(): void
+    protected function notifyAgreementRejected(): void
     {
         try {
             $title = $this->serviceRequest?->title ?? '';
             // Notificar al cliente que su acuerdo fue rechazado
             $this->createNotification(
                 userIds: [$this->client_id],
-                type: NotificationType::CONTRACT_REJECTED,
-                title: __('notifications.types.contract_rejected'),
-                message: __('notifications.messages.contract_rejected', [
+                type: NotificationType::AGREEMENT_REJECTED,
+                title: __('notifications.types.agreement_rejected'),
+                message: __('notifications.messages.agreement_rejected', [
                     'title' => $title
                 ])
             );
 
-            event(new ContractRejectedNotification($this, $this->client_id));
+            event(new AgreementRejectedNotification($this, $this->client_id));
         } catch (\Exception $e) {
             Log::error('Error notifying agreement rejected', [
                 'error' => $e->getMessage(),
@@ -494,7 +494,7 @@ class Agreement extends Model
     /**
      * Notify both parties that the agreement has been cancelled.
      */
-    protected function notifyContractCancelled(): void
+    protected function notifyAgreementCancelled(): void
     {
         try {
             $title = $this->serviceRequest?->title ?? '';
@@ -502,25 +502,25 @@ class Agreement extends Model
             // Crear notificación para ambas partes
             $this->createNotification(
                 userIds: [$this->client_id],
-                type: NotificationType::CONTRACT_CANCELLED,
-                title: __('notifications.types.contract_cancelled'),
-                message: __('notifications.messages.contract_cancelled', [
+                type: NotificationType::AGREEMENT_CANCELLED,
+                title: __('notifications.types.agreement_cancelled'),
+                message: __('notifications.messages.agreement_cancelled', [
                     'title' => $title
                 ])
             );
 
             $this->createNotification(
                 userIds: [$this->provider_id],
-                type: NotificationType::CONTRACT_CANCELLED,
-                title: __('notifications.types.contract_cancelled'),
-                message: __('notifications.messages.contract_cancelled', [
+                type: NotificationType::AGREEMENT_CANCELLED,
+                title: __('notifications.types.agreement_cancelled'),
+                message: __('notifications.messages.agreement_cancelled', [
                     'title' => $title
                 ])
             );
 
             // Emitir broadcast a ambos canales privados
-            event(new \App\Events\ContractCancelledNotification($this, $this->client_id));
-            event(new \App\Events\ContractCancelledNotification($this, $this->provider_id));
+            event(new \App\Events\AgreementCancelledNotification($this, $this->client_id));
+        event(new \App\Events\AgreementCancelledNotification($this, $this->provider_id));
         } catch (\Exception $e) {
             Log::error('Error notifying agreement cancelled', [
                 'error' => $e->getMessage(),
