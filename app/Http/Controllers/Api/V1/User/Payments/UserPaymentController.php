@@ -432,7 +432,7 @@ class UserPaymentController extends Controller
                     $q->where('payer_user_id', $userId)
                       ->orWhere('payee_user_id', $userId);
                 })
-                ->with(['serviceRequest', 'serviceOffer.user', 'payer', 'payee', 'agreement']);
+                ->with(['serviceRequest', 'serviceOffer.user', 'payer', 'payee', 'contract']);
 
             // Filtro por estado
             if ($request->filled('status')) {
@@ -489,7 +489,7 @@ class UserPaymentController extends Controller
                 );
             }
 
-            $payment->load(['serviceRequest', 'serviceOffer.user', 'payer', 'payee', 'agreement']);
+            $payment->load(['serviceRequest', 'serviceOffer.user', 'payer', 'payee', 'contract']);
 
             return $this->successResponse($payment->toArray(), 'Pago obtenido correctamente');
         } catch (Exception $e) {
