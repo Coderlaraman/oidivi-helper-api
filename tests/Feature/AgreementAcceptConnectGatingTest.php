@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Models\Contract;
+use App\Models\Agreement;
 use App\Models\ServiceOffer;
 use App\Models\ServiceRequest;
 use App\Models\User;
@@ -10,7 +10,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
-class ContractAcceptConnectGatingTest extends TestCase
+class AgreementAcceptConnectGatingTest extends TestCase
 {
     use RefreshDatabase;
 
@@ -42,7 +42,7 @@ class ContractAcceptConnectGatingTest extends TestCase
         return [$client, $helper];
     }
 
-    private function createSentContract(User $client, User $helper): Contract
+    private function createSentAgreement(User $client, User $helper): Agreement
     {
         $serviceRequest = ServiceRequest::factory()->create(['user_id' => $client->id]);
         $serviceOffer = ServiceOffer::factory()->create([
@@ -51,27 +51,28 @@ class ContractAcceptConnectGatingTest extends TestCase
             'status' => ServiceOffer::STATUS_PENDING,
         ]);
 
-        $contract = Contract::create([
+        $agreement = Agreement::create([
             'service_request_id' => $serviceRequest->id,
             'service_offer_id' => $serviceOffer->id,
             'client_id' => $client->id,
             'provider_id' => $helper->id,
-            'status' => Contract::STATUS_DRAFT,
+            'status' => Agreement::STATUS_DRAFT,
         ]);
 
-        $contract->markAsSent();
+        $agreement->markAsSent();
 
-        return $contract;
+        return $agreement;
     }
 
     public function test_accept_is_gated_without_connect_enabled(): void
     {
         [$client, $helper] = $this->createClientAndHelper();
-        $contract = $this->createSentContract($client, $helper);
+        $agreement = $this->createSentAgreement($client, $helper);
 
-        $response = $this->actingAs($helper, 'sanctum')->postJson("/api/v1/user/contracts/{$contract->id}/accept");
+        $response = $this->actingAs($helper, 'sanctum')->postJson("/api/v1/user/agreements/{$agreement->id}/accept");
 
-        $response->assertStatus(409)
+        $response
+            ->assertStatus(409)
             ->assertJsonPath('success', false)
             ->assertJsonStructure([
                 'message',
@@ -90,12 +91,13 @@ class ContractAcceptConnectGatingTest extends TestCase
             'stripe_charges_enabled' => true,
             'stripe_payouts_enabled' => true,
         ]);
-        $contract = $this->createSentContract($client, $helper);
+        $agreement = $this->createSentAgreement($client, $helper);
 
-        $response = $this->actingAs($helper, 'sanctum')->postJson("/api/v1/user/contracts/{$contract->id}/accept");
+        $response = $this->actingAs($helper, 'sanctum')->postJson("/api/v1/user/agreements/{$agreement->id}/accept");
 
-        $response->assertOk()
+        $response
+            ->assertOk()
             ->assertJsonPath('success', true)
-            ->assertJsonPath('data.status', Contract::STATUS_ACCEPTED);
+            ->assertJsonPath('data.status', Agreement::STATUS_ACCEPTED);
     }
 }
