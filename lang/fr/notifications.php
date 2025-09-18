@@ -13,7 +13,9 @@ return [
         'agreement_accepted' => 'Accord accepté',
         'agreement_rejected' => 'Accord rejeté',
         'agreement_cancelled' => 'Accord annulé',
-        'agreement_expired' => 'Accord expiré'
+        'agreement_expired' => 'Accord expiré',
+        // Ajouté type de notification de paiement
+        'payment_completed' => 'Paiement effectué',
     ],
     'messages' => [
         'new_service_request' => 'Une nouvelle demande de service a été créée : :title',
@@ -26,6 +28,8 @@ return [
         'agreement_accepted' => 'Votre accord pour :title a été accepté',
         'agreement_rejected' => 'Votre accord pour :title a été rejeté',
         'agreement_cancelled' => 'L\'accord pour :title a été annulé',
-        'agreement_expired' => 'L\'accord pour :title a expiré'
+        'agreement_expired' => 'L\'accord pour :title a expiré',
+        // Ajouté message de paiement effectué
+        'payment_completed' => 'Vous avez reçu un paiement de :amount :currency pour le service ":service".',
     ]
 ];

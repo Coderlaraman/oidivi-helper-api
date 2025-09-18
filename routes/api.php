@@ -26,6 +26,7 @@ use App\Http\Controllers\Api\V1\User\Skills\UserSkillController;
 use App\Http\Controllers\Api\V1\User\Subscriptions\UserSubscriptionController;
 use App\Http\Controllers\Api\V1\User\Tickets\UserTicketController; // added
 use App\Http\Controllers\Api\V1\User\Search\UserSearchController;
+use App\Http\Controllers\TransactionController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -157,6 +158,17 @@ Route::prefix('v1')->middleware('locale')->group(function () {
             // Nuevos endpoints para listar y obtener pagos
             Route::get('/', [UserPaymentController::class, 'index']);
             Route::get('/{payment}', [UserPaymentController::class, 'show']);
+        });
+
+        /**
+         * Rutas de transacciones del usuario autenticado.
+         */
+        Route::prefix('transactions')->middleware('auth:sanctum')->group(function () {
+            Route::get('/', [TransactionController::class, 'index']);
+            Route::get('/statistics', [TransactionController::class, 'statistics']);
+            Route::get('/export', [TransactionController::class, 'export']);
+            Route::get('/filter-options', [TransactionController::class, 'filterOptions']);
+            Route::get('/{transaction}', [TransactionController::class, 'show']);
         });
 
         // Onboarding de helpers con Stripe Connect

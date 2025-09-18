@@ -6,18 +6,28 @@ use App\Http\Resources\User\AgreementResource;
 use App\Models\Agreement;
 use App\Models\ServiceOffer;
 use App\Models\ServiceRequest;
+use App\Services\TransactionService;
+use App\Services\PaymentService;
+use App\Services\EscrowService;
+use App\Http\Resources\User\UserTransactionResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
+use Exception;
 
 /**
  * Controlador para gestionar contratos entre clientes y proveedores de servicios.
  */
 class AgreementController extends Controller
 {
+    public function __construct(
+        private TransactionService $transactionService,
+        private PaymentService $paymentService,
+        private EscrowService $escrowService
+    ) {}
     /**
      * Obtiene todos los contratos del usuario autenticado.
      *
@@ -666,5 +676,232 @@ class AgreementController extends Controller
                 'message' => __('messages.agreements.update_error')
             ], 500);
         }
+    }
+
+    /**
+     * Get financial summary for an agreement.
+     */
+    public function financialSummary(Agreement $agreement): JsonResponse
+    {
+        $this->authorize('view', $agreement);
+        
+        $summary = $agreement->getFinancialSummary();
+        
+        return response()->json([
+            'success' => true,
+            'data' => $summary,
+        ]);
+    }
+    
+    /**
+     * Get all transactions related to an agreement.
+     */
+    public function transactions(Agreement $agreement): JsonResponse
+    {
+        $this->authorize('view', $agreement);
+        
+        $transactions = $agreement->transactions()
+            ->with(['user', 'parentTransaction', 'childTransactions'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+            
+        return response()->json([
+                'success' => true,
+                'data' => UserTransactionResource::collection($transactions),
+            ]);
+    }
+    
+    /**
+     * Get payment transactions for an agreement.
+     */
+    public function paymentTransactions(Agreement $agreement): JsonResponse
+    {
+        $this->authorize('view', $agreement);
+        
+        $transactions = $agreement->paymentTransactions()
+            ->with(['user', 'parentTransaction', 'childTransactions'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+            
+        return response()->json([
+                'success' => true,
+                'data' => UserTransactionResource::collection($transactions),
+            ]);
+    }
+    
+    /**
+     * Get refund transactions for an agreement.
+     */
+    public function refundTransactions(Agreement $agreement): JsonResponse
+    {
+        $this->authorize('view', $agreement);
+        
+        $transactions = $agreement->refundTransactions()
+            ->with(['user', 'parentTransaction', 'childTransactions'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+            
+        return response()->json([
+                'success' => true,
+                'data' => UserTransactionResource::collection($transactions),
+            ]);
+    }
+    
+    /**
+     * Process payment for an agreement.
+     */
+    public function processPayment(Request $request, Agreement $agreement): JsonResponse
+    {
+        $request->validate([
+            'amount' => 'required|numeric|min:0.01',
+            'payment_method' => 'required|string|in:stripe,paypal,bank_transfer',
+            'payment_intent_id' => 'nullable|string',
+        ]);
+        
+        $this->authorize('pay', $agreement);
+        
+        try {
+            $result = $this->paymentService->processAgreementPayment(
+                $agreement,
+                $request->amount,
+                $request->payment_method,
+                $request->payment_intent_id
+            );
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Payment processed successfully',
+                'data' => [
+                    'payment_transaction' => new UserTransactionResource($result['payment_transaction']),
+                    'commission_transaction' => new UserTransactionResource($result['commission_transaction']),
+                    'transaction_group_id' => $result['transaction_group_id'],
+                    'net_amount_to_helper' => $result['net_amount_to_helper'],
+                ],
+            ]);
+            
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to process payment: ' . $e->getMessage(),
+            ], 400);
+        }
+    }
+    
+    /**
+     * Hold funds in escrow for an agreement.
+     */
+    public function holdFunds(Request $request, Agreement $agreement): JsonResponse
+    {
+        $request->validate([
+            'amount' => 'required|numeric|min:0.01',
+            'hold_until' => 'nullable|date|after:now',
+            'reason' => 'nullable|string|max:500',
+        ]);
+        
+        $this->authorize('holdFunds', $agreement);
+        
+        try {
+            $result = $this->escrowService->holdFunds(
+                $agreement->client,
+                $request->amount,
+                $agreement,
+                $request->hold_until,
+                $request->reason
+            );
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Funds held in escrow successfully',
+                'data' => [
+                    'escrow_transaction' => new UserTransactionResource($result['escrow_transaction']),
+                    'hold_until' => $result['hold_until'],
+                    'escrow_balance' => $result['escrow_balance'],
+                ],
+            ]);
+            
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to hold funds: ' . $e->getMessage(),
+            ], 400);
+        }
+    }
+    
+    /**
+     * Release funds from escrow for an agreement.
+     */
+    public function releaseFunds(Request $request, Agreement $agreement): JsonResponse
+    {
+        $request->validate([
+            'amount' => 'required|numeric|min:0.01',
+            'reason' => 'nullable|string|max:500',
+        ]);
+        
+        $this->authorize('releaseFunds', $agreement);
+        
+        try {
+            $result = $this->escrowService->releaseFunds(
+                $agreement->helper,
+                $request->amount,
+                $agreement,
+                $request->reason
+            );
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Funds released from escrow successfully',
+                'data' => [
+                    'release_transaction' => new UserTransactionResource($result['release_transaction']),
+                    'remaining_escrow_balance' => $result['remaining_escrow_balance'],
+                ],
+            ]);
+            
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to release funds: ' . $e->getMessage(),
+            ], 400);
+        }
+    }
+    
+    /**
+     * Get escrow balance for an agreement.
+     */
+    public function escrowBalance(Agreement $agreement): JsonResponse
+    {
+        $this->authorize('view', $agreement);
+        
+        $balance = $this->escrowService->getEscrowBalance($agreement->client, $agreement);
+        
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'escrow_balance' => $balance,
+                'formatted_balance' => '$' . number_format($balance, 2),
+            ],
+        ]);
+    }
+    
+    /**
+     * Get payment status for an agreement.
+     */
+    public function paymentStatus(Agreement $agreement): JsonResponse
+    {
+        $this->authorize('view', $agreement);
+        
+        $status = $agreement->getPaymentStatus();
+        
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'payment_status' => $status,
+                'can_be_paid' => $agreement->canBePaid(),
+                'total_paid' => $agreement->getTotalPaid(),
+                'total_refunded' => $agreement->getTotalRefunded(),
+                'net_amount' => $agreement->getNetAmount(),
+                'commission_amount' => $agreement->getCommissionAmount(),
+                'is_using_transactions' => $agreement->isUsingTransactions(),
+            ],
+        ]);
     }
 }

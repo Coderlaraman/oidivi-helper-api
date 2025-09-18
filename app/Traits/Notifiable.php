@@ -13,7 +13,7 @@ trait Notifiable
         return $this->morphToMany(Notification::class, 'notifiable');
     }
 
-    protected function createNotification(array $userIds, string $type, string $title, string $message): array
+    public function createNotification(array $userIds, string $type, string $title, string $message, array $data = []): array
     {
         if (!NotificationType::isValid($type)) {
             throw new \InvalidArgumentException("Invalid notification type: {$type}");
@@ -26,9 +26,10 @@ trait Notifiable
                 'type' => $type,
                 'title' => $title,
                 'message' => $message,
+                'data' => !empty($data) ? $data : null,
             ]);
 
-            $this->notifications()->attach($notification->id);
+            // No need to save to relationship since notification already has user_id
             $notifications[] = $notification;
         }
 

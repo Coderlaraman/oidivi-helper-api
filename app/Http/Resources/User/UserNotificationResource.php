@@ -34,6 +34,10 @@ class UserNotificationResource extends JsonResource
             }
         }
 
+        // Fallback: si no hay actionUrl calculada, usar la que venga en data (por ejemplo, pagos completados)
+        if (!$actionUrl && is_array($this->data) && !empty($this->data['action_url'])) {
+            $actionUrl = $this->data['action_url'];
+        }
 
         return [
             'id' => $this->id,

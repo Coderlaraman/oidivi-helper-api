@@ -18,6 +18,9 @@ class NotificationType
     public const AGREEMENT_CANCELLED = 'agreement_cancelled';
     public const AGREEMENT_EXPIRED = 'agreement_expired';
 
+    // Payment notifications
+    public const PAYMENT_COMPLETED = 'payment_completed';
+
     public static function isValid(string $type): bool
     {
         return in_array($type, [
@@ -32,6 +35,7 @@ class NotificationType
             self::AGREEMENT_REJECTED,
             self::AGREEMENT_CANCELLED,
             self::AGREEMENT_EXPIRED,
+            self::PAYMENT_COMPLETED,
         ]);
     }
 }

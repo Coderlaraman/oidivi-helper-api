@@ -26,6 +26,7 @@ class DatabaseSeeder extends Seeder
             CategorySeeder::class,
             SkillSeeder::class,
             ServiceRequestSeeder::class,
+            TransactionSeeder::class,
         ]);
     }
 }

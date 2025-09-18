@@ -188,6 +188,33 @@ class Agreement extends Model
         return $this->hasMany(Payment::class);
     }
 
+    /**
+     * Get all transactions related to this agreement.
+     */
+    public function transactions(): HasMany
+    {
+        return $this->hasMany(Transaction::class, 'related_model_id')
+            ->where('related_model_type', self::class);
+    }
+
+    /**
+     * Get payment transactions for this agreement.
+     */
+    public function paymentTransactions(): HasMany
+    {
+        return $this->transactions()
+            ->where('type', Transaction::TYPE_PAYMENT);
+    }
+
+    /**
+     * Get refund transactions for this agreement.
+     */
+    public function refundTransactions(): HasMany
+    {
+        return $this->transactions()
+            ->where('type', Transaction::TYPE_REFUND);
+    }
+
     // --- MÉTODOS DE UTILIDAD ---
 
     /**
@@ -197,6 +224,15 @@ class Agreement extends Model
      */
     public function canBePaid(): bool
     {
+        // Verificar usando el nuevo sistema de transacciones si está disponible
+        if ($this->isUsingTransactions()) {
+            return $this->status === self::STATUS_ACCEPTED && 
+                   !$this->paymentTransactions()
+                       ->where('status', Transaction::STATUS_COMPLETED)
+                       ->exists();
+        }
+        
+        // Fallback al sistema legacy
         return in_array($this->status, self::PAYABLE_STATUSES);
     }
 
@@ -405,12 +441,154 @@ class Agreement extends Model
     }
 
     /**
+     * Get the total amount paid for this agreement.
+     */
+    public function getTotalPaid(): float
+    {
+        // Usar el nuevo sistema de transacciones si está disponible
+        if ($this->isUsingTransactions()) {
+            return $this->paymentTransactions()
+                ->where('status', Transaction::STATUS_COMPLETED)
+                ->sum('amount');
+        }
+        
+        // Fallback al sistema legacy
+        return $this->payments()
+            ->where('status', Payment::STATUS_COMPLETED)
+            ->sum('amount');
+    }
+
+    /**
+     * Get the total amount refunded for this agreement.
+     */
+    public function getTotalRefunded(): float
+    {
+        if ($this->isUsingTransactions()) {
+            return $this->refundTransactions()
+                ->where('status', Transaction::STATUS_COMPLETED)
+                ->sum('amount');
+        }
+        
+        // Fallback: calcular desde pagos legacy
+        return $this->payments()
+            ->whereIn('status', [Payment::STATUS_REFUNDED, Payment::STATUS_PARTIALLY_REFUNDED])
+            ->sum('amount'); // Simplificado para el ejemplo
+    }
+
+    /**
+     * Get the net amount (paid - refunded) for this agreement.
+     */
+    public function getNetAmount(): float
+    {
+        return $this->getTotalPaid() - $this->getTotalRefunded();
+    }
+
+    /**
+     * Get commission amount for this agreement.
+     */
+    public function getCommissionAmount(): float
+    {
+        if ($this->isUsingTransactions()) {
+            return $this->transactions()
+                ->where('type', Transaction::TYPE_COMMISSION)
+                ->where('status', Transaction::STATUS_COMPLETED)
+                ->sum('amount');
+        }
+        
+        // Calcular comisión basada en pagos completados (5% por defecto)
+        return $this->getTotalPaid() * 0.05;
+    }
+
+    /**
+     * Check if this agreement is using the new transaction system.
+     */
+    public function isUsingTransactions(): bool
+    {
+        return $this->transactions()->exists();
+    }
+
+    /**
+     * Get payment status for this agreement.
+     */
+    public function getPaymentStatus(): string
+    {
+        if ($this->isUsingTransactions()) {
+            $completedPayments = $this->paymentTransactions()
+                ->where('status', Transaction::STATUS_COMPLETED)
+                ->exists();
+            
+            $refundAmount = $this->getTotalRefunded();
+            $paidAmount = $this->getTotalPaid();
+            
+            if (!$completedPayments) {
+                return 'unpaid';
+            }
+            
+            if ($refundAmount >= $paidAmount && $refundAmount > 0) {
+                return 'refunded';
+            }
+            
+            if ($refundAmount > 0) {
+                return 'partially_refunded';
+            }
+            
+            return 'paid';
+        }
+        
+        // Fallback al sistema legacy
+        $completedPayment = $this->payments()
+            ->where('status', Payment::STATUS_COMPLETED)
+            ->first();
+            
+        if (!$completedPayment) {
+            return 'unpaid';
+        }
+        
+        if ($completedPayment->status === Payment::STATUS_REFUNDED) {
+            return 'refunded';
+        }
+        
+        if ($completedPayment->status === Payment::STATUS_PARTIALLY_REFUNDED) {
+            return 'partially_refunded';
+        }
+        
+        return 'paid';
+    }
+
+    /**
+     * Get financial summary for this agreement.
+     */
+    public function getFinancialSummary(): array
+    {
+        return [
+            'total_paid' => $this->getTotalPaid(),
+            'total_refunded' => $this->getTotalRefunded(),
+            'net_amount' => $this->getNetAmount(),
+            'commission_amount' => $this->getCommissionAmount(),
+            'payment_status' => $this->getPaymentStatus(),
+            'using_transactions' => $this->isUsingTransactions(),
+            'transaction_count' => $this->isUsingTransactions() ? $this->transactions()->count() : 0,
+        ];
+    }
+
+    /**
      * Notify client that agreement has been sent.
      */
     protected function notifyAgreementSent(): void
     {
       try {
         $title = $this->serviceRequest?->title ?? '';
+        
+        // Datos del acuerdo para incluir en las notificaciones
+        $agreementData = [
+            'agreement_id' => $this->id,
+            'status' => $this->status,
+            'client_id' => $this->client_id,
+            'provider_id' => $this->provider_id,
+            'service_request_id' => $this->service_request_id,
+            'expires_at' => $this->expires_at?->toISOString(),
+        ];
+        
         // Notificar al proveedor (helper) que recibió un acuerdo (BD + broadcast)
         $this->createNotification(
           userIds: [$this->provider_id],
@@ -418,7 +596,8 @@ class Agreement extends Model
             title: __('notifications.types.agreement_sent'),
             message: __('notifications.messages.agreement_sent', [
             'title' => $title,
-          ])
+          ]),
+          data: $agreementData
         );
         event(new AgreementSentNotification($this, $this->provider_id));
 
@@ -429,7 +608,8 @@ class Agreement extends Model
             title: __('notifications.types.agreement_sent_client'),
             message: __('notifications.messages.agreement_sent_client', [
             'title' => $title,
-          ])
+          ]),
+          data: $agreementData
         );
       } catch (\Exception $e) {
         Log::error('Error notifying agreement sent', [
@@ -446,6 +626,16 @@ class Agreement extends Model
     {
         try {
             $title = $this->serviceRequest?->title ?? '';
+            
+            // Datos del acuerdo para incluir en las notificaciones
+            $agreementData = [
+                'agreement_id' => $this->id,
+                'status' => $this->status,
+                'client_id' => $this->client_id,
+                'provider_id' => $this->provider_id,
+                'service_request_id' => $this->service_request_id,
+            ];
+            
             // Notificar al cliente que su acuerdo fue aceptado
             $this->createNotification(
                 userIds: [$this->client_id],
@@ -453,7 +643,8 @@ class Agreement extends Model
                 title: __('notifications.types.agreement_accepted'),
                 message: __('notifications.messages.agreement_accepted', [
                     'title' => $title
-                ])
+                ]),
+                data: $agreementData
             );
 
             event(new AgreementAcceptedNotification($this, $this->client_id));
@@ -472,6 +663,16 @@ class Agreement extends Model
     {
         try {
             $title = $this->serviceRequest?->title ?? '';
+            
+            // Datos del acuerdo para incluir en las notificaciones
+            $agreementData = [
+                'agreement_id' => $this->id,
+                'status' => $this->status,
+                'client_id' => $this->client_id,
+                'provider_id' => $this->provider_id,
+                'service_request_id' => $this->service_request_id,
+            ];
+            
             // Notificar al cliente que su acuerdo fue rechazado
             $this->createNotification(
                 userIds: [$this->client_id],
@@ -479,7 +680,8 @@ class Agreement extends Model
                 title: __('notifications.types.agreement_rejected'),
                 message: __('notifications.messages.agreement_rejected', [
                     'title' => $title
-                ])
+                ]),
+                data: $agreementData
             );
 
             event(new AgreementRejectedNotification($this, $this->client_id));
@@ -498,6 +700,15 @@ class Agreement extends Model
     {
         try {
             $title = $this->serviceRequest?->title ?? '';
+            
+            // Datos del acuerdo para incluir en las notificaciones
+            $agreementData = [
+                'agreement_id' => $this->id,
+                'status' => $this->status,
+                'client_id' => $this->client_id,
+                'provider_id' => $this->provider_id,
+                'service_request_id' => $this->service_request_id,
+            ];
 
             // Crear notificación para ambas partes
             $this->createNotification(
@@ -506,7 +717,8 @@ class Agreement extends Model
                 title: __('notifications.types.agreement_cancelled'),
                 message: __('notifications.messages.agreement_cancelled', [
                     'title' => $title
-                ])
+                ]),
+                data: $agreementData
             );
 
             $this->createNotification(
@@ -515,7 +727,8 @@ class Agreement extends Model
                 title: __('notifications.types.agreement_cancelled'),
                 message: __('notifications.messages.agreement_cancelled', [
                     'title' => $title
-                ])
+                ]),
+                data: $agreementData
             );
 
             // Emitir broadcast a ambos canales privados

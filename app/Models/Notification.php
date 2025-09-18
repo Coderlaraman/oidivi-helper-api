@@ -17,11 +17,13 @@ class Notification extends Model
         'type',
         'title',
         'message',
+        'data',
         'read_at',
     ];
 
     protected $casts = [
         'read_at' => 'datetime',
+        'data' => 'array',
     ];
 
     public function user(): BelongsTo

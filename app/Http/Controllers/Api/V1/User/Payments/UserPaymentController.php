@@ -7,6 +7,9 @@ use App\Models\Agreement;
 use App\Models\Payment;
 use App\Models\ServiceOffer;
 use App\Models\ServiceRequest;
+use App\Models\Transaction;
+use App\Services\PaymentService;
+use App\Services\TransactionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -18,8 +21,10 @@ use Exception;
 
 class UserPaymentController extends Controller
 {
-    public function __construct()
-    {
+    public function __construct(
+        private PaymentService $paymentService,
+        private TransactionService $transactionService
+    ) {
         // Configurar Stripe con la clave secreta
         Stripe::setApiKey(config('services.stripe.secret'));
     }
@@ -72,8 +77,8 @@ class UserPaymentController extends Controller
 
             DB::beginTransaction();
 
-            // Crear el registro de pago
-            $payment = Payment::create([
+            // Usar el nuevo PaymentService para crear el pago y transacciones
+            $paymentData = [
                 'service_request_id' => $offer->service_request_id,
                 'service_offer_id' => $offer->id,
                 'agreement_id' => $agreement->id,
@@ -81,8 +86,10 @@ class UserPaymentController extends Controller
                 'payee_user_id' => $offer->user_id,
                 'amount' => $offer->price_proposed,
                 'currency' => 'USD',
-                'status' => Payment::STATUS_PENDING,
-            ]);
+                'payment_method' => 'stripe',
+            ];
+            
+            $payment = $this->paymentService->createPayment($paymentData);
 
             // Crear sesión de Stripe Checkout
             $session = StripeSession::create([
@@ -127,6 +134,17 @@ class UserPaymentController extends Controller
                     'checkout_url' => $session->url,
                 ],
             ]);
+            
+            // Actualizar la transacción principal con los datos de Stripe
+            if ($payment->mainTransaction) {
+                $payment->mainTransaction->update([
+                    'payment_provider_id' => $session->payment_intent,
+                    'payment_provider_data' => [
+                        'stripe_session_id' => $session->id,
+                        'stripe_metadata' => $payment->stripe_metadata,
+                    ],
+                ]);
+            }
 
             DB::commit();
 
@@ -217,11 +235,19 @@ class UserPaymentController extends Controller
                 ]);
 
                 return $this->successResponse([
-                    'payment' => $result['payment']->load(['serviceRequest', 'serviceOffer.user', 'agreement']),
+                    'payment' => $result['payment']->load(['serviceRequest', 'serviceOffer.user', 'agreement', 'transactions']),
                     'service_request' => $result['service_request'],
                     'service_offer' => $result['offer']->load('user'),
+                    'transactions' => $result['transactions'] ?? [],
+                    'transaction_summary' => [
+                        'group_id' => $result['transaction_group_id'] ?? null,
+                        'total_transactions' => count($result['transactions'] ?? []),
+                        'payment_amount' => $payment->amount,
+                        'commission_amount' => $result['commission_amount'] ?? 0,
+                        'net_amount' => $result['net_amount'] ?? $payment->amount,
+                    ],
                     'redirect_url' => '/service-requests/' . $result['service_request']->id,
-                ], 'Pago confirmado exitosamente');
+                ], 'Pago confirmado exitosamente con sistema de transacciones');
             } else {
                 return $this->errorResponse(
                     message: 'El pago no ha sido completado',
@@ -588,6 +614,45 @@ class UserPaymentController extends Controller
                         }
                     }
                 }
+            }
+
+            // Notificación específica al helper por pago completado con datos útiles
+            try {
+                $title = __('notifications.types.payment_completed');
+                $message = __('notifications.messages.payment_completed', [
+                    'amount' => number_format($payment->amount / 100, 2),
+                    'currency' => strtoupper($payment->currency ?? 'USD'),
+                    'service' => $serviceRequest?->title ?? ($offer?->serviceRequest?->title ?? ''),
+                ]);
+
+                // Construir payload con enlaces de acción
+                $data = [
+                    'payment_id' => $payment->id,
+                    'agreement_id' => $agreement?->id,
+                    'service_request_id' => $serviceRequest?->id,
+                    'offer_id' => $offer?->id,
+                    'transaction_group_id' => $payment->metadata['transaction_group_id'] ?? null,
+                    'main_transaction_id' => $payment->metadata['main_transaction_id'] ?? null,
+                    'action_url' => $payment->metadata['main_transaction_id'] ?? null
+                        ? url("/payments/transactions/" . $payment->metadata['main_transaction_id'])
+                        : url('/payments/transactions'),
+                ];
+
+                // Enviamos la notificación al helper (payee)
+                if ($payment->payee_user_id && method_exists($offer, 'createNotification')) {
+                    $offer->createNotification(
+                        userIds: [$payment->payee_user_id],
+                        type: \App\Constants\NotificationType::PAYMENT_COMPLETED,
+                        title: $title,
+                        message: $message,
+                        data: $data
+                    );
+                }
+            } catch (\Throwable $e) {
+                \Log::error('Error sending payment completed notification', [
+                    'payment_id' => $payment->id,
+                    'error' => $e->getMessage(),
+                ]);
             }
 
             return [

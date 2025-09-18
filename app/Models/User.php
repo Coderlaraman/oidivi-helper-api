@@ -14,11 +14,15 @@ use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Traits\HasRoles;
+use App\Traits\Notifiable as CustomNotifiable;
+use App\Models\Transaction;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasApiTokens, HasFactory, Notifiable, SoftDeletes, HasRoles;
+    use HasApiTokens, HasFactory, Notifiable, SoftDeletes, HasRoles, CustomNotifiable {
+        Notifiable::notifications insteadof CustomNotifiable;
+    }
 
     /**
      * The attributes that are mass assignable.
@@ -243,5 +247,77 @@ class User extends Authenticatable
                 $query->whereIn('categories.id', $serviceRequest->categories()->pluck('categories.id'));
             })
             ->exists();
+    }
+
+    /**
+     * Get all transactions for the user.
+     */
+    public function transactions(): HasMany
+    {
+        return $this->hasMany(Transaction::class);
+    }
+
+    /**
+     * Get transactions where user is the client (making payments).
+     */
+    public function clientTransactions(): HasMany
+    {
+        return $this->hasMany(Transaction::class)
+                    ->where('amount', '<', 0); // Negative amounts are outgoing
+    }
+
+    /**
+     * Get transactions where user is the helper (receiving payments).
+     */
+    public function helperTransactions(): HasMany
+    {
+        return $this->hasMany(Transaction::class)
+                    ->where('amount', '>', 0); // Positive amounts are incoming
+    }
+
+    /**
+     * Get completed transactions for the user.
+     */
+    public function completedTransactions(): HasMany
+    {
+        return $this->hasMany(Transaction::class)
+                    ->where('status', Transaction::STATUS_COMPLETED);
+    }
+
+    /**
+     * Get pending transactions for the user.
+     */
+    public function pendingTransactions(): HasMany
+    {
+        return $this->hasMany(Transaction::class)
+                    ->where('status', Transaction::STATUS_PENDING);
+    }
+
+    /**
+     * Get total earnings (positive transactions) for the user.
+     */
+    public function getTotalEarningsAttribute(): float
+    {
+        return $this->completedTransactions()
+                    ->where('amount', '>', 0)
+                    ->sum('amount');
+    }
+
+    /**
+     * Get total spent (negative transactions) for the user.
+     */
+    public function getTotalSpentAttribute(): float
+    {
+        return abs($this->completedTransactions()
+                       ->where('amount', '<', 0)
+                       ->sum('amount'));
+    }
+
+    /**
+     * Get transaction balance for the user.
+     */
+    public function getTransactionBalanceAttribute(): float
+    {
+        return $this->completedTransactions()->sum('amount');
     }
 }
