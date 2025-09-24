@@ -23,7 +23,11 @@ return [
         'transactions/*',
     ],
     'allowed_methods' => ['*'],
-    'allowed_origins' => ['http://localhost:3000'],
+    'allowed_origins' => [
+    'https://oidivi-helper.com',
+    'https://www.oidivi-helper.com',
+    'http://localhost:3000', // lo dejas si lo necesitas para desarrollo
+    ],
     'allowed_origins_patterns' => [],
     'allowed_headers' => ['*'],
     'exposed_headers' => [],
