@@ -14,19 +14,18 @@ return [
      * |
      */
     'paths' => [
-        'api/*',
-        'v1/*', // <--- agrega esto
+        'api/*',                // cubre todo lo que empiece con /api/
         'sanctum/csrf-cookie',
-        'admin/*',
         'broadcasting/auth',
+        'admin/*',
         'payments/*',
         'transactions/*',
     ],
     'allowed_methods' => ['*'],
     'allowed_origins' => [
-    'https://oidivi-helper.com',
-    'https://www.oidivi-helper.com',
-    'http://localhost:3000', // lo dejas si lo necesitas para desarrollo
+        'https://oidivi-helper.com',
+        'https://www.oidivi-helper.com',
+        'http://localhost:3000', // solo en dev
     ],
     'allowed_origins_patterns' => [],
     'allowed_headers' => ['*'],
