@@ -63,6 +63,8 @@ RUN mkdir -p /var/log/supervisor \
 
 # Expose port 80
 EXPOSE 80
+# Expose Reverb WebSocket port
+EXPOSE 6001
 
 # Start supervisor
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
