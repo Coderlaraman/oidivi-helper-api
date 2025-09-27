@@ -1,0 +1,72 @@
+version: "3.9"
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8000:80"    # Nginx HTTP
+      - "8080:8080"  # Reverb WS (dev)
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_URL: http://localhost:8000
+      # Database (local MySQL container)
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: oidivi_helper
+      DB_USERNAME: oidivi_user
+      DB_PASSWORD: secret
+      # Prefer DB/file-backed drivers for parity without Redis
+      CACHE_DRIVER: file
+      SESSION_DRIVER: file
+      QUEUE_CONNECTION: database
+    volumes:
+      - ./:/var/www/html
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      default:
+        aliases:
+          - oidivi-helper-api
+    command: >-
+      sh -lc "composer install --no-interaction && 
+      chown -R www-data:www-data storage bootstrap/cache && chmod -R 775 storage bootstrap/cache && 
+      (php artisan key:generate --force || true) && 
+      (ls database/migrations/*_create_sessions_table.php >/dev/null 2>&1 || php artisan session:table || true) && 
+      (ls database/migrations/*_create_jobs_table.php >/dev/null 2>&1 || php artisan queue:table || true) && 
+      (ls database/migrations/*_create_failed_jobs_table.php >/dev/null 2>&1 || php artisan queue:failed-table || true) && 
+      php artisan migrate --force && 
+      /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf"
+    restart: unless-stopped
+
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: oidivi_helper
+      MYSQL_USER: oidivi_user
+      MYSQL_PASSWORD: secret
+      MYSQL_ROOT_PASSWORD: root_secret
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3307:3306"  # Expose MySQL to host for HeidiSQL
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    networks:
+      - default
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
+
+networks:
+  default:
+    external: true
+    name: oidivi_helper_net

@@ -1,0 +1,26 @@
+version: "3.9"
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:80"
+    env_file:
+      - .env
+    environment:
+      # Ensure fallback drivers that don't require Redis
+      CACHE_DRIVER: file
+      SESSION_DRIVER: database
+      QUEUE_CONNECTION: database
+    networks:
+      default:
+        aliases:
+          - oidivi-helper-api
+    restart: unless-stopped
+
+networks:
+  default:
+    external: true
+    name: oidivi_helper_net
