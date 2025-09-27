@@ -6,10 +6,7 @@ services:
     ports:
       - "8000:80"
       - "6001:6001"
-    env_file:
-      - .env
     environment:
-      # Ensure fallback drivers that don't require Redis
       CACHE_DRIVER: file
       SESSION_DRIVER: database
       QUEUE_CONNECTION: database
