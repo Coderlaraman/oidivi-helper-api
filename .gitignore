@@ -17,6 +17,7 @@
 
 # Archivos de entorno
 .env
+.env.production
 .env.*
 !.env.example
 
