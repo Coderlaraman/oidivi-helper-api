@@ -19,7 +19,6 @@
 .env
 .env.*
 !.env.example
-!.env.production
 
 # IDE / Herramientas
 /.idea
