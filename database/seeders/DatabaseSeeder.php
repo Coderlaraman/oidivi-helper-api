@@ -20,6 +20,16 @@ class DatabaseSeeder extends Seeder
         //            'email' → 'test@example.com',
         //        ]);
 
+        if (app()->environment('production')) {
+            $this->call([
+                RoleSeeder::class,
+                CategorySeeder::class,
+                SkillSeeder::class,
+                AdminUserSeederProduction::class,
+            ]);
+            return;
+        }
+
         $this->call([
             RoleSeeder::class,
             UserSeeder::class,
