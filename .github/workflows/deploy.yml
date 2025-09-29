@@ -26,7 +26,7 @@ jobs:
           rm: true
 
       - name: Write API .env file
-        uses: appleboy/ssh-action@v0.1.11
+        uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.LIGHTSAIL_HOST }}
           username: ${{ secrets.LIGHTSAIL_USERNAME }}
@@ -35,7 +35,7 @@ jobs:
             echo '${{ secrets.API_ENV_CONTENT }}' > /home/ubuntu/oidivi-helper-api/.env
 
       - name: Deploy API via Docker Compose
-        uses: appleboy/ssh-action@v0.1.11
+        uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.LIGHTSAIL_HOST }}
           username: ${{ secrets.LIGHTSAIL_USERNAME }}
