@@ -8,44 +8,50 @@ on:
       - work_branch
   workflow_dispatch:
 
-concurrency:
-  group: deploy-api-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
-  debug-info:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        
-      - name: Debug - Show changed files
-        run: |
-          echo "=== INFORMACIÓN DE DEBUG ==="
-          echo "Rama actual: ${{ github.ref }}"
-          echo "Evento: ${{ github.event_name }}"
-          echo "Repositorio: ${{ github.repository }}"
-          echo "Commit SHA: ${{ github.sha }}"
-          echo ""
-          echo "=== ARCHIVOS EN EL REPOSITORIO ==="
-          find . -type f -name "*.yml" -o -name "*.yaml" | head -10
-          echo ""
-          echo "=== ESTRUCTURA DEL DIRECTORIO ==="
-          ls -la
-          echo ""
-          echo "=== ARCHIVOS MODIFICADOS EN ESTE PUSH ==="
-          git diff --name-only HEAD~1 HEAD || echo "No se pueden obtener archivos modificados"
-          
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-    needs: debug-info
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Echo de prueba
-        run: |
-          echo "✅ API workflow disparado correctamente desde ${{ github.ref }}"
-          echo "Evento: ${{ github.event_name }}"
-          echo "Repositorio: ${{ github.repository }}"
+      - name: Upload API project via SCP
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.LIGHTSAIL_HOST }}
+          username: ${{ secrets.LIGHTSAIL_USERNAME }}
+          key: ${{ secrets.LIGHTSAIL_SSH_KEY }}
+          source: "."
+          target: "/home/ubuntu/oidivi-helper-api"
+          rm: true
+
+      - name: Write API .env file
+        uses: appleboy/ssh-action@v0.1.11
+        with:
+          host: ${{ secrets.LIGHTSAIL_HOST }}
+          username: ${{ secrets.LIGHTSAIL_USERNAME }}
+          key: ${{ secrets.LIGHTSAIL_SSH_KEY }}
+          script: |
+            echo '${{ secrets.API_ENV_CONTENT }}' > /home/ubuntu/oidivi-helper-api/.env
+
+      - name: Deploy API via Docker Compose
+        uses: appleboy/ssh-action@v0.1.11
+        with:
+          host: ${{ secrets.LIGHTSAIL_HOST }}
+          username: ${{ secrets.LIGHTSAIL_USERNAME }}
+          key: ${{ secrets.LIGHTSAIL_SSH_KEY }}
+          script: |
+            # Ensure shared Docker network exists
+            docker network create oidivi-network 2>/dev/null || true
+            
+            # Navigate to API deployment path
+            cd /home/ubuntu/oidivi-helper-api
+            
+            # Bring down existing services
+            docker compose down
+            
+            # Build and start services
+            docker compose up -d --build
+            
+            # Prune old images to save space
+            docker image prune -f
