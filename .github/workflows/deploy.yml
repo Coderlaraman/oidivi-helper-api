@@ -1,46 +1,63 @@
-name: Deploy to Amazon Lightsail
+name: Deploy OiDiVi Helper Backend to Amazon Lightsail with Docker
 
 on:
   push:
     branches:
-      - master   # cámbialo a main si esa es tu rama
+      - docker_work_branch
+    paths:
+      - 'oidivi-helper-api/**'
+
+concurrency:
+  group: deploy-api-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
+    timeout-minutes: 20
     steps:
-      - name: SSH into Amazon Lightsail and deploy API
-        uses: appleboy/ssh-action@v0.1.7
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Upload API project to server
+        uses: appleboy/scp-action@v0.1.7
         with:
-          host: ${{ secrets.OIDIVI_API_LIGHTSAIL_HOST }}
-          username: ${{ secrets.OIDIVI_API_LIGHTSAIL_USER }}
-          key: ${{ secrets.OIDIVI_API_LIGHTSAIL_SSH_KEY }}
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          source: "oidivi-helper-api"
+          target: "${{ secrets.DEPLOY_PATH_API }}"
+          overwrite: true
+          rm: true
+
+      - name: Write API .env from secret
+        uses: appleboy/ssh-action@v1.0.0
+        env:
+          API_ENV_FILE: ${{ secrets.API_ENV_FILE }}
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          envs: API_ENV_FILE
           script: |
-            cd /var/www/oidivi-helper-api
+            set -e
+            mkdir -p "${{ secrets.DEPLOY_PATH_API }}/oidivi-helper-api"
+            cd "${{ secrets.DEPLOY_PATH_API }}/oidivi-helper-api"
+            cat > .env << 'EOF'
+            $API_ENV_FILE
+            EOF
 
-            # Configurar el directorio seguro para Git
-            git config --global --add safe.directory /var/www/oidivi-helper-api
-
-            # Resetear y traer últimos cambios
-            git reset --hard
-            git pull origin master
-
-            # Instalar dependencias de Laravel
-            composer install --no-interaction --prefer-dist --optimize-autoloader
-
-            # Aplicar migraciones en producción
-            php artisan migrate --force
-
-            # Limpiar y regenerar cachés
-            php artisan cache:clear
-            php artisan config:clear
-            php artisan route:clear
-            php artisan view:clear
-
-            php artisan config:cache
-            php artisan route:cache
-            php artisan view:cache
-
-            # Recargar PHP-FPM (no es necesario reiniciar Nginx siempre)
-            sudo systemctl reload php8.2-fpm
+      - name: Deploy API via Docker Compose
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            set -e
+            # Ensure shared Docker network exists
+            docker network inspect oidivi_helper_net >/dev/null 2>&1 || docker network create oidivi_helper_net
+            cd "${{ secrets.DEPLOY_PATH_API }}/oidivi-helper-api"
+            docker compose down --remove-orphans
+            docker compose up -d --build
+            docker image prune -f
