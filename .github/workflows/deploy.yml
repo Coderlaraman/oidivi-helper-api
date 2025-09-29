@@ -32,19 +32,16 @@ jobs:
 
       - name: Write API .env file from secret
         uses: appleboy/ssh-action@v1
-        env:
-          API_ENV_FILE: ${{ secrets.API_ENV_FILE }}
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
-          envs: API_ENV_FILE
           script: |
             set -e
             mkdir -p "${{ secrets.DEPLOY_PATH_API }}"
             cd "${{ secrets.DEPLOY_PATH_API }}"
             cat > .env << 'EOF'
-            $API_ENV_FILE
+            ${{ secrets.API_ENV_FILE }}
             EOF
 
       - name: Deploy API via Docker Compose
