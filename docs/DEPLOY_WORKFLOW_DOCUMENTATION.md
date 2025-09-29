@@ -6,6 +6,46 @@ Este documento describe las particularidades y consideraciones importantes para 
 
 ## Estructura del Workflow
 
+### 0. Configuraciones de Seguridad y Robustez
+
+```yaml
+name: Deploy API to Production
+
+on:
+  push:
+    branches:
+      - docker_work_branch
+      - main
+      - work_branch
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+```
+
+**Mejoras de seguridad implementadas:**
+
+#### Configuración de concurrencia:
+- **`concurrency.group`:** Agrupa ejecuciones por workflow y rama
+- **`cancel-in-progress: true`:** Cancela ejecuciones previas si hay una nueva
+- **Beneficio:** Evita despliegues simultáneos que pueden causar conflictos
+
+#### Configuración de timeout:
+- **`timeout-minutes: 10`:** Limita la duración máxima del job
+- **Beneficio:** Evita jobs colgados que consumen recursos indefinidamente
+- **Valor recomendado:** 10 minutos es suficiente para despliegues típicos de Laravel
+
+#### Manejo robusto de errores:
+- **`set -e`:** Incluido en todos los scripts SSH
+- **Beneficio:** El script falla inmediatamente si cualquier comando falla
+- **Resultado:** Detección temprana de problemas y rollback automático
+
 ### 1. Configuración de Triggers
 
 ```yaml
@@ -27,57 +67,79 @@ on:
 ### 2. Paso 1: Subida de Archivos al Servidor
 
 ```yaml
-- name: Upload API project via SCP
-  uses: appleboy/scp-action@v0.1.7
+- name: Upload API project to server
+  uses: easingthemes/ssh-deploy@main
   with:
-    host: ${{ secrets.SSH_HOST }}
-    username: ${{ secrets.SSH_USER }}
-    key: ${{ secrets.SSH_KEY }}
-    source: "."
-    target: "/home/ubuntu/oidivi-helper-api"
-    rm: true
+    SSH_PRIVATE_KEY: ${{ secrets.SSH_KEY }}
+    ARGS: "-rlgoDzvc -i --delete"
+    SOURCE: "."
+    REMOTE_HOST: ${{ secrets.SSH_HOST }}
+    REMOTE_USER: ${{ secrets.SSH_USER }}
+    TARGET: ${{ secrets.DEPLOY_PATH_API }}
 ```
 
 **Particularidades críticas:**
 
-#### Acción utilizada: `appleboy/scp-action@v0.1.7`
-- **Versión específica:** v0.1.7 ha demostrado ser estable para proyectos Laravel
-- **¿Por qué funciona aquí y no en Frontend?** Los proyectos Laravel tienen menos archivos complejos que Next.js
+#### Acción utilizada: `easingthemes/ssh-deploy@main`
+- **Cambio importante:** Migrado de `appleboy/scp-action@v0.1.7` a `easingthemes/ssh-deploy@main`
+- **Razón del cambio:** Mayor robustez y consistencia con el workflow del Frontend
+- **Ventajas:** Mejor manejo de archivos grandes, transferencias más confiables, y sincronización mejorada
 
 #### Parámetros importantes:
-- `source: "."`: Transfiere todo el contenido del repositorio
-- `target: "/home/ubuntu/oidivi-helper-api"`: Ruta absoluta en el servidor
-- `rm: true`: **CRÍTICO** - Elimina archivos existentes antes de la transferencia
+- `SOURCE: "."`: Transfiere todo el contenido del repositorio
+- `TARGET: ${{ secrets.DEPLOY_PATH_API }}`: Usa variable de entorno para flexibilidad
+- `ARGS: "-rlgoDzvc -i --delete"`: Argumentos de rsync para transferencia optimizada
+  - `-r`: Recursivo
+  - `-l`: Preservar enlaces simbólicos
+  - `-g`: Preservar grupo
+  - `-o`: Preservar propietario
+  - `-D`: Preservar dispositivos y archivos especiales
+  - `-z`: Compresión durante transferencia
+  - `-v`: Modo verbose
+  - `-c`: Usar checksums para determinar archivos a transferir
+  - `-i`: Mostrar cambios item por item
+  - `--delete`: Eliminar archivos en destino que no existen en origen
 
 #### Consideraciones de la ruta:
-- Usar ruta absoluta completa `/home/ubuntu/oidivi-helper-api`
-- No usar variables de entorno para la ruta en este paso (diferente al Frontend)
-- El directorio se crea automáticamente si no existe
+- **Cambio importante:** Ahora usa variable `${{ secrets.DEPLOY_PATH_API }}` en lugar de ruta hardcodeada
+- **Flexibilidad:** Permite cambiar la ruta de despliegue sin modificar el workflow
+- **Consistencia:** Alineado con el patrón del Frontend para mejor mantenimiento
 
 ### 3. Paso 2: Creación del archivo .env
 
 ```yaml
-- name: Write API .env file
+- name: Write API .env file from secret
   uses: appleboy/ssh-action@v1
   with:
     host: ${{ secrets.SSH_HOST }}
     username: ${{ secrets.SSH_USER }}
     key: ${{ secrets.SSH_KEY }}
     script: |
-      echo '${{ secrets.API_ENV_FILE }}' > /home/ubuntu/oidivi-helper-api/.env
+      set -e
+      cd ${{ secrets.DEPLOY_PATH_API }}
+      cat > .env << 'EOF'
+      ${{ secrets.API_ENV_FILE }}
+      EOF
 ```
 
 **Consideraciones críticas:**
 
+#### Cambios importantes en la sintaxis:
+- **Método mejorado:** Uso de `cat > .env << 'EOF'` en lugar de `echo` directo
+- **Seguridad:** Las comillas simples en `'EOF'` previenen la expansión de variables
+- **Robustez:** `set -e` asegura que el script falle si hay errores
+- **Flexibilidad:** Uso de `${{ secrets.DEPLOY_PATH_API }}` para la ruta
+
 #### Diferencias con el Frontend:
 - **Archivo:** `.env` (no `.env.production`)
-- **Método:** `echo` directo (más simple que heredoc)
-- **Ruta:** Hardcodeada `/home/ubuntu/oidivi-helper-api/.env`
+- **Método:** Heredoc con `cat` (consistente y seguro)
+- **Ruta:** Variable de entorno `${{ secrets.DEPLOY_PATH_API }}`
 
 #### Manejo de variables:
 - Laravel requiere archivo `.env` en la raíz del proyecto
 - El contenido debe incluir todas las variables necesarias para Laravel
 - Especial atención a `APP_KEY`, `DB_*`, y configuraciones de servicios
+- **Corrección crítica:** La sintaxis anterior causaba errores de expansión de variables
 
 ### 4. Paso 3: Despliegue con Docker Compose
 
@@ -89,11 +151,12 @@ on:
     username: ${{ secrets.SSH_USER }}
     key: ${{ secrets.SSH_KEY }}
     script: |
+      set -e
       # Ensure shared Docker network exists
-      docker network create oidivi-network 2>/dev/null || true
+      docker network create oidivi_helper_net 2>/dev/null || true
       
       # Navigate to API deployment path
-      cd /home/ubuntu/oidivi-helper-api
+      cd ${{ secrets.DEPLOY_PATH_API }}
       
       # Bring down existing services
       docker compose down
@@ -107,13 +170,18 @@ on:
 
 **Consideraciones críticas:**
 
+#### Mejoras de seguridad y robustez:
+- **`set -e`:** Asegura que el script falle inmediatamente si cualquier comando falla
+- **Manejo de errores:** Mejor control de errores en el proceso de despliegue
+- **Ruta variable:** Uso de `${{ secrets.DEPLOY_PATH_API }}` para flexibilidad
+
 #### Red de Docker:
-- **Nombre de red:** `oidivi-network` (diferente al Frontend: `oidivi_helper_net`)
+- **Nombre de red:** `oidivi_helper_net` (ahora consistente con el Frontend)
 - **Creación silenciosa:** `2>/dev/null || true` evita errores si ya existe
-- **Coordinación:** Debe permitir comunicación con el Frontend si es necesario
+- **Coordinación:** Permite comunicación entre API y Frontend en la misma red
 
 #### Directorio de trabajo:
-- **Ruta hardcodeada:** `/home/ubuntu/oidivi-helper-api`
+- **Ruta variable:** `${{ secrets.DEPLOY_PATH_API }}` en lugar de ruta hardcodeada
 - **Consistencia:** Debe coincidir con la ruta del paso de upload
 - El archivo `docker-compose.yml` debe estar en la raíz del proyecto
 
@@ -130,6 +198,7 @@ on:
 2. **SSH_HOST**: IP del servidor Amazon Lightsail (compartida con Frontend)
 3. **SSH_USER**: Usuario SSH, típicamente 'ubuntu' (compartida con Frontend)
 4. **API_ENV_FILE**: Contenido completo del archivo .env para Laravel
+5. **DEPLOY_PATH_API**: Ruta de despliegue en el servidor (ej: `/home/ubuntu/oidivi-helper-api`)
 
 ### Contenido típico de API_ENV_FILE:
 
@@ -154,25 +223,34 @@ DB_PASSWORD=your-db-password
 # Otros servicios según necesidades del proyecto
 ```
 
-## Diferencias Clave con el Frontend
+## Diferencias Clave con el Frontend (Actualizadas)
 
 ### 1. Método de transferencia de archivos:
-- **API:** `appleboy/scp-action@v0.1.7` (funciona bien)
-- **Frontend:** `easingthemes/ssh-deploy@main` (más robusto para Next.js)
+- **API:** `easingthemes/ssh-deploy@main` (ahora consistente)
+- **Frontend:** `easingthemes/ssh-deploy@main` (mismo método)
+- **Resultado:** Ambos workflows usan la misma acción robusta
 
 ### 2. Manejo de rutas:
-- **API:** Rutas hardcodeadas `/home/ubuntu/oidivi-helper-api`
+- **API:** Variables de entorno `${{ secrets.DEPLOY_PATH_API }}`
 - **Frontend:** Variables de entorno `${{ secrets.DEPLOY_PATH_WEB }}`
+- **Resultado:** Ambos usan el mismo patrón flexible
 
 ### 3. Archivo de configuración:
 - **API:** `.env` (estándar Laravel)
 - **Frontend:** `.env.production` (específico Next.js)
+- **Diferencia:** Solo el nombre del archivo, ambos usan heredoc seguro
 
 ### 4. Red de Docker:
-- **API:** `oidivi-network`
-- **Frontend:** `oidivi_helper_net`
+- **API:** `oidivi_helper_net` (ahora consistente)
+- **Frontend:** `oidivi_helper_net` (mismo nombre)
+- **Resultado:** Comunicación directa entre servicios
 
-## Problemas Comunes y Soluciones
+### 5. Configuraciones de seguridad:
+- **API:** Incluye `concurrency`, `timeout`, y `set -e` (ahora consistente)
+- **Frontend:** Incluye `concurrency`, `timeout`, y `set -e`
+- **Resultado:** Ambos workflows tienen las mismas protecciones
+
+## Problemas Comunes y Soluciones (Actualizadas)
 
 ### 1. Error de permisos en Laravel
 **Causa:** Directorios `storage/` y `bootstrap/cache/` sin permisos
@@ -189,6 +267,21 @@ DB_PASSWORD=your-db-password
 ### 4. Composer dependencies
 **Causa:** Dependencias no instaladas o desactualizadas
 **Solución:** Asegurar `composer install --no-dev` en Dockerfile
+
+### 5. Error de expansión de variables en .env (RESUELTO)
+**Causa:** Sintaxis incorrecta `$API_ENV_FILE` en lugar de `${{ secrets.API_ENV_FILE }}`
+**Solución:** Usar heredoc con `cat > .env << 'EOF'` y comillas simples para prevenir expansión
+**Estado:** ✅ Corregido en la versión actual del workflow
+
+### 6. Despliegues simultáneos conflictivos (RESUELTO)
+**Causa:** Múltiples ejecuciones del workflow al mismo tiempo
+**Solución:** Configuración de `concurrency` con `cancel-in-progress: true`
+**Estado:** ✅ Implementado en la versión actual del workflow
+
+### 7. Jobs colgados consumiendo recursos (RESUELTO)
+**Causa:** Workflows sin límite de tiempo de ejecución
+**Solución:** `timeout-minutes: 10` en la configuración del job
+**Estado:** ✅ Implementado en la versión actual del workflow
 
 ## Requisitos del Servidor para Laravel
 
@@ -238,19 +331,23 @@ php artisan config:clear
 php artisan cache:clear
 ```
 
-## Notas de Versiones y Compatibilidad
+## Notas de Versiones y Compatibilidad (Actualizadas)
 
-- **appleboy/scp-action@v0.1.7**: Versión estable para Laravel
+- **easingthemes/ssh-deploy@main**: Acción robusta para transferencia de archivos (migrado desde appleboy/scp-action)
 - **appleboy/ssh-action@v1**: Versión estable para comandos SSH
 - **Laravel 10+**: Requiere PHP 8.1+
 - **Docker Compose v2**: Sintaxis `docker compose` (no `docker-compose`)
+- **GitHub Actions**: Configuraciones de seguridad modernas (concurrency, timeout)
 
-## Checklist de Despliegue
+## Checklist de Despliegue (Actualizado)
 
-- [ ] Secrets configurados en GitHub
-- [ ] Archivo .env completo y válido
+- [ ] Secrets configurados en GitHub (incluyendo `DEPLOY_PATH_API`)
+- [ ] Archivo .env completo y válido en `API_ENV_FILE`
 - [ ] docker-compose.yml configurado correctamente
 - [ ] Permisos de directorio verificados
-- [ ] Red Docker coordinada con Frontend
+- [ ] Red Docker `oidivi_helper_net` coordinada con Frontend
 - [ ] Base de datos accesible
 - [ ] APP_KEY generada y configurada
+- [ ] Configuraciones de seguridad del workflow verificadas (concurrency, timeout)
+- [ ] Sintaxis de heredoc correcta para archivos .env
+- [ ] Variables de entorno para rutas configuradas
