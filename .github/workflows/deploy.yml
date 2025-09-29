@@ -18,9 +18,9 @@ jobs:
       - name: Upload API project via SCP
         uses: appleboy/scp-action@v0.1.7
         with:
-          host: ${{ secrets.LIGHTSAIL_HOST }}
-          username: ${{ secrets.LIGHTSAIL_USERNAME }}
-          key: ${{ secrets.LIGHTSAIL_SSH_KEY }}
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
           source: "."
           target: "/home/ubuntu/oidivi-helper-api"
           rm: true
@@ -28,18 +28,18 @@ jobs:
       - name: Write API .env file
         uses: appleboy/ssh-action@v1
         with:
-          host: ${{ secrets.LIGHTSAIL_HOST }}
-          username: ${{ secrets.LIGHTSAIL_USERNAME }}
-          key: ${{ secrets.LIGHTSAIL_SSH_KEY }}
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
           script: |
-            echo '${{ secrets.API_ENV_CONTENT }}' > /home/ubuntu/oidivi-helper-api/.env
+            echo '${{ secrets.API_ENV_FILE }}' > /home/ubuntu/oidivi-helper-api/.env
 
       - name: Deploy API via Docker Compose
         uses: appleboy/ssh-action@v1
         with:
-          host: ${{ secrets.LIGHTSAIL_HOST }}
-          username: ${{ secrets.LIGHTSAIL_USERNAME }}
-          key: ${{ secrets.LIGHTSAIL_SSH_KEY }}
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
           script: |
             # Ensure shared Docker network exists
             docker network create oidivi-network 2>/dev/null || true
