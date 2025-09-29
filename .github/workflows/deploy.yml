@@ -1,0 +1,63 @@
+name: Deploy OiDiVi Helper Backend to Amazon Lightsail with Docker
+
+on:
+  push:
+    branches:
+      - docker_work_branch
+    paths:
+      - 'oidivi-helper-api/**'
+
+concurrency:
+  group: deploy-api-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Upload API project to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          source: "oidivi-helper-api"
+          target: "${{ secrets.DEPLOY_PATH_API }}"
+          overwrite: true
+          rm: true
+
+      - name: Write API .env from secret
+        uses: appleboy/ssh-action@v1.0.0
+        env:
+          API_ENV_FILE: ${{ secrets.API_ENV_FILE }}
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          envs: API_ENV_FILE
+          script: |
+            set -e
+            mkdir -p "${{ secrets.DEPLOY_PATH_API }}/oidivi-helper-api"
+            cd "${{ secrets.DEPLOY_PATH_API }}/oidivi-helper-api"
+            cat > .env << 'EOF'
+            $API_ENV_FILE
+            EOF
+
+      - name: Deploy API via Docker Compose
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            set -e
+            # Ensure shared Docker network exists
+            docker network inspect oidivi_helper_net >/dev/null 2>&1 || docker network create oidivi_helper_net
+            cd "${{ secrets.DEPLOY_PATH_API }}/oidivi-helper-api"
+            docker compose down --remove-orphans
+            docker compose up -d --build
+            docker image prune -f
