@@ -1,5 +1,4 @@
-name: Deploy OiDiVi Helper Backend to Amazon Lightsail with Docker
-
+name: Deploy to Amazon Lightsail
 on:
   push:
     branches:
