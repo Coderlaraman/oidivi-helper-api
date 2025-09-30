@@ -3,9 +3,7 @@ name: Deploy OiDiVi Helper Backend to Amazon Lightsail with Docker
 on:
   push:
     branches:
-      - docker_work_branch
-      - main
-      - work_branch
+      - docker_main
   workflow_dispatch:
 
 concurrency:
