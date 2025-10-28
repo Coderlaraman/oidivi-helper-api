@@ -2,9 +2,75 @@
 
 API backend para la plataforma OiDiVi Helper - Conectando personas y simplificando tareas diarias a través de profesionales de confianza.
 
+## 📋 Tabla de Contenidos
+
+- [Descripción](#descripción)
+- [Proyectos Relacionados](#-proyectos-relacionados)
+- [Arquitectura del Sistema](#arquitectura-del-sistema)
+- [Características Principales](#características-principales)
+- [Tecnologías](#tecnologías)
+- [Instalación](#instalación)
+- [Configuración](#configuración)
+- [Estructura del Proyecto](#estructura-del-proyecto)
+- [Integración con Frontend](#integración-con-frontend)
+- [API Endpoints](#api-endpoints)
+- [Sistema de Transacciones](#sistema-de-transacciones)
+- [Testing](#testing)
+- [Comandos Artisan Personalizados](#comandos-artisan-personalizados)
+- [Deployment](#deployment)
+- [Contribución](#contribución)
+- [Licencia](#licencia)
+- [Soporte](#soporte)
+
 ## Descripción
 
 OiDiVi Helper API es una aplicación Laravel que proporciona servicios backend para la plataforma de servicios domésticos y profesionales. La API maneja autenticación, gestión de usuarios, solicitudes de servicios, pagos, transacciones y más.
+
+### 🔗 Proyectos Relacionados
+
+- **Frontend Web**: [OiDiVi Helper Web (Next.js)](../oidivi-helper-web/README.md) - Interfaz de usuario construida con Next.js que consume esta API
+- **Documentación del Sistema**: Ver [docs/](docs/) para documentación técnica detallada
+- **Arquitectura Completa**: Este backend funciona en conjunto con el frontend para formar la plataforma completa OiDiVi Helper
+
+## Arquitectura del Sistema
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    PLATAFORMA OIDIVI HELPER                │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  ┌─────────────────────┐    HTTP/REST API    ┌─────────────┐ │
+│  │                     │◄──────────────────►│             │ │
+│  │   Frontend Web      │                    │  Backend    │ │
+│  │   (Next.js 15)      │                    │  API        │ │
+│  │                     │                    │ (Laravel)   │ │
+│  │ - React 19 + TS     │                    │             │ │
+│  │ - Tailwind CSS      │                    │ - Sanctum   │ │
+│  │ - TanStack Query    │                    │ - Eloquent  │ │
+│  │ - Laravel Echo      │                    │ - Reverb    │ │
+│  │                     │                    │             │ │
+│  └─────────────────────┘                    └─────────────┘ │
+│           │                                        │        │
+│           │ WebSocket (Reverb)                     │        │
+│           └────────────────────────────────────────┘        │
+│                                                             │
+│  ┌─────────────────────┐                    ┌─────────────┐ │
+│  │   Infraestructura   │                    │  Servicios  │ │
+│  │                     │                    │ Externos    │ │
+│  │ - Docker Network    │                    │             │ │
+│  │ - MySQL 8.0+        │                    │ - Stripe    │ │
+│  │ - Redis Cache       │                    │ - PayPal    │ │
+│  │ - Nginx Proxy       │                    │ - Maps API  │ │
+│  │                     │                    │             │ │
+│  └─────────────────────┘                    └─────────────┘ │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Flujo de Datos
+1. **Frontend** → Solicitudes HTTP → **Backend API**
+2. **Backend** → Procesa lógica de negocio → **Base de Datos**
+3. **Backend** → Eventos en tiempo real → **Reverb** → **Frontend**
+4. **Backend** → Integración → **Servicios de Pago/Mapas**
 
 ## Características Principales
 
@@ -161,6 +227,20 @@ oidivi-helper-api/
 └── tests/                              # Tests automatizados
 ```
 
+## Integración con Frontend
+
+Esta API está diseñada para trabajar con [OiDiVi Helper Web (Next.js)](../oidivi-helper-web/README.md). La integración incluye:
+
+- **Comunicación en Tiempo Real**: Laravel Reverb (puerto 8080) + Laravel Echo en el frontend
+- **Autenticación**: Laravel Sanctum proporciona tokens para el frontend Next.js
+- **Multiidioma**: El backend soporta múltiples idiomas que se sincronizan con el sistema de traducciones del frontend
+- **Imágenes**: El frontend está configurado para mostrar imágenes servidas por esta API
+
+### URLs de Integración
+- **API Base URL**: `http://localhost:8000` (desarrollo)
+- **Reverb WebSocket**: `ws://localhost:8080` (tiempo real)
+- **Red Docker**: `oidivi_helper_net` (compartida con el frontend)
+
 ## API Endpoints
 
 ### Autenticación
@@ -278,4 +358,5 @@ Para soporte técnico, contacta al equipo de desarrollo:
 ---
 
 **Versión**: 1.0.0  
-**Última actualización**: Enero 2024
+**Última actualización**: Enero 2024  
+**Frontend Relacionado**: [OiDiVi Helper Web (Next.js)](../oidivi-helper-web/README.md)

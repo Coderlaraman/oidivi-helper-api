@@ -22,7 +22,7 @@ class UpdateUserProfileRequest extends FormRequest
                 'email',
                 Rule::unique('users')->ignore(auth()->id())
             ],
-            'phone' => 'sometimes|required|string|max:20',
+            'phone' => 'sometimes|required|string|max:20|regex:/^\+\d{1,4}\s[\d\s-]{4,20}$/',
             'address' => 'sometimes|required|string|max:255',
             'zip_code' => 'sometimes|required|string|max:10',
             'latitude' => 'sometimes|required|numeric|between:-90,90',
@@ -41,6 +41,7 @@ class UpdateUserProfileRequest extends FormRequest
             'email.email' => 'The email must be a valid email address.',
             'email.unique' => 'This email address is already in use.',
             'phone.required' => 'The phone is required.',
+            'phone.regex' => 'Phone must be in the format: +[country code] [phone number] (e.g., +1 1234567890).',
             'address.required' => 'The address is required.',
             'zip_code.required' => 'The zip code is required.',
             'latitude.required' => 'The latitude is required.',
