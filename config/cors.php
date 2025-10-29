@@ -25,6 +25,7 @@ return [
     'allowed_origins' => [
         'https://oidivi-helper.com',
         'https://www.oidivi-helper.com',
+        'https://api.oidivi-helper.com', // necesario para el frontend
         'http://localhost:3000', // solo en dev
     ],
     'allowed_origins_patterns' => [],
