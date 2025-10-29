@@ -19,8 +19,8 @@ class AdminUserSeederProduction extends Seeder
         Role::firstOrCreate(['name' => 'support']);
         Role::firstOrCreate(['name' => 'user']);
 
-        // Crear usuario admin determinista SIN Faker
-        $admin = User::firstOrCreate(
+        // Crear o actualizar usuario administrador determinista
+        $admin = User::updateOrCreate(
             ['email' => 'admin@oidivi-helper.com'],
             [
                 'name' => 'System Admin',
@@ -28,6 +28,7 @@ class AdminUserSeederProduction extends Seeder
                 'email_verified_at' => now(),
                 'is_active' => true,
                 'verification_status' => 'verified',
+                'accepted_terms' => true,
             ]
         );
 
