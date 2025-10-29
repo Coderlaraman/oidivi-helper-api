@@ -19,6 +19,7 @@ class UserAuthResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'email' => $this->email,
+            'email_verified_at' => $this->email_verified_at,
             'accepted_terms' => $this->accepted_terms,
             'is_active' => $this->is_active,
             'phone' => $this->phone,
