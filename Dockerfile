@@ -1,25 +1,40 @@
-# Use PHP 8.2 FPM as base image
+# ===========================================================
+# Unified Dockerfile for OiDiVi Helper API (Laravel + Nginx)
+# Works for both development and production
+# Controlled via APP_ENV (local | production)
+# ===========================================================
+
 FROM php:8.2-fpm
 
-# Set working directory
+# Define working directory
 WORKDIR /var/www/html
 
-# Install system dependencies
+# -----------------------------------------------------------
+# Arguments and Environment Variables
+# -----------------------------------------------------------
+ARG APP_ENV=production
+ENV APP_ENV=${APP_ENV}
+
+# -----------------------------------------------------------
+# System dependencies
+# -----------------------------------------------------------
 RUN apt-get update && apt-get install -y \
     git \
     curl \
-    libpng-dev \
-    libonig-dev \
-    libxml2-dev \
-    libzip-dev \
     zip \
     unzip \
     nginx \
     supervisor \
     cron \
+    libpng-dev \
+    libonig-dev \
+    libxml2-dev \
+    libzip-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Install PHP extensions
+# -----------------------------------------------------------
+# PHP Extensions
+# -----------------------------------------------------------
 RUN docker-php-ext-install \
     pdo_mysql \
     mbstring \
@@ -30,46 +45,80 @@ RUN docker-php-ext-install \
     zip \
     xml
 
-# Install Redis extension
+# -----------------------------------------------------------
+# Redis (optional, but installed by default)
+# -----------------------------------------------------------
 RUN pecl install redis && docker-php-ext-enable redis
 
-# Install Composer
+# -----------------------------------------------------------
+# Composer
+# -----------------------------------------------------------
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Copy application files
+# -----------------------------------------------------------
+# Copy dependency files early for caching
+# -----------------------------------------------------------
+COPY composer.json composer.lock ./
+
+# Conditional Composer installation (install deps without generating autoload yet)
+RUN if [ "$APP_ENV" = "production" ]; then \
+      composer install --no-dev --no-interaction --prefer-dist --no-autoloader; \
+    else \
+      composer install --no-scripts --no-autoloader; \
+    fi
+
+# -----------------------------------------------------------
+# Copy full application
+# -----------------------------------------------------------
 COPY . .
 
-# Set proper permissions and create storage directories
+# Generate optimized autoload after the full application is present
+RUN composer dump-autoload --optimize
+
+# -----------------------------------------------------------
+# Permissions
+# -----------------------------------------------------------
 RUN chown -R www-data:www-data /var/www/html \
-    && chmod -R 755 /var/www/html/storage \
-    && chmod -R 755 /var/www/html/bootstrap/cache \
-    && mkdir -p /var/www/html/storage/app/public/profile-photos \
-    && mkdir -p /var/www/html/storage/app/public/profile-videos \
-    && mkdir -p /var/www/html/storage/app/public/temp \
-    && chown -R www-data:www-data /var/www/html/storage \
-    && chmod -R 775 /var/www/html/storage
+    && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
-# Install PHP dependencies
-RUN composer install --no-dev --optimize-autoloader --no-interaction
-
-# Copy nginx configuration
-COPY docker/nginx/default.conf /etc/nginx/sites-available/default
-
-# Copy supervisor configuration
-COPY docker/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-
-# Copy PHP configuration
+# -----------------------------------------------------------
+# PHP Configuration
+# -----------------------------------------------------------
 COPY docker/php/php.ini /usr/local/etc/php/conf.d/custom.ini
+COPY docker/php/zzz-video-uploads.ini /usr/local/etc/php/conf.d/zzz-video-uploads.ini
 
-# Create log directories
-RUN mkdir -p /var/log/supervisor \
-    && mkdir -p /var/log/nginx \
-    && mkdir -p /var/www/html/storage/logs
+# -----------------------------------------------------------
+# Nginx Configuration
+# -----------------------------------------------------------
+COPY docker/nginx/default.conf /etc/nginx/sites-available/default
+RUN mkdir -p /etc/nginx/sites-enabled \
+    && ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
 
-# Expose port 80
+# -----------------------------------------------------------
+# Supervisor Configuration
+# -----------------------------------------------------------
+COPY docker/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY docker/supervisor/supervisord.dev.conf /etc/supervisor/conf.d/supervisord.dev.conf
+
+RUN if [ "$APP_ENV" = "production" ]; then \
+      mv /etc/supervisor/conf.d/supervisord.conf /etc/supervisor/conf.d/active.conf; \
+    else \
+      mv /etc/supervisor/conf.d/supervisord.dev.conf /etc/supervisor/conf.d/active.conf; \
+    fi
+
+# -----------------------------------------------------------
+# Create required directories
+# -----------------------------------------------------------
+RUN mkdir -p /var/log/supervisor /var/log/nginx /var/www/html/storage/logs
+
+# -----------------------------------------------------------
+# Expose ports (HTTP + Reverb WebSocket)
+# -----------------------------------------------------------
 EXPOSE 80
-# Expose Reverb WebSocket port
 EXPOSE 6001
+EXPOSE 8080
 
-# Start supervisor
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+# -----------------------------------------------------------
+# Start Supervisor
+# -----------------------------------------------------------
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/active.conf"]
