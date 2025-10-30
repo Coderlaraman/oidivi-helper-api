@@ -39,10 +39,15 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Copy application files
 COPY . .
 
-# Set proper permissions
+# Set proper permissions and create storage directories
 RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 755 /var/www/html/storage \
-    && chmod -R 755 /var/www/html/bootstrap/cache
+    && chmod -R 755 /var/www/html/bootstrap/cache \
+    && mkdir -p /var/www/html/storage/app/public/profile-photos \
+    && mkdir -p /var/www/html/storage/app/public/profile-videos \
+    && mkdir -p /var/www/html/storage/app/public/temp \
+    && chown -R www-data:www-data /var/www/html/storage \
+    && chmod -R 775 /var/www/html/storage
 
 # Install PHP dependencies
 RUN composer install --no-dev --optimize-autoloader --no-interaction

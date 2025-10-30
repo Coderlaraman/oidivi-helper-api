@@ -38,6 +38,8 @@ services:
       (ls database/migrations/*_create_jobs_table.php >/dev/null 2>&1 || php artisan queue:table || true) && 
       (ls database/migrations/*_create_failed_jobs_table.php >/dev/null 2>&1 || php artisan queue:failed-table || true) && 
       php artisan migrate --force && 
+      php artisan storage:link --force &&
+      /var/www/html/docker/scripts/init-storage.sh &&
       /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf"
     restart: unless-stopped
 
