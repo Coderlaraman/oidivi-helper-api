@@ -3,6 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    container_name: oidivi-helper-api
     ports:
       - "8000:80"
       - "6001:6001"
@@ -34,6 +35,7 @@ services:
 
   mysql:
     image: mysql:8.0
+    container_name: oidivi-helper-mysql
     environment:
       MYSQL_DATABASE: ${DB_DATABASE}
       MYSQL_USER: ${DB_USERNAME}

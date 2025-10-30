@@ -3,6 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.dev
+    container_name: oidivi-helper-api-dev
     ports:
       - "8000:80"    # Nginx HTTP
       - "8080:8080"  # Reverb WS (dev)
@@ -19,10 +20,13 @@ services:
       DB_PASSWORD: secret
       # Prefer DB/file-backed drivers for parity without Redis
       CACHE_DRIVER: file
-      SESSION_DRIVER: file
+      SESSION_DRIVER: database
       QUEUE_CONNECTION: database
     volumes:
-      - ./:/var/www/html
+      # Volumen persistente para storage (archivos subidos)
+      - storage_data:/var/www/html/storage/app/public
+      # Volumen para logs (opcional, para debugging)
+      - logs_data:/var/www/html/storage/logs
     depends_on:
       mysql:
         condition: service_healthy
@@ -30,21 +34,27 @@ services:
       default:
         aliases:
           - oidivi-helper-api
-    command: >-
-      sh -lc "composer install --no-interaction && 
-      chown -R www-data:www-data storage bootstrap/cache && chmod -R 775 storage bootstrap/cache && 
-      (php artisan key:generate --force || true) && 
-      (ls database/migrations/*_create_sessions_table.php >/dev/null 2>&1 || php artisan session:table || true) && 
-      (ls database/migrations/*_create_jobs_table.php >/dev/null 2>&1 || php artisan queue:table || true) && 
-      (ls database/migrations/*_create_failed_jobs_table.php >/dev/null 2>&1 || php artisan queue:failed-table || true) && 
-      php artisan migrate --force && 
-      php artisan storage:link --force &&
-      /var/www/html/docker/scripts/init-storage.sh &&
-      /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf"
+    # Ejecutar script de inicialización después del arranque
+    command: >
+      sh -c "
+        # Instalar dependencias de Composer
+        composer install &&
+        # Configurar permisos
+        chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache &&
+        chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache &&
+        # Ejecutar migraciones y seeders
+        php artisan migrate --force &&
+        php artisan db:seed --force &&
+        # Ejecutar script de inicialización
+        /var/www/html/docker/scripts/init-storage.sh &&
+        # Iniciar supervisor
+        /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
+      "
     restart: unless-stopped
 
   mysql:
     image: mysql:8.0
+    container_name: oidivi-helper-mysql-dev
     environment:
       MYSQL_DATABASE: oidivi_helper
       MYSQL_USER: oidivi_user
@@ -65,6 +75,9 @@ services:
 
 volumes:
   mysql_data:
+  # Volúmenes para archivos persistentes
+  storage_data:
+  logs_data:
 
 networks:
   default:
